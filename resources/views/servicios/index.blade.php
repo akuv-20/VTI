@@ -38,7 +38,7 @@
                 <tr>
                     <td>{{ $servicio->codigo_servicio }}</td>
                     <td>{{ $servicio->familia->nombre }}</td>
-                    <td>{{ $servicio->empresa }}</td>
+                    <td>{{ $servicio->empresa->nombre}}</td>
                     <td>{{ $servicio->compania }}</td>
                     <td>{{ $servicio->servicio }}</td>
                     <td>{{ $servicio->fecha_facturacion }}</td>

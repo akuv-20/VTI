@@ -18,19 +18,24 @@
             <label for="id_familia">Seleccionar Familia</label>
             <select class="form-select" name="id_familia" id="id_familia" required>
                 @foreach ($familias as $familia)
-                    <option value="{{ $familia->id }}" {{ $servicio->id_famila == $familia->id ? 'selected' : '' }}>
-                        {{ $familia->nombre }}
-                    </option>
+                    <option value="{{ $familia->id }}" {{ $servicio->id_familia == $familia->id ? 'selected' : '' }}> {{ $familia->nombre }} </option>
                 @endforeach
             </select>
         </div>
 
 
-    
-        <div class="">
-            <label for="empresa" class="form-label">Empresa:</label>
-            <input type="text" name="empresa" id="empresa" class="form-control" value="{{ $servicio->empresa }}" required>
+        <div>
+            <label for="id_empresa">Seleccionar Empresa</label>
+            <select class="form-select" name="id_empresa" id="id_empresa" required>
+                @foreach ($empresas as $empresa)
+                    <option value="{{ $empresa->id }}" {{ $servicio->id_empresa == $empresa->id ? 'selected' : '' }}>
+                        {{ $empresa->nombre }}
+                    </option>
+                @endforeach
+            </select>
         </div>
+
+    
         <div class="">
             <label for="compania" class="form-label">Compañía:</label>
             <input type="text" name="compania" id="compania" class="form-control" value="{{ $servicio->compania }}" required>

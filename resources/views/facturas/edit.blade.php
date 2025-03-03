@@ -14,7 +14,7 @@
             <select class="form-select" name="id_servicio" id="id_servicio" required>
                 @foreach ($servicios as $servicio)
                     <option value="{{ $servicio->id }}" {{ $factura->id_servicio == $servicio->id ? 'selected' : '' }}>
-                        {{ $servicio->servicio }} - {{ $servicio->concepto }} - {{ $servicio->empresa }}
+                        {{ $servicio->servicio }} - {{ $servicio->concepto }} - {{ $servicio->empresa->nombre }}
                     </option>
                 @endforeach
             </select>

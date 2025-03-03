@@ -43,7 +43,7 @@
                                 <td>{{ $factura->servicio->concepto }}</td>
                                 <td>{{ $factura->fecha_emision }}</td>
                                 <td>{{ $factura->servicio->servicio }}</td>
-                                <td>{{ $factura->servicio->empresa }}</td>
+                                <td>{{ $factura->servicio->empresa->nombre }}</td>
                                 <td>${{ number_format($factura->valor_neto, 2) }}</td>
                                 <td>${{ number_format($factura->valor_iva, 2) }}</td>
                                 <td>{{ $factura->fecha_emision }}</td>

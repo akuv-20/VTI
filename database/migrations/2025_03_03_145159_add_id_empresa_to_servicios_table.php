@@ -9,15 +9,16 @@ return new class extends Migration
     public function up()
     {
         Schema::table('servicios', function (Blueprint $table) {
-            $table->foreignId('id_familia')->nullable()->constrained('familias')->onDelete('set null')->after('codigo_servicio');
+            $table->foreignId('id_empresa')->nullable()->constrained('empresas')->onDelete('set null')->after('codigo_servicio');
+            $table->dropColumn('empresa');
         });
     }
 
     public function down()
     {
         Schema::table('servicios', function (Blueprint $table) {
-            $table->dropForeign(['id_familia']);
-            $table->dropColumn('id_familia');
+            $table->dropForeign(['id_empresa']);
+            $table->dropColumn('id_empresa');
         });
     }
 };

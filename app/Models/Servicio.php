@@ -12,7 +12,7 @@ class Servicio extends Model
     protected $fillable = [
         'id_familia',
         'codigo_servicio',
-        'empresa',
+        'id_empresa',
         'compania',
         'servicio',
         'fecha_facturacion',
@@ -29,5 +29,11 @@ class Servicio extends Model
     public function familia()
     {
         return $this->belongsTo(Familia::class, 'id_familia');
+    }
+
+    // Relación inversa con Empresa
+    public function empresa()
+    {
+        return $this->belongsTo(Empresa::class, 'id_empresa');
     }
 }

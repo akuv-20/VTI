@@ -10,7 +10,7 @@
         @csrf
         <div>
             <label for="codigo_servicio" class="form-label"></label>
-            <input placeholder="Codigo de Servicio (Opcional)" type="text" name="codigo_servicio" id="codigo_servicio" class="form-control" required>
+            <input placeholder="Codigo de Servicio (Opcional)" type="text" name="codigo_servicio" id="codigo_servicio" class="form-control">
         </div>
 
       
@@ -26,19 +26,20 @@
                 @endforeach
             </select>
         </div>
-
-
         <br>
+        
         <div class="input-group">
             <div class="input-group-prepend">
-              <span class="input-group-text" id="empresa">Seleccionar Empresa</span>
+              <span class="input-group-text" id="id_empresa">Seleccionar Empresa</span>
             </div>
-            <select class="form-select" name="empresa" id="empresa" aria-label="Default select example" required>
+            <select class="form-select" name="id_empresa" id="id_empresa" aria-label="Default select example" required>
                 <option selected></option>
-                <option value="Sociedad Agricola El Porvenir">Sociedad Agricola El Porvenir</option>
-                <option value="Sociedad Exportadora Verfrut">Sociedad Exportadora Verfrut</option>
+                @foreach ($empresas as $empresa)
+                    <option value="{{ $empresa->id }}">{{ $empresa->nombre }}</option>
+                @endforeach
             </select>
         </div>
+
 
 
         

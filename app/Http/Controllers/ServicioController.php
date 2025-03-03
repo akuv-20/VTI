@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Servicio;
 use App\Models\Familia;
+use App\Models\Empresa;
 use Illuminate\Http\Request;
 
 class ServicioController extends Controller
@@ -26,7 +27,8 @@ class ServicioController extends Controller
     public function create()
     {
         $familias = Familia::all();
-        return view('servicios.create', compact('familias'));
+        $empresas = Empresa::all();
+        return view('servicios.create', compact('familias','empresas'));
     }
 
     // Guardar un nuevo servicio
@@ -35,15 +37,17 @@ class ServicioController extends Controller
         $validated = $request->validate([
             'codigo_servicio' => 'nullable|string',
             'id_familia' => 'required|exists:familias,id',
-            'empresa' => 'required|string',
+            'id_empresa' => 'required|exists:empresas,id',
             'compania' => 'required|string',
             'servicio' => 'required|string',
             'fecha_facturacion' => 'required|string',
             'concepto' => 'required|string',
         ]);
+        
+        
 
         Servicio::create($validated);
-
+    
         return redirect()->route('servicios.index')->with('success', 'Servicio creado exitosamente.');
     }
 
@@ -57,7 +61,8 @@ class ServicioController extends Controller
     public function edit(Servicio $servicio)
     {
         $familias = Familia::all();
-        return view('servicios.edit', compact('servicio','familias'));
+        $empresas = Empresa::all();
+        return view('servicios.edit', compact('servicio','familias','empresas'));
     }
 
     // Actualizar un servicio
@@ -66,7 +71,7 @@ class ServicioController extends Controller
         $validated = $request->validate([
             'codigo_servicio' => 'string',
             'id_familia' => 'required|exists:familias,id',
-            'empresa' => 'required|string',
+            'id_empresa' => 'required|exists:empresas,id',
             'compania' => 'required|string',
             'servicio' => 'required|string',
             'fecha_facturacion' => 'required|string',

@@ -44,6 +44,10 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('familias.index') }}">{{ __('Familias') }}</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('empresas.index') }}">{{ __('Empresas') }}</a>
+                            </li>
+                           
                         </ul>
                     @endguest
                     
@@ -84,6 +88,7 @@
                         @endguest
                     </ul>
                 </div>
+                
             </div>
         </nav>
 
