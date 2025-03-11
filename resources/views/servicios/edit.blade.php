@@ -35,11 +35,19 @@
             </select>
         </div>
 
-    
-        <div class="">
-            <label for="compania" class="form-label">Compañía:</label>
-            <input type="text" name="compania" id="compania" class="form-control" value="{{ $servicio->compania }}" required>
+
+        <div>
+            <label for="id_empresa">Seleccionar Compañia</label>
+            <select class="form-select" name="id_compania" id="id_compania" required>
+                @foreach ($companias as $compania)
+                    <option value="{{ $compania->id }}" {{ $servicio->id_compania == $compania->id ? 'selected' : '' }}>
+                        {{ $compania->nombre }}
+                    </option>
+                @endforeach
+            </select>
         </div>
+
+    
         <div class="">
             <label for="servicio" class="form-label">Servicio:</label>
             <input type="text" name="servicio" id="servicio" class="form-control" value="{{ $servicio->servicio }}" required>

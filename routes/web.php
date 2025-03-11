@@ -5,6 +5,7 @@ use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\ServicioController;
 use App\Http\Controllers\FamiliaController;
 use App\Http\Controllers\EmpresaController;
+use App\Http\Controllers\CompaniaController;
 
 // Route::get('/', function () {
 //     return view('home');
@@ -23,3 +24,5 @@ Route::resource('servicios', ServicioController::class);
 Route::resource('familias', FamiliaController::class);
 
 Route::resource('empresas', EmpresaController::class);
+
+Route::resource('companias', CompaniaController::class);

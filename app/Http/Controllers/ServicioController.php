@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Servicio;
 use App\Models\Familia;
 use App\Models\Empresa;
+use App\Models\Compania;
 use Illuminate\Http\Request;
 
 class ServicioController extends Controller
@@ -28,7 +29,8 @@ class ServicioController extends Controller
     {
         $familias = Familia::all();
         $empresas = Empresa::all();
-        return view('servicios.create', compact('familias','empresas'));
+        $companias = Compania::all();
+        return view('servicios.create', compact('familias','empresas','companias'));
     }
 
     // Guardar un nuevo servicio
@@ -38,7 +40,7 @@ class ServicioController extends Controller
             'codigo_servicio' => 'nullable|string',
             'id_familia' => 'required|exists:familias,id',
             'id_empresa' => 'required|exists:empresas,id',
-            'compania' => 'required|string',
+            'id_compania' => 'required|exists:companias,id',
             'servicio' => 'required|string',
             'fecha_facturacion' => 'required|string',
             'concepto' => 'required|string',
@@ -62,7 +64,8 @@ class ServicioController extends Controller
     {
         $familias = Familia::all();
         $empresas = Empresa::all();
-        return view('servicios.edit', compact('servicio','familias','empresas'));
+        $companias = Compania::all();
+        return view('servicios.edit', compact('servicio','familias','empresas','companias'));
     }
 
     // Actualizar un servicio
@@ -72,7 +75,7 @@ class ServicioController extends Controller
             'codigo_servicio' => 'string',
             'id_familia' => 'required|exists:familias,id',
             'id_empresa' => 'required|exists:empresas,id',
-            'compania' => 'required|string',
+            'id_compania' => 'required|exists:companias,id',
             'servicio' => 'required|string',
             'fecha_facturacion' => 'required|string',
             'concepto' => 'required|string',

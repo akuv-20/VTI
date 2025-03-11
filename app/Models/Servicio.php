@@ -13,7 +13,7 @@ class Servicio extends Model
         'id_familia',
         'codigo_servicio',
         'id_empresa',
-        'compania',
+        'id_compania',
         'servicio',
         'fecha_facturacion',
         'concepto',
@@ -35,5 +35,10 @@ class Servicio extends Model
     public function empresa()
     {
         return $this->belongsTo(Empresa::class, 'id_empresa');
+    }
+    // Relación inversa con Compania
+    public function compania()
+    {
+        return $this->belongsTo(Compania::class, 'id_compania');
     }
 }

@@ -40,27 +40,18 @@
             </select>
         </div>
 
-
-
-        
         <br>
         <div class="input-group">
             <div class="input-group-prepend">
-              <span class="input-group-text" id="compania">Seleccionar Compañia</span>
+              <span class="input-group-text" id="id_compania">Seleccionar Compañia</span>
             </div>
-            <select class="form-select" name="compania" id="compania" aria-label="Default select example" required>
+            <select class="form-select" name="id_compania" id="id_compania" aria-label="Default select example" required>
                 <option selected></option>
-                <option value="Entel">Entel</option>
-                <option value="Movistar">Movistar</option>
-                <option value="WOM">WOM</option>
-                <option value="TIBOX">TIBOX</option>
-                <option value="Starlink">Starlink</option>
-                <option value="Accesnet">Accesnet</option>
-                <option value="Intersur">Intersur</option>
-                <option value="Pretorian">Pretorian</option>
+                @foreach ($companias as $compania)
+                    <option value="{{ $compania->id }}">{{ $compania->nombre }}</option>
+                @endforeach
             </select>
         </div>
-
 
        
         <br>
