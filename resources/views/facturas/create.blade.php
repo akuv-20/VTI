@@ -16,7 +16,7 @@
                     <select class="form-select" name="id_servicio" id="id_servicio" required>
                         <option selected>Seleccionar Servicio</option>
                         @foreach ($servicios as $servicio)
-                            <option value="{{ $servicio->id }}">{{ $servicio->servicio }} - {{ $servicio->concepto }} - {{ $servicio->empresa }}</option>
+                            <option value="{{ $servicio->id }}">{{ $servicio->servicio }} - {{ $servicio->concepto }} - {{ $servicio->empresa->nombre }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -66,6 +66,7 @@
                     // Asignar el resultado al campo "valor_iva"
                     document.getElementById('valor_iva').value = valorIVA.toFixed(2); // Redondear a 2 decimales
                 }
+
             </script>
 
         </div>

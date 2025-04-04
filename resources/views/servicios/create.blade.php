@@ -8,6 +8,12 @@
             <div class="col-md-6">
     <form action="{{ route('servicios.store') }}" method="POST">
         @csrf
+
+        <div>
+            <label for="servicio" class="form-label"></label>
+            <input placeholder="Nombre del servicio" type="text" name="servicio" id="servicio" class="form-control">
+        </div>
+        
         <div>
             <label for="codigo_servicio" class="form-label"></label>
             <input placeholder="Codigo de Servicio (Opcional)" type="text" name="codigo_servicio" id="codigo_servicio" class="form-control">
@@ -54,10 +60,13 @@
         </div>
 
        
-        <br>
-        <div class="input-group">
+        
+
+       
+
+        {{-- <div class="input-group">
             <div class="input-group-prepend">
-              <span class="input-group-text" id="servicio">Seleccionar Servicio</span>
+              <span class="input-group-text" id="servicio">Nombre Servicio</span>
             </div>
             <select class="form-select" name="servicio" id="servicio" aria-label="Default select example" required>
                 <option selected></option>
@@ -66,7 +75,7 @@
                 <option value="Telefonia Movil">Telefonia Movil</option>
                 <option value="Compra de Switch Rapel">Compra de Switch Rapel</option>
             </select>
-        </div>
+        </div> --}}
 
         
 
@@ -91,7 +100,7 @@
 
         <div class="">
             <label for="concepto" class="form-label"></label>
-            <textarea placeholder="Concepto" name="concepto" id="concepto" class="form-control" required></textarea>
+            <textarea placeholder="Concepto (Descripcion del servicio)" name="concepto" id="concepto" class="form-control" required></textarea>
         </div>
 
 

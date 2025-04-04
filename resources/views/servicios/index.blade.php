@@ -23,11 +23,11 @@
     <table class="table table-striped">
         <thead>
             <tr>
-                <th>Codigo de Servicio</th>
-                <th>Familia</th>
                 <th>Empresa</th>
-                <th>Compañía</th>
+                <th>Codigo de Servicio</th>
                 <th>Servicio</th>
+                <th>Compañía</th>
+                <th>Familia</th>
                 <th>Fecha Facturación</th>
                 <th>Concepto</th>
                 <th>Acciones</th>
@@ -36,11 +36,11 @@
         <tbody>
             @foreach ($servicios as $servicio)
                 <tr>
-                    <td>{{ $servicio->codigo_servicio }}</td>
-                    <td>{{ $servicio->familia->nombre }}</td>
                     <td>{{ $servicio->empresa->nombre}}</td>
-                    <td>{{ $servicio->compania->nombre }}</td>
+                    <td>{{ $servicio->codigo_servicio }}</td>
                     <td>{{ $servicio->servicio }}</td>
+                    <td>{{ $servicio->compania->nombre }}</td>
+                    <td>{{ $servicio->familia->nombre }}</td>
                     <td>{{ $servicio->fecha_facturacion }}</td>
                     <td>{{ $servicio->concepto }}</td>
                     <td>
