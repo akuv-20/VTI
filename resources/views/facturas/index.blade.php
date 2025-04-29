@@ -7,7 +7,7 @@
     <div class="container text-center">
         <div class="row">
           <div class="col">
-            Column
+            
           </div>
           <div class="col">
             <a style="font-size: 18px" href="{{ route('facturas.create') }}" class="btn btn-primary mb-3">Registrar Nueva Factura</a>
