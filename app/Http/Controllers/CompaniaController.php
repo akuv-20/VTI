@@ -7,6 +7,10 @@ use Illuminate\Http\Request;
 
 class CompaniaController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
     // Mostrar todas las compañías
     public function index()
     {
