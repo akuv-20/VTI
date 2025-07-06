@@ -67,7 +67,20 @@
                 @endforeach
             </select>
         </div>
+<br>
 
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <span class="input-group-text" id="id_cuenta_contable">Seleccionar Cuenta Contable</span>
+              </div>
+            <select class="form-select" name="id_cuenta_contable" id="id_cuenta_contable" required>
+                @foreach ($cuentasContables as $cuentaContable)
+                    <option value="{{ $cuentaContable->id }}" {{ $servicio->numero_cuenta == $cuentaContable->id ? 'selected' : '' }}>
+                        {{ $cuentaContable->nombre_cuenta }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
     
        
         <br>

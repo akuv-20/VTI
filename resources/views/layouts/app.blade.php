@@ -19,7 +19,7 @@
 <body>
     <div id="app">
         <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
-            <div class="container">
+            <div class="container-fluid">
                 <a class="navbar-brand" href="{{ url('/home') }}">
                     {{ config('app.name', 'Laravel') }}
                 </a>
@@ -49,6 +49,9 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('companias.index') }}">{{ __('Compañias') }}</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('cuentas_contables.index') }}">{{ __('CC') }}</a>
                             </li>
                         </ul>
                     @endguest

@@ -14,6 +14,7 @@ class Servicio extends Model
         'codigo_servicio',
         'id_empresa',
         'id_compania',
+        'id_cuenta_contable',
         'servicio',
         'fecha_facturacion',
         'concepto',
@@ -41,4 +42,9 @@ class Servicio extends Model
     {
         return $this->belongsTo(Compania::class, 'id_compania');
     }
+     // Relación inversa con CuentaContable
+     public function cuentaContable()
+     {
+         return $this->belongsTo(CuentaContable::class, 'id_cuenta_contable');
+     }
 }

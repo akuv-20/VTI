@@ -6,6 +6,7 @@ use App\Http\Controllers\ServicioController;
 use App\Http\Controllers\FamiliaController;
 use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\CompaniaController;
+use App\Http\Controllers\CuentaContableController;
 
 // Route::get('/', function () {
 //     return view('home');
@@ -26,3 +27,5 @@ Route::resource('familias', FamiliaController::class);
 Route::resource('empresas', EmpresaController::class);
 
 Route::resource('companias', CompaniaController::class);
+
+Route::resource('cuentas_contables', CuentaContableController::class); // ¡Añade esta línea!

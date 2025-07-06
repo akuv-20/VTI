@@ -6,6 +6,7 @@ use App\Models\Servicio;
 use App\Models\Familia;
 use App\Models\Empresa;
 use App\Models\Compania;
+use App\Models\CuentaContable;
 use Illuminate\Http\Request;
 
 class ServicioController extends Controller
@@ -20,7 +21,7 @@ class ServicioController extends Controller
     public function index()
     {
         // $servicios = Servicio::all();
-        $servicios = Servicio::with('familia')->get();
+        $servicios = Servicio::with('familia', 'empresa', 'compania', 'cuentaContable')->get();
         return view('servicios.index', compact('servicios'));
     }
 
@@ -30,7 +31,8 @@ class ServicioController extends Controller
         $familias = Familia::all();
         $empresas = Empresa::all();
         $companias = Compania::all();
-        return view('servicios.create', compact('familias','empresas','companias'));
+        $cuentasContables = CuentaContable::all();
+        return view('servicios.create', compact('familias','empresas','companias','cuentasContables'));
     }
 
     // Guardar un nuevo servicio
@@ -41,6 +43,7 @@ class ServicioController extends Controller
             'id_familia' => 'required|exists:familias,id',
             'id_empresa' => 'required|exists:empresas,id',
             'id_compania' => 'required|exists:companias,id',
+            'id_cuenta_contable' => 'required|exists:cuentas_contables,id',
             'servicio' => 'required|string',
             'fecha_facturacion' => 'required|string',
             'concepto' => 'required|string',
@@ -65,7 +68,8 @@ class ServicioController extends Controller
         $familias = Familia::all();
         $empresas = Empresa::all();
         $companias = Compania::all();
-        return view('servicios.edit', compact('servicio','familias','empresas','companias'));
+        $cuentasContables = CuentaContable::all();
+        return view('servicios.edit', compact('servicio','familias','empresas','companias','cuentasContables'));
     }
 
     // Actualizar un servicio
@@ -76,6 +80,7 @@ class ServicioController extends Controller
             'id_familia' => 'required|exists:familias,id',
             'id_empresa' => 'required|exists:empresas,id',
             'id_compania' => 'required|exists:companias,id',
+            'id_cuenta_contable' => 'required|exists:cuentas_contables,id',
             'servicio' => 'required|string',
             'fecha_facturacion' => 'required|string',
             'concepto' => 'required|string',

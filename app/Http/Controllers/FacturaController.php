@@ -18,7 +18,7 @@ class FacturaController extends Controller
      */
     public function index()
     {
-        $facturas = Factura::with('servicio')->get(); // Cargar datos relacionados
+        $facturas = Factura::with('servicio')->paginate(10); // Cargar datos relacionados
         return view('facturas.index', compact('facturas'));
     }
 

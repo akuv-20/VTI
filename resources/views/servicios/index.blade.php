@@ -4,7 +4,7 @@
 @section('content')
 
     
-    <div class="container text-center">
+    <div class="container-fluid text-center">
         <div class="row">
             <div class="col">
             </div>
@@ -17,7 +17,7 @@
         </div>
     </div>
 
-    <div class="container">
+    <div class="container-fluid">
         <div class="row justify-content-center">
             <div class="col-md-12">
     <table class="table table-striped">
@@ -30,6 +30,8 @@
                 <th>Familia</th>
                 <th>Fecha Facturación</th>
                 <th>Concepto</th>
+                <th>ID C.C.</th>
+                <th>Nombre C.C.</th>
                 <th>Acciones</th>
             </tr>
         </thead>
@@ -43,6 +45,8 @@
                     <td>{{ $servicio->familia->nombre }}</td>
                     <td>{{ $servicio->fecha_facturacion }}</td>
                     <td>{{ $servicio->concepto }}</td>
+                    <td>{{ $servicio->cuentaContable->numero_cuenta }}</td>
+                    <td>{{ $servicio->cuentaContable->nombre_cuenta }}</td>
                     <td>
                         <a href="{{ route('servicios.edit', $servicio->id) }}" class="btn btn-warning">Editar</a>
                         <form action="{{ route('servicios.destroy', $servicio->id) }}" method="POST" style="display:inline;">

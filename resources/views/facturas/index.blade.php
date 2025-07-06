@@ -18,7 +18,7 @@
         </div>
       </div>
     
-    <div class="container">
+    <div class="container-fluid">
         <div class="row justify-content-center">
             <div class="col-md-12">
                 <table id="facturas-table" class="table table-striped">
@@ -33,6 +33,8 @@
                             <th>Valor IVA</th>
                             <th>Fecha Emisión</th>
                             <th>Descripcion</th>
+                            <th>Numero CC</th>
+                            <th>Nombre CC</th>
                             <th>Acciónes</th>
                         </tr>
                     </thead>
@@ -48,6 +50,8 @@
                                 <td>${{ number_format($factura->valor_iva, 2) }}</td>
                                 <td>{{ $factura->fecha_emision }}</td>
                                 <td>{{ $factura->descripcion }}</td>
+                                <td>{{ $factura->servicio->cuentaContable->numero_cuenta }}</td>
+                                <td>{{ $factura->servicio->cuentaContable->nombre_cuenta }}</td>
                                 <td>
                                     <a href="{{ route('facturas.edit', $factura->id) }}" class="btn btn-warning">Editar</a>
                                     <form action="{{ route('facturas.destroy', $factura->id) }}" method="POST" style="display:inline;">
@@ -61,24 +65,29 @@
                         @endforeach
                     </tbody>
                 </table>
-                <script>
-                    $(document).ready(function () {
-                        $('#facturas-table').DataTable({
-                            language: {
-                                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' // Traducción al español
-                            },
-                            columnDefs: [
-                                { orderable: false, targets: 5 } // Desactivar ordenamiento en la columna "Acciones"
-                            ]
-                        });
-                    });
-                </script>
+                <div class="d-flex justify-content-center">
+                    {{ $facturas->links() }}
+                </div>
             </div>
         </div>
     </div>
     
 @endsection
-
 @section('scripts')
-
+    <script>
+        $(document).ready(function () {
+            // Desactiva la inicialización de DataTables si estás usando paginación de Laravel
+            // Si necesitas DataTables para búsqueda/ordenación en la página actual, déjalo.
+            // Si quieres que DataTables gestione toda la paginación, no uses paginate() en el controlador.
+            // Para paginación de Laravel, es mejor quitar DataTables si no se va a usar su AJAX.
+            // $('#facturas-table').DataTable({
+            //     language: {
+            //         url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' // Traducción al español
+            //     },
+            //     columnDefs: [
+            //         { orderable: false, targets: 5 } // Desactivar ordenamiento en la columna \"Acciones\"
+            //     ]
+            // });
+        });
+    </script>
 @endsection
