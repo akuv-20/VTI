@@ -62,9 +62,9 @@
 
         <div class="input-group">
             <div class="input-group-prepend">
-              <span class="input-group-text" id="id_cuentaContable">Seleccionar Cuenta Contable</span>
+              <span class="input-group-text" id="id_cuenta_contable">Seleccionar Cuenta Contable</span>
             </div>
-            <select class="form-select" name="id_cuentaContable" id="id_cuentaContable" aria-label="Default select example" required>
+            <select class="form-select" name="id_cuenta_contable" id="id_cuenta_contable" aria-label="Default select example" required>
                 <option selected></option>
                 @foreach ($cuentasContables as $cuentaContable)
                     <option value="{{ $cuentaContable->id }}">{{ $cuentaContable->numero_cuenta }} - {{ $cuentaContable->nombre_cuenta }}</option>
