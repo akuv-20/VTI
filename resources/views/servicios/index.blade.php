@@ -48,7 +48,13 @@
                     <td>{{ $servicio->concepto }}</td>
                     <td>{{ $servicio->cuentaContable->numero_cuenta }}</td>
                     <td>{{ $servicio->cuentaContable->nombre_cuenta }}</td>
-                    <td>{{ $servicio->es_periodico ? 'Sí' : 'No' }}</td>
+                    <td>
+                    @if ($servicio->es_periodico)
+                        <span class="text-success">Si</span>
+                    @else
+                        <span class="text-danger">No</span>
+                    @endif
+                    </td>
                     <td>
                         <a href="{{ route('servicios.edit', $servicio->id) }}" class="btn btn-warning">Editar</a>
                         <form action="{{ route('servicios.destroy', $servicio->id) }}" method="POST" style="display:inline;">
