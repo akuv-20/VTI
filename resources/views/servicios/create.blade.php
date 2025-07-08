@@ -116,7 +116,12 @@
             <textarea placeholder="Concepto (Descripcion del servicio)" name="concepto" id="concepto" class="form-control" required></textarea>
         </div>
 
-
+        <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" name="es_periodico" id="es_periodico" value="1">
+            <label class="form-check-label" for="es_periodico">
+                ¿Es periódico?
+            </label>
+        </div>
 
         <div>
             <br>

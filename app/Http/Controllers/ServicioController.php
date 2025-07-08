@@ -47,9 +47,10 @@ class ServicioController extends Controller
             'servicio' => 'required|string',
             'fecha_facturacion' => 'required|string',
             'concepto' => 'required|string',
+            'es_periodico' => 'boolean',
         ]);
         
-        
+        $validated['es_periodico'] = $request->has('es_periodico');
 
         Servicio::create($validated);
     
@@ -84,8 +85,11 @@ class ServicioController extends Controller
             'servicio' => 'required|string',
             'fecha_facturacion' => 'required|string',
             'concepto' => 'required|string',
+            'es_periodico' => 'boolean',
         ]);
 
+        $validated['es_periodico'] = $request->has('es_periodico');
+        
         $servicio->update($validated);
 
         return redirect()->route('servicios.index')->with('success', 'Servicio actualizado exitosamente.');

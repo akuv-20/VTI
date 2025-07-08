@@ -27,7 +27,7 @@ class HomeController extends Controller
      */
     public function index(Request $request) // Recibir la instancia de Request
     {
-        $servicios = Servicio::with(['familia', 'empresa', 'compania', 'facturas'])->get();
+        $servicios = Servicio::with(['familia', 'empresa', 'compania', 'facturas'])->where('es_periodico',true)->get();
 
         // Establecer el locale para Carbon para nombres de meses en español
         Carbon::setLocale('es');

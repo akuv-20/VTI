@@ -18,6 +18,7 @@ class Servicio extends Model
         'servicio',
         'fecha_facturacion',
         'concepto',
+        'es_periodico',
     ];
 
     // Relación uno a muchos con Factura

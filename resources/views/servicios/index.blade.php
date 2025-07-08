@@ -32,6 +32,7 @@
                 <th>Concepto</th>
                 <th>ID C.C.</th>
                 <th>Nombre C.C.</th>
+                <th>¿Es Periódico?</th> 
                 <th>Acciones</th>
             </tr>
         </thead>
@@ -47,6 +48,7 @@
                     <td>{{ $servicio->concepto }}</td>
                     <td>{{ $servicio->cuentaContable->numero_cuenta }}</td>
                     <td>{{ $servicio->cuentaContable->nombre_cuenta }}</td>
+                    <td>{{ $servicio->es_periodico ? 'Sí' : 'No' }}</td>
                     <td>
                         <a href="{{ route('servicios.edit', $servicio->id) }}" class="btn btn-warning">Editar</a>
                         <form action="{{ route('servicios.destroy', $servicio->id) }}" method="POST" style="display:inline;">

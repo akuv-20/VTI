@@ -97,6 +97,12 @@
               </div>
             <textarea name="concepto" id="concepto" class="form-control" required>{{ $servicio->concepto }}</textarea>
         </div>
+        <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" name="es_periodico" id="es_periodico" value="1" {{ $servicio->es_periodico ? 'checked' : '' }}>
+            <label class="form-check-label" for="es_periodico">
+                ¿Es periódico?
+            </label>
+        </div>
         <div>
             <br>
             <button class="btn btn-success form-control" type="submit">Guardar</button>
