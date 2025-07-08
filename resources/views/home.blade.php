@@ -43,7 +43,7 @@
             {{-- Tarjeta para el Mes Seleccionado (antes "Mes Actual") --}}
             <div class="card mb-4">
                 <div class="card-header">
-                    <h3 class="mb-0">{{ __('Estado de Facturas Pendientes') }} - {{ \Carbon\Carbon::createFromDate($anioParaTablaActual, $mesParaTablaActual)->translatedFormat('F Y') }}</h3>
+                    <h3 class="mb-0">{{ __('Estado de Facturas') }} - {{ \Carbon\Carbon::createFromDate($anioParaTablaActual, $mesParaTablaActual)->translatedFormat('F Y') }}</h3>
                 </div>
 
                 <div class="card-body">
@@ -59,7 +59,7 @@
                         </div>
                     @else
                         <div class="table-responsive">
-                            <table class="table table-striped table-hover">
+                            <table class="table table-striped table-hover table-sm">
                                 <thead class="table-dark">
                                     <tr>
                                         <th>Empresa</th>
@@ -97,7 +97,7 @@
             {{-- Tarjeta para el Mes Anterior al Seleccionado --}}
             <div class="card">
                 <div class="card-header">
-                    <h3 class="mb-0">{{ __('Estado de Facturas Pendientes') }} - {{ \Carbon\Carbon::createFromDate($anioParaTablaAnterior, $mesParaTablaAnterior)->translatedFormat('F Y') }}</h3>
+                    <h3 class="mb-0">{{ __('Estado de Facturas') }} - {{ \Carbon\Carbon::createFromDate($anioParaTablaAnterior, $mesParaTablaAnterior)->translatedFormat('F Y') }}</h3>
                 </div>
 
                 <div class="card-body">
@@ -107,7 +107,7 @@
                         </div>
                     @else
                         <div class="table-responsive">
-                            <table class="table table-striped table-hover">
+                            <table class="table table-striped table-hover table-sm">
                                 <thead class="table-dark">
                                     <tr>
                                         <th>Empresa</th>

@@ -16,9 +16,22 @@ class FacturaController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $facturas = Factura::with('servicio')->paginate(10); // Cargar datos relacionados
+        $query = Factura::with('servicio');
+
+        if ($request->filled('buscar')) {
+            $busqueda = $request->input('buscar');
+            $query->where(function ($q) use ($busqueda) {
+                $q->where('factura', 'like', "%$busqueda%")
+                  ->orWhere('descripcion', 'like', "%$busqueda%")
+                  ->orWhereHas('servicio.compania', function ($q2) use ($busqueda) {
+                      $q2->where('nombre', 'like', "%$busqueda%");
+                  });
+            });
+        }
+    
+        $facturas = $query->paginate(10);
         return view('facturas.index', compact('facturas'));
     }
 

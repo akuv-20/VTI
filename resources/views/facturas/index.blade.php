@@ -13,18 +13,30 @@
             <a style="font-size: 18px" href="{{ route('facturas.create') }}" class="btn btn-primary mb-3">Registrar Nueva Factura</a>
           </div>
           <div class="col">
-            {{-- <a href="{{ route('servicios.index') }}" class="btn btn-success mb-3">Ir a Servicios</a> --}}
+            <form method="GET" action="{{ route('facturas.index') }}">
+                <div class="row">
+                    <div class="col">
+                        <input class="form-control" type="text" name="buscar" value="{{ request('buscar') }}" placeholder="Factura, descripción o compañía">
+                    </div>
+                    <div class="col">
+                        <button class="form-control btn btn-success" type="submit">Buscar</button>
+                    </div>
+                </div>
+            </form>
           </div>
         </div>
       </div>
     
+
+
     <div class="container-fluid">
         <div class="row justify-content-center">
             <div class="col-md-12">
-                <table id="facturas-table" class="table table-striped table-sm">
+                <table id="facturas-table" class="table table-striped table-sm table-hover">
                     <thead>
                         <tr>
                             <th>Número de Factura</th>
+                            <th>Compañia</th>
                             <th>Concepto</th>
                             <th>Fecha Emisión</th>
                             <th>Servicio</th>
@@ -42,6 +54,7 @@
                         @foreach ($facturas as $factura)
                             <tr>
                                 <td>{{ $factura->factura }}</td>
+                                <td>{{ $factura->servicio->compania->nombre }}</td>
                                 <td>{{ $factura->servicio->concepto }}</td>
                                 <td>{{ $factura->fecha_emision }}</td>
                                 <td>{{ $factura->servicio->servicio }}</td>
