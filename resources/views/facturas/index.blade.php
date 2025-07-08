@@ -21,7 +21,7 @@
     <div class="container-fluid">
         <div class="row justify-content-center">
             <div class="col-md-12">
-                <table id="facturas-table" class="table table-striped">
+                <table id="facturas-table" class="table table-striped table-sm">
                     <thead>
                         <tr>
                             <th>Número de Factura</th>

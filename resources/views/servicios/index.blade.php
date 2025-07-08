@@ -20,9 +20,10 @@
     <div class="container-fluid">
         <div class="row justify-content-center">
             <div class="col-md-12">
-    <table class="table table-striped">
+    <table class="table table-striped table-sm table-hover">
         <thead>
             <tr>
+                <th>ID</th>
                 <th>Empresa</th>
                 <th>Codigo de Servicio</th>
                 <th>Servicio</th>
@@ -39,6 +40,7 @@
         <tbody>
             @foreach ($servicios as $servicio)
                 <tr>
+                    <td>{{ $servicio->id}}</td>
                     <td>{{ $servicio->empresa->nombre}}</td>
                     <td>{{ $servicio->codigo_servicio }}</td>
                     <td>{{ $servicio->servicio }}</td>
