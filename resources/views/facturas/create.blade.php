@@ -12,11 +12,10 @@
             <form action="{{ route('facturas.store') }}" method="POST">
                 @csrf
                 <div>
-                    <label for="id_servicio"></label>
                     <select class="form-select" name="id_servicio" id="id_servicio" required>
                         <option selected>Seleccionar Servicio</option>
                         @foreach ($servicios as $servicio)
-                            <option value="{{ $servicio->id }}">{{ $servicio->codigo_servicio }} - {{ $servicio->servicio }} - {{ $servicio->concepto }} - {{ $servicio->empresa->nombre }}</option>
+                            <option value="{{ $servicio->id }}">{{ $servicio->codigo_servicio }} - {{ $servicio->compania->nombre }} - {{ $servicio->concepto }} - {{ $servicio->empresa->nombre }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -28,17 +27,17 @@
 
                 <div>
                     <label for="oc"></label>
-                    <input placeholder="Número de OC" class="form-control" type="text" name="oc" id="oc" required>
+                    <input placeholder="Número de OC" class="form-control" type="text" name="oc" id="oc">
                 </div>
         
                 <div>
                     <label for="valor_neto"></label>
-                    <input placeholder="Valor Neto" class="form-control" step="0.01" type="number" name="valor_neto" id="valor_neto" required oninput="calcularIVA()">
+                    <input placeholder="Valor Neto" class="form-control" step="0" type="number" name="valor_neto" id="valor_neto" required oninput="calcularIVA()">
                 </div>
         
                 <div>
                     <label for="valor_iva"></label>
-                    <input placeholder="Valor IVA" class="form-control" step="0.01" type="number" name="valor_iva" id="valor_iva" required readonly>
+                    <input placeholder="Valor IVA" class="form-control" step="0" type="number" name="valor_iva" id="valor_iva" required readonly>
                 </div>
         
                 <div>
@@ -59,8 +58,10 @@
                     <a href="{{ route('facturas.index') }}" class="btn btn-danger form-control mb-3">Cancelar</a>
                 </div>
             </form>
-
+            <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
             <script>
+                
                 function calcularIVA() {
                     // Obtener el valor del campo "valor_neto"
                     const valorNeto = document.getElementById('valor_neto').value;
@@ -69,8 +70,15 @@
                     const valorIVA = valorNeto * 1.19;
         
                     // Asignar el resultado al campo "valor_iva"
-                    document.getElementById('valor_iva').value = valorIVA.toFixed(2); // Redondear a 2 decimales
+                    document.getElementById('valor_iva').value = valorIVA.toFixed(0); // Redondear a 2 decimales
                 }
+
+                $(document).ready(function() {
+                    $('#id_servicio').select2({
+                        placeholder: "Seleccione un servicio",
+                        allowClear: true
+                    });
+                });
 
             </script>
 
