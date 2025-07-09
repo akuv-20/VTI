@@ -77,7 +77,7 @@ class ServicioController extends Controller
     public function update(Request $request, Servicio $servicio)
     {
         $validated = $request->validate([
-            'codigo_servicio' => 'string',
+            'codigo_servicio' => 'nullable|string',
             'id_familia' => 'required|exists:familias,id',
             'id_empresa' => 'required|exists:empresas,id',
             'id_compania' => 'required|exists:companias,id',
