@@ -11,6 +11,7 @@ class Factura extends Model
 
     protected $fillable = [
         'factura',
+        'oc',
         'valor_neto',
         'valor_iva',
         'fecha_emision',

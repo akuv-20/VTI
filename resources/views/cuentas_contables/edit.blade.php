@@ -5,16 +5,16 @@
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-6">
-    <form action="{{ route('cuentas_contables.update', $cuentaContable->id) }}" method="POST">
+    <form action="{{ route('cuentas_contables.update', $cuentas_contable->id) }}" method="POST">
         @csrf
         @method('PUT')
         <div class="mb-3">
-            <label for="nombre" class="form-label">Nombre:</label>
-            <input type="text" name="nombre" id="nombre" class="form-control" value="{{ $cuentaContable->nombre }}" required>
+            <label for="nombre_cuenta" class="form-label">Nombre:</label>
+            <input type="text" name="nombre_cuenta" id="nombre_cuenta" class="form-control" value="{{ $cuentas_contable->nombre_cuenta }}" required>
         </div>
         <div class="mb-3"> {{-- ¡CAMBIO AQUI! --}}
             <label for="numero_cuenta" class="form-label">Número de Cuenta:</label> {{-- ¡CAMBIO AQUI! --}}
-            <input type="text" name="numero_cuenta" id="numero_cuenta" class="form-control" value="{{ $cuentaContable->numero_cuenta }}" required> {{-- ¡CAMBIO AQUI! --}}
+            <input type="text" name="numero_cuenta" id="numero_cuenta" class="form-control" value="{{ $cuentas_contable->numero_cuenta }}" required> {{-- ¡CAMBIO AQUI! --}}
         </div>
         <div>
             <br>

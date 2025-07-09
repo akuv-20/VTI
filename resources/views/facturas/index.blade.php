@@ -36,6 +36,7 @@
                     <thead>
                         <tr>
                             <th>Número de Factura</th>
+                            <th>OC</th>
                             <th>Compañia</th>
                             <th>Concepto</th>
                             <th>Fecha Emisión</th>
@@ -54,6 +55,7 @@
                         @foreach ($facturas as $factura)
                             <tr>
                                 <td>{{ $factura->factura }}</td>
+                                <td>{{ $factura->oc }}</td>
                                 <td>{{ $factura->servicio->compania->nombre }}</td>
                                 <td>{{ $factura->servicio->concepto }}</td>
                                 <td>{{ $factura->fecha_emision }}</td>

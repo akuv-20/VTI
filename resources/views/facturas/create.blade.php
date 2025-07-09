@@ -25,6 +25,11 @@
                     <label for="factura"></label>
                     <input placeholder="Número de Factura" class="form-control" type="text" name="factura" id="factura" required>
                 </div>
+
+                <div>
+                    <label for="oc"></label>
+                    <input placeholder="Número de OC" class="form-control" type="text" name="oc" id="oc" required>
+                </div>
         
                 <div>
                     <label for="valor_neto"></label>

@@ -26,6 +26,11 @@
         </div>
 
         <div>
+            <label for="factura">Número de OC:</label>
+            <input class="form-control" type="text" name="oc" id="oc" value="{{ $factura->oc }}" required>
+        </div>
+
+        <div>
             <label for="valor_neto">Valor Neto:</label>
             <input class="form-control" type="number" name="valor_neto" id="valor_neto" step="0.01" value="{{ $factura->valor_neto }}" required oninput="calcularIVA()">
         </div>

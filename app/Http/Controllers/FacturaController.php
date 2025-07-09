@@ -52,6 +52,7 @@ class FacturaController extends Controller
         $validated = $request->validate([
             'id_servicio' => 'required|exists:servicios,id',
             'factura' => 'required|string',
+            'oc' => 'nullable|string',
             'valor_neto' => 'required|numeric|min:0',
             'valor_iva' => 'required|numeric|min:0',
             'fecha_emision' => 'required|date',
@@ -88,6 +89,7 @@ class FacturaController extends Controller
     $validated = $request->validate([
         'id_servicio' => 'required|exists:servicios,id',
         'factura' => 'required|string',
+        'oc' => 'nullable|string',
         'valor_neto' => 'required|numeric|min:0',
         'valor_iva' => 'required|numeric|min:0',
         'fecha_emision' => 'required|date',
