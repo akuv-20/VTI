@@ -24,14 +24,15 @@ class FacturaController extends Controller
             $busqueda = $request->input('buscar');
             $query->where(function ($q) use ($busqueda) {
                 $q->where('factura', 'like', "%$busqueda%")
-                  ->orWhere('descripcion', 'like', "%$busqueda%")
-                  ->orWhereHas('servicio.compania', function ($q2) use ($busqueda) {
-                      $q2->where('nombre', 'like', "%$busqueda%");
-                  });
+                    ->orWhere('descripcion', 'like', "%$busqueda%")
+                    ->orWhereHas('servicio.compania', function ($q2) use ($busqueda) {
+                    $q2->where('nombre', 'like', "%$busqueda%");
+                }
+                );
             });
         }
-    
-        $facturas = $query->paginate(10);
+
+        $facturas = $query->orderBy('fecha_emision', 'desc')->paginate(20);
         return view('facturas.index', compact('facturas'));
     }
 
@@ -69,44 +70,44 @@ class FacturaController extends Controller
      */
     public function show(string $id)
     {
-        //
+    //
     }
 
     /**
      * Show the form for editing the specified resource.
      */
     public function edit(Factura $factura)
-{
-    $servicios = Servicio::all(); // Obtener todos los servicios para el select
-    return view('facturas.edit', compact('factura', 'servicios'));
-}
+    {
+        $servicios = Servicio::all(); // Obtener todos los servicios para el select
+        return view('facturas.edit', compact('factura', 'servicios'));
+    }
 
     /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, Factura $factura)
-{
-    $validated = $request->validate([
-        'id_servicio' => 'required|exists:servicios,id',
-        'factura' => 'required|string',
-        'oc' => 'nullable|string',
-        'valor_neto' => 'required|numeric|min:0',
-        'valor_iva' => 'required|numeric|min:0',
-        'fecha_emision' => 'required|date',
-        'descripcion' => 'string',
-    ]);
+    {
+        $validated = $request->validate([
+            'id_servicio' => 'required|exists:servicios,id',
+            'factura' => 'required|string',
+            'oc' => 'nullable|string',
+            'valor_neto' => 'required|numeric|min:0',
+            'valor_iva' => 'required|numeric|min:0',
+            'fecha_emision' => 'required|date',
+            'descripcion' => 'string',
+        ]);
 
-    $factura->update($validated);
+        $factura->update($validated);
 
-    return redirect()->route('facturas.index')->with('success', 'Factura actualizada exitosamente.');
-}
+        return redirect()->route('facturas.index')->with('success', 'Factura actualizada exitosamente.');
+    }
 
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(Factura $factura)
-{
-    $factura->delete();
-    return redirect()->route('facturas.index')->with('success', 'Factura eliminada exitosamente.');
-}
+    {
+        $factura->delete();
+        return redirect()->route('facturas.index')->with('success', 'Factura eliminada exitosamente.');
+    }
 }

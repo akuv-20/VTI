@@ -66,6 +66,7 @@
                                         <th>Compañía</th>
                                         <th>Servicio</th>
                                         <th>Concepto</th>
+                                        <th>Cuenta Contable</th>
                                         <th>Fecha Facturación Esperada</th>
                                         <th>Estado Factura ({{ \Carbon\Carbon::createFromDate($anioParaTablaActual, $mesParaTablaActual)->translatedFormat('M') }})</th>
                                     </tr>
@@ -77,6 +78,7 @@
                                             <td>{{ $data['servicio']->compania->nombre ?? 'N/A' }}</td>
                                             <td>{{ $data['servicio']->servicio }}</td>
                                             <td>{{ $data['servicio']->concepto }}</td>
+                                            <td>{{ $data['servicio']->cuentacontable->numero_cuenta }}</td>
                                             <td>{{ $data['fecha_esperada_factura'] }}</td>
                                             <td>
                                                 @if ($data['factura_pendiente'])
@@ -114,6 +116,7 @@
                                         <th>Compañía</th>
                                         <th>Servicio</th>
                                         <th>Concepto</th>
+                                        <th>Cuenta Contable</th>
                                         <th>Fecha Facturación Esperada</th>
                                         <th>Estado Factura ({{ \Carbon\Carbon::createFromDate($anioParaTablaAnterior, $mesParaTablaAnterior)->translatedFormat('M') }})</th>
                                     </tr>
@@ -125,6 +128,7 @@
                                             <td>{{ $data['servicio']->compania->nombre ?? 'N/A' }}</td>
                                             <td>{{ $data['servicio']->servicio }}</td>
                                             <td>{{ $data['servicio']->concepto }}</td>
+                                            <td>{{ $data['servicio']->cuentacontable->numero_cuenta }}</td>
                                             <td>{{ $data['fecha_esperada_factura'] }}</td>
                                             <td>
                                                 @if ($data['factura_pendiente'])

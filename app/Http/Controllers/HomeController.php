@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Servicio;
 use App\Models\Factura;
+use App\Models\CuentaContable;
 use Illuminate\Http\Request; // Asegúrate de importar Request
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -26,8 +27,9 @@ class HomeController extends Controller
      * @return \Illuminate\Contracts\Support\Renderable
      */
     public function index(Request $request) // Recibir la instancia de Request
+
     {
-        $servicios = Servicio::with(['familia', 'empresa', 'compania', 'facturas'])->where('es_periodico',true)->get();
+        $servicios = Servicio::with(['familia', 'empresa', 'compania', 'facturas', 'cuentacontable'])->where('es_periodico', true)->get();
 
         // Establecer el locale para Carbon para nombres de meses en español
         Carbon::setLocale('es');
@@ -74,9 +76,9 @@ class HomeController extends Controller
             'mesParaTablaAnterior',
             'anioParaTablaAnterior',
             'mesesDisponibles', // Para el filtro
-            'añosDisponibles',  // Para el filtro
-            'mesSeleccionado',  // Para mantener el valor seleccionado en el filtro
-            'anioSeleccionado'  // Para mantener el valor seleccionado en el filtro
+            'añosDisponibles', // Para el filtro
+            'mesSeleccionado', // Para mantener el valor seleccionado en el filtro
+            'anioSeleccionado' // Para mantener el valor seleccionado en el filtro
         ));
     }
 
@@ -97,9 +99,11 @@ class HomeController extends Controller
             $diaFacturacionEsperado = 1;
             if ($servicio->fecha_facturacion === '1 de cada Mes') {
                 $diaFacturacionEsperado = 1;
-            } elseif ($servicio->fecha_facturacion === '15 de cada Mes') {
+            }
+            elseif ($servicio->fecha_facturacion === '15 de cada Mes') {
                 $diaFacturacionEsperado = 15;
-            } elseif ($servicio->fecha_facturacion === '30 de cada Mes') {
+            }
+            elseif ($servicio->fecha_facturacion === '30 de cada Mes') {
                 $diaFacturacionEsperado = 30;
             }
 
