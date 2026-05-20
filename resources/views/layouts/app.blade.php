@@ -9,6 +9,13 @@
 
     <title>{{ config('app.name', 'Laravel') }}</title>
 
+    <style>
+        .navbar .dropdown:hover .dropdown-menu {
+            display: block;
+            margin-top: 0;
+        }
+    </style>
+
     <!-- Fonts -->
     <link rel="dns-prefetch" href="//fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
@@ -40,20 +47,17 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('facturas.index') }}">{{ __('Facturas') }}</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('servicios.index') }}">{{ __('Servicios') }}</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('familias.index') }}">{{ __('Familias') }}</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('empresas.index') }}">{{ __('Empresas') }}</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('companias.index') }}">{{ __('Compañias') }}</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('cuentas_contables.index') }}">{{ __('CC') }}</a>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Mantenedores
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{{ route('servicios.index') }}">Servicios</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('familias.index') }}">Familias</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('empresas.index') }}">Empresas</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('companias.index') }}">Compañías</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('cuentas_contables.index') }}">Cuentas Contables</a></li>
+                                </ul>
                             </li>
                         </ul>
                     @endguest
@@ -109,8 +113,46 @@
         </nav>
 
         <main class="py-4">
+            <div class="container">
+                @if (session('success'))
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        {{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
+
+                @if (session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {{ session('error') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
+
+                @if ($errors->any())
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong>Por favor corrige los siguientes errores:</strong>
+                        <ul class="mb-0 mt-1">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
+            </div>
+
             @yield('content')
         </main>
+
+        <script>
+            setTimeout(() => {
+                document.querySelectorAll('.alert').forEach(el => {
+                    el.style.transition = 'opacity 0.5s ease';
+                    el.style.opacity = '0';
+                    setTimeout(() => el.remove(), 500);
+                });
+            }, 3000);
+        </script>
     </div>
 </body>
 </html>

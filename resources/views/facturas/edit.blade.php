@@ -27,7 +27,7 @@
 
         <div>
             <label for="factura">Número de OC:</label>
-            <input class="form-control" type="text" name="oc" id="oc" value="{{ $factura->oc }}" required>
+            <input class="form-control" type="text" name="oc" id="oc" value="{{ $factura->oc }}">
         </div>
 
         <div>

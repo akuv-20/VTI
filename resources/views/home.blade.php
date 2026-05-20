@@ -83,8 +83,14 @@
                                             <td>
                                                 @if ($data['factura_pendiente'])
                                                     <span class="badge bg-danger">Pendiente</span>
+                                                    <a href="{{ route('facturas.create', ['id_servicio' => $data['servicio']->id]) }}"
+                                                       class="btn btn-success btn-sm ms-1 py-0 px-2"
+                                                       title="Registrar factura">+</a>
                                                 @else
                                                     <span class="badge bg-success">Facturada</span>
+                                                    <a href="{{ route('facturas.edit', $data['factura']->id) }}"
+                                                       class="btn btn-warning btn-sm ms-1 py-0 px-2"
+                                                       title="Editar factura">✏</a>
                                                 @endif
                                             </td>
                                         </tr>
@@ -133,8 +139,14 @@
                                             <td>
                                                 @if ($data['factura_pendiente'])
                                                     <span class="badge bg-danger">Pendiente</span>
+                                                    <a href="{{ route('facturas.create', ['id_servicio' => $data['servicio']->id]) }}"
+                                                       class="btn btn-success btn-sm ms-1 py-0 px-2"
+                                                       title="Registrar factura">+</a>
                                                 @else
                                                     <span class="badge bg-success">Facturada</span>
+                                                    <a href="{{ route('facturas.edit', $data['factura']->id) }}"
+                                                       class="btn btn-warning btn-sm ms-1 py-0 px-2"
+                                                       title="Editar factura">✏</a>
                                                 @endif
                                             </td>
                                         </tr>

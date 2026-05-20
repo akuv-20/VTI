@@ -95,6 +95,7 @@ class HomeController extends Controller
         $serviciosData = [];
         foreach ($servicios as $servicio) {
             $facturaPendiente = true;
+            $facturaDelMes = null;
 
             $diaFacturacionEsperado = 1;
             if ($servicio->fecha_facturacion === '1 de cada Mes') {
@@ -113,6 +114,7 @@ class HomeController extends Controller
                 $fechaEmisionFactura = Carbon::parse($factura->fecha_emision);
                 if ($fechaEmisionFactura->month === $mes && $fechaEmisionFactura->year === $anio) {
                     $facturaPendiente = false;
+                    $facturaDelMes = $factura;
                     break;
                 }
             }
@@ -120,6 +122,7 @@ class HomeController extends Controller
             $serviciosData[] = [
                 'servicio' => $servicio,
                 'factura_pendiente' => $facturaPendiente,
+                'factura' => $facturaDelMes,
                 'mes' => $mes,
                 'anio' => $anio,
                 'dia_facturacion_esperado' => $diaFacturacionEsperado,

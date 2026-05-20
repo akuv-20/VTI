@@ -15,7 +15,7 @@
                     <select class="form-select" name="id_servicio" id="id_servicio" required>
                         <option selected>Seleccionar Servicio</option>
                         @foreach ($servicios as $servicio)
-                            <option value="{{ $servicio->id }}">{{ $servicio->codigo_servicio }} - {{ $servicio->compania->nombre }} - {{ $servicio->concepto }} - {{ $servicio->empresa->nombre }}</option>
+                            <option value="{{ $servicio->id }}" {{ request('id_servicio') == $servicio->id ? 'selected' : '' }}>{{ $servicio->codigo_servicio }} - {{ $servicio->compania->nombre }} - {{ $servicio->concepto }} - {{ $servicio->empresa->nombre }}</option>
                         @endforeach
                     </select>
                 </div>

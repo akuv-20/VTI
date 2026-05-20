@@ -94,7 +94,7 @@ class FacturaController extends Controller
             'valor_neto' => 'required|numeric|min:0',
             'valor_iva' => 'required|numeric|min:0',
             'fecha_emision' => 'required|date',
-            'descripcion' => 'string',
+            'descripcion' => 'nullable|string',
         ]);
 
         $factura->update($validated);
