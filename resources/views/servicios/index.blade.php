@@ -1,75 +1,67 @@
-<!-- resources/views/servicios/index.blade.php -->
-@extends('layouts.app')
-
+﻿@extends('layouts.app')
 @section('content')
+<div class="container-fluid vti-page">
 
-    
-    <div class="container-fluid text-center">
-        <div class="row">
-            <div class="col">
-            </div>
-            <div class="col">
-            <center><a style="font-size: 18px" href="{{ route('servicios.create') }}" class="btn btn-primary mb-3">Registrar Nuevo Servicio</a>
-            </div>
-            <div class="col">
-            {{-- <a href="{{ route('facturas.index') }}" class="btn btn-success mb-3">Ir a Facturas</a> --}}
-            </div>
-        </div>
+    <div class="vti-page-header">
+        <h4>Servicios</h4>
+        <a href="{{ route('servicios.create') }}" class="btn btn-success btn-sm">
+            <i class="bi bi-plus-lg"></i> Nuevo Servicio
+        </a>
     </div>
 
-    <div class="container-fluid">
-        <div class="row justify-content-center">
-            <div class="col-md-12">
-    <table class="table table-striped table-sm table-hover">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Empresa</th>
-                <th>Codigo de Servicio</th>
-                <th>Servicio</th>
-                <th>Compañía</th>
-                <th>Familia</th>
-                <th>Fecha Facturación</th>
-                <th>Concepto</th>
-                <th>ID C.C.</th>
-                <th>Nombre C.C.</th>
-                <th>¿Es Periódico?</th> 
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($servicios as $servicio)
+    <div class="vti-table-wrapper">
+        <table class="vti-table">
+            <thead>
                 <tr>
-                    <td>{{ $servicio->id}}</td>
-                    <td>{{ $servicio->empresa->nombre}}</td>
-                    <td>{{ $servicio->codigo_servicio }}</td>
+                    <th>Empresa</th>
+                    <th>Código</th>
+                    <th>Servicio</th>
+                    <th>Compañía</th>
+                    <th>Familia</th>
+                    <th>Facturación</th>
+                    <th>Concepto</th>
+                    <th>N° CC</th>
+                    <th>Periódico</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($servicios as $servicio)
+                <tr>
+                    <td>{{ $servicio->empresa->nombre }}</td>
+                    <td><span class="text-muted small">{{ $servicio->codigo_servicio }}</span></td>
                     <td>{{ $servicio->servicio }}</td>
                     <td>{{ $servicio->compania->nombre }}</td>
                     <td>{{ $servicio->familia->nombre }}</td>
-                    <td>{{ $servicio->fecha_facturacion }}</td>
+                    <td><span class="small">{{ $servicio->fecha_facturacion }}</span></td>
                     <td>{{ $servicio->concepto }}</td>
                     <td>{{ $servicio->cuentaContable->numero_cuenta }}</td>
-                    <td>{{ $servicio->cuentaContable->nombre_cuenta }}</td>
                     <td>
-                    @if ($servicio->es_periodico)
-                        <span class="text-success">Si</span>
-                    @else
-                        <span class="text-danger">No</span>
-                    @endif
+                        @if($servicio->es_periodico)
+                            <span class="badge bg-success">Sí</span>
+                        @else
+                            <span class="badge bg-secondary">No</span>
+                        @endif
                     </td>
                     <td>
-                        <a href="{{ route('servicios.edit', $servicio->id) }}" class="btn btn-warning">Editar</a>
-                        <form action="{{ route('servicios.destroy', $servicio->id) }}" method="POST" style="display:inline;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar este servicio?')">Eliminar</button>
-                        </form>
+                        <div class="vti-actions">
+                            <a href="{{ route('servicios.edit', $servicio->id) }}" class="vti-btn-edit" title="Editar">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+                            <form action="{{ route('servicios.destroy', $servicio->id) }}" method="POST"
+                                  data-confirm="{{ $servicio->servicio }}">
+                                @csrf @method('DELETE')
+                                <button class="vti-btn-delete" title="Eliminar"><i class="bi bi-trash-fill"></i></button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
-            @endforeach
-        </tbody>
-    </table>
-            </div>
-            </div>
-        </div>
+                @empty
+                <tr class="vti-empty"><td colspan="10">No hay servicios registrados.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+</div>
 @endsection

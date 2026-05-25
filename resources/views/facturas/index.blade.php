@@ -1,108 +1,80 @@
-<!-- resources/views/facturas/index.blade.php -->
-@extends('layouts.app')
-
+﻿@extends('layouts.app')
 @section('content')
-    {{-- <h1>Lista de Facturas</h1> --}}
-    
-    <div class="container text-center">
-        <div class="row">
-          <div class="col">
-            
-          </div>
-          <div class="col">
-            <a style="font-size: 18px" href="{{ route('facturas.create') }}" class="btn btn-primary mb-3">Registrar Nueva Factura</a>
-          </div>
-          <div class="col">
+<div class="container-fluid vti-page">
+
+    <div class="vti-page-header">
+        <h4>Facturas</h4>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
             <form method="GET" action="{{ route('facturas.index') }}">
-                <div class="row">
-                    <div class="col">
-                        <input class="form-control" type="text" name="buscar" value="{{ request('buscar') }}" placeholder="Factura, descripción o compañía">
-                    </div>
-                    <div class="col">
-                        <button class="form-control btn btn-success" type="submit">Buscar</button>
-                    </div>
+                <div class="vti-search">
+                    <input type="text" name="buscar" class="form-control form-control-sm" style="width:260px"
+                           placeholder="Factura, descripción o compañía…" value="{{ request('buscar') }}">
+                    <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-search"></i></button>
+                    @if(request('buscar'))
+                        <a href="{{ route('facturas.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-lg"></i></a>
+                    @endif
                 </div>
             </form>
-          </div>
-        </div>
-      </div>
-    
-
-
-    <div class="container-fluid">
-        <div class="row justify-content-center">
-            <div class="col-md-12">
-                <table id="facturas-table" class="table table-striped table-sm table-hover">
-                    <thead>
-                        <tr>
-                            <th>Número de Factura</th>
-                            <th>OC</th>
-                            <th>Compañia</th>
-                            <th>Concepto</th>
-                            <th>Fecha Emisión</th>
-                            <th>Servicio</th>
-                            <th>Empresa</th>
-                            <th>Valor Neto</th>
-                            <th>Valor IVA</th>
-                            <th>Fecha Emisión</th>
-                            <th>Descripcion</th>
-                            <th>Numero CC</th>
-                            <th>Nombre CC</th>
-                            <th>Acciónes</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($facturas as $factura)
-                            <tr>
-                                <td>{{ $factura->factura }}</td>
-                                <td>{{ $factura->oc }}</td>
-                                <td>{{ $factura->servicio->compania->nombre }}</td>
-                                <td>{{ $factura->servicio->concepto }}</td>
-                                <td>{{ $factura->fecha_emision }}</td>
-                                <td>{{ $factura->servicio->servicio }}</td>
-                                <td>{{ $factura->servicio->empresa->nombre }}</td>
-                                <td>${{ number_format($factura->valor_neto, 2) }}</td>
-                                <td>${{ number_format($factura->valor_iva, 2) }}</td>
-                                <td>{{ $factura->fecha_emision }}</td>
-                                <td>{{ $factura->descripcion }}</td>
-                                <td>{{ $factura->servicio->cuentaContable->numero_cuenta }}</td>
-                                <td>{{ $factura->servicio->cuentaContable->nombre_cuenta }}</td>
-                                <td>
-                                    <a href="{{ route('facturas.edit', $factura->id) }}" class="btn btn-warning">Editar</a>
-                                    <form action="{{ route('facturas.destroy', $factura->id) }}" method="POST" style="display:inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta factura?')">Eliminar</button>
-                                    </form>
-                                    
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-                <div class="d-flex justify-content-center">
-                    {{ $facturas->links() }}
-                </div>
-            </div>
+            <a href="{{ route('facturas.create') }}" class="btn btn-success btn-sm">
+                <i class="bi bi-plus-lg"></i> Nueva Factura
+            </a>
         </div>
     </div>
-    
-@endsection
-@section('scripts')
-    <script>
-        $(document).ready(function () {
-            // Desactiva la inicialización de DataTables si estás usando paginación de Laravel
-            // Si necesitas DataTables para búsqueda/ordenación en la página actual, déjalo.
-            // Si quieres que DataTables gestione toda la paginación, no uses paginate() en el controlador.
-            // Para paginación de Laravel, es mejor quitar DataTables si no se va a usar su AJAX.
-            // $('#facturas-table').DataTable({
-            //     language: {
-            //         url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' // Traducción al español
-            //     },
-            //     columnDefs: [
-            //         { orderable: false, targets: 5 } // Desactivar ordenamiento en la columna \"Acciones\"
-            //     ]
-            // });
-        });
-    </script>
+
+    <div class="vti-table-wrapper">
+        <table class="vti-table">
+            <thead>
+                <tr>
+                    <th>N° Factura</th>
+                    <th>OC</th>
+                    <th>Empresa</th>
+                    <th>Compañía</th>
+                    <th>Servicio</th>
+                    <th>Concepto</th>
+                    <th>Fecha Emisión</th>
+                    <th>Neto</th>
+                    <th>Total c/IVA</th>
+                    <th>N° CC</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($facturas as $factura)
+                <tr>
+                    <td><strong>{{ $factura->factura }}</strong></td>
+                    <td>{{ $factura->oc }}</td>
+                    <td>{{ $factura->servicio->empresa->nombre }}</td>
+                    <td>{{ $factura->servicio->compania->nombre }}</td>
+                    <td>{{ $factura->servicio->servicio }}</td>
+                    <td>{{ $factura->servicio->concepto }}</td>
+                    <td>{{ \Carbon\Carbon::parse($factura->fecha_emision)->format('d/m/Y') }}</td>
+                    <td>$ {{ number_format($factura->valor_neto, 0, ',', '.') }}</td>
+                    <td>$ {{ number_format($factura->valor_neto * 1.19, 0, ',', '.') }}</td>
+                    <td>{{ $factura->servicio->cuentaContable->numero_cuenta }}</td>
+                    <td>
+                        <div class="vti-actions">
+                            <a href="{{ route('facturas.edit', $factura->id) }}" class="vti-btn-edit" title="Editar">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+                            <form action="{{ route('facturas.destroy', $factura->id) }}" method="POST"
+                                  data-confirm="Factura {{ $factura->factura }}">
+                                @csrf @method('DELETE')
+                                <button class="vti-btn-delete" title="Eliminar"><i class="bi bi-trash-fill"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr class="vti-empty"><td colspan="11">No hay facturas registradas.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <div class="vti-footer">
+        <span></span>
+        {{ $facturas->links() }}
+    </div>
+
+</div>
 @endsection

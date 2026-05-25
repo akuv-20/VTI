@@ -18,9 +18,9 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
+        'name', 'email', 'password', 'es_admin', 'activo',
+        // Preparado para Office 365 SSO (SAML/OAuth):
+        // 'azure_id', 'azure_token',
     ];
 
     /**
@@ -42,7 +42,21 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
+            'es_admin'          => 'boolean',
+            'activo'            => 'boolean',
         ];
+    }
+
+    public function modulos()
+    {
+        return $this->belongsToMany(Modulo::class, 'modulo_user');
+    }
+
+    /** Admin tiene acceso a todo; usuarios normales solo a sus módulos asignados */
+    public function tieneAcceso(string $routeName): bool
+    {
+        if ($this->es_admin) return true;
+        return $this->modulos->contains(fn($m) => $m->matchesRoute($routeName));
     }
 }

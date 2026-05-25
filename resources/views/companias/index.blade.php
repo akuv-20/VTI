@@ -1,39 +1,47 @@
-<!-- resources/views/familias/index.blade.php -->
-@extends('layouts.app')
-
+﻿@extends('layouts.app')
 @section('content')
-    
-<center><a style="font-size: 18px" href="{{ route('companias.create') }}" class="btn btn-primary mb-3">Registrar Nueva Compañia</a>
+<div class="container-fluid vti-page">
 
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-12">
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($companias as $compania)
+    <div class="vti-page-header">
+        <h4>Compañías</h4>
+        <a href="{{ route('companias.create') }}" class="btn btn-success btn-sm">
+            <i class="bi bi-plus-lg"></i> Nueva Compañía
+        </a>
+    </div>
+
+    <div class="vti-table-wrapper">
+        <table class="vti-table">
+            <thead>
                 <tr>
-                    <td>{{ $compania->id }}</td>
+                    <th>#</th>
+                    <th>Nombre</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($companias as $compania)
+                <tr>
+                    <td class="text-muted">{{ $compania->id }}</td>
                     <td>{{ $compania->nombre }}</td>
                     <td>
-                        <a href="{{ route('companias.edit', $compania->id) }}" class="btn btn-warning">Editar</a>
-                        <form action="{{ route('companias.destroy', $compania->id) }}" method="POST" style="display:inline;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta Compañia?')">Eliminar</button>
-                        </form>
+                        <div class="vti-actions">
+                            <a href="{{ route('companias.edit', $compania->id) }}" class="vti-btn-edit" title="Editar">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+                            <form action="{{ route('companias.destroy', $compania->id) }}" method="POST"
+                                  data-confirm="{{ $compania->nombre }}">
+                                @csrf @method('DELETE')
+                                <button class="vti-btn-delete" title="Eliminar"><i class="bi bi-trash-fill"></i></button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
-            @endforeach
-        </tbody>
-    </table>
-            </div>
-            </div>
-        </div>
+                @empty
+                <tr class="vti-empty"><td colspan="3">No hay compañías registradas.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+</div>
 @endsection

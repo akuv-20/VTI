@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Servicio;
 use App\Models\Factura;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class FacturaController extends Controller
 {
@@ -109,5 +111,77 @@ class FacturaController extends Controller
     {
         $factura->delete();
         return redirect()->route('facturas.index')->with('success', 'Factura eliminada exitosamente.');
+    }
+
+    public function pendientes(Request $request)
+    {
+        Carbon::setLocale('es');
+
+        $servicios = Servicio::with(['familia', 'empresa', 'compania', 'facturas', 'cuentacontable'])
+            ->where('es_periodico', true)
+            ->get();
+
+        $mesSeleccionado  = $request->input('mes',  Carbon::now()->month);
+        $anioSeleccionado = $request->input('anio', Carbon::now()->year);
+
+        $fechaSeleccionada = Carbon::createFromDate($anioSeleccionado, $mesSeleccionado, 1);
+
+        $mesActual  = $fechaSeleccionada->month;
+        $anioActual = $fechaSeleccionada->year;
+        $serviciosActual = $this->getServiciosConEstado($servicios, $mesActual, $anioActual);
+
+        $fechaAnterior  = $fechaSeleccionada->copy()->subMonth();
+        $mesAnterior    = $fechaAnterior->month;
+        $anioAnterior   = $fechaAnterior->year;
+        $serviciosAnterior = $this->getServiciosConEstado($servicios, $mesAnterior, $anioAnterior);
+
+        $mesesDisponibles = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $mesesDisponibles[$i] = Carbon::create(null, $i, 1)->isoFormat('MMMM');
+        }
+
+        $añosDisponibles = [];
+        for ($i = Carbon::now()->year + 1; $i >= 2020; $i--) {
+            $añosDisponibles[] = $i;
+        }
+
+        return view('facturas.pendientes', compact(
+            'serviciosActual', 'mesActual', 'anioActual',
+            'serviciosAnterior', 'mesAnterior', 'anioAnterior',
+            'mesesDisponibles', 'añosDisponibles',
+            'mesSeleccionado', 'anioSeleccionado'
+        ));
+    }
+
+    private function getServiciosConEstado($servicios, $mes, $anio): Collection
+    {
+        $data = [];
+        foreach ($servicios as $servicio) {
+            $dia = match($servicio->fecha_facturacion) {
+                '15 de cada Mes' => 15,
+                '30 de cada Mes' => 30,
+                default          => 1,
+            };
+            $fechaEsperada = Carbon::create($anio, $mes, min($dia, Carbon::createFromDate($anio, $mes)->daysInMonth));
+
+            $facturaPendiente = true;
+            $facturaDelMes    = null;
+            foreach ($servicio->facturas as $factura) {
+                $fe = Carbon::parse($factura->fecha_emision);
+                if ($fe->month === $mes && $fe->year === $anio) {
+                    $facturaPendiente = false;
+                    $facturaDelMes    = $factura;
+                    break;
+                }
+            }
+
+            $data[] = [
+                'servicio'               => $servicio,
+                'factura_pendiente'      => $facturaPendiente,
+                'factura'                => $facturaDelMes,
+                'fecha_esperada_factura' => $fechaEsperada->format('d/m/Y'),
+            ];
+        }
+        return Collection::make($data);
     }
 }
