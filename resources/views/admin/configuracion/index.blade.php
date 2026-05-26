@@ -359,6 +359,30 @@
 
 @push('scripts')
 <script>
+// Inicialización manual de pestañas (fallback por si Bootstrap JS no carga en producción)
+(function () {
+    var buttons = document.querySelectorAll('[data-bs-toggle="tab"]');
+    buttons.forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var targetId = btn.getAttribute('data-bs-target');
+            if (!targetId) return;
+            var target = document.querySelector(targetId);
+            if (!target) return;
+
+            // Desactivar todas las pestañas y paneles
+            buttons.forEach(function (b) { b.classList.remove('active'); });
+            document.querySelectorAll('.tab-pane').forEach(function (p) {
+                p.classList.remove('show', 'active');
+            });
+
+            // Activar la pestaña y panel seleccionado
+            btn.classList.add('active');
+            target.classList.add('show', 'active');
+        });
+    });
+})();
+
 document.getElementById('btnTestLdap')?.addEventListener('click', function () {
     var btn = this;
     var result = document.getElementById('ldapTestResult');
