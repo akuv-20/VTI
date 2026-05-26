@@ -28,7 +28,7 @@
         {{-- Filtros --}}
         <form method="GET" action="{{ route('admin.active_directory.index') }}" class="mb-3">
             <div class="row g-2 align-items-end">
-                <div class="col-md-5">
+                <div class="col-12 col-md-5">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                         <input type="text" name="buscar" class="form-control"
@@ -41,16 +41,16 @@
                         @endif
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-8 col-md-3">
                     <select name="estado" class="form-select form-select-sm" onchange="this.form.submit()">
                         <option value="todos"         {{ $filtroEstado === 'todos'         ? 'selected' : '' }}>Todos los estados</option>
                         <option value="habilitados"   {{ $filtroEstado === 'habilitados'   ? 'selected' : '' }}>Solo habilitados</option>
                         <option value="deshabilitados"{{ $filtroEstado === 'deshabilitados'? 'selected' : '' }}>Solo deshabilitados</option>
                     </select>
                 </div>
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="bi bi-funnel me-1"></i>Filtrar
+                <div class="col-4 col-md-auto">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-funnel me-1"></i><span class="d-none d-sm-inline">Filtrar</span>
                     </button>
                 </div>
             </div>

@@ -35,44 +35,55 @@
 <div class="container-fluid">
 
     {{-- Filtros --}}
-    <div class="d-flex justify-content-between align-items-center mb-3 no-print">
-        <h4 class="mb-0">Informe Telefonía</h4>
-        <form method="GET" action="{{ route('informes.telefonia') }}" id="formInforme"
-              class="d-flex gap-2 align-items-center flex-wrap">
-
-            <select name="servicio" id="sel_servicio" class="form-select form-select-sm" style="width:180px" required>
-                <option value="">— Servicio —</option>
-                <optgroup label="Movistar">
-                    <option value="Movistar_Movil" {{ $servicio === 'Movistar_Movil' ? 'selected' : '' }}>Movistar Móvil</option>
-                    <option value="Movistar_BAM"   {{ $servicio === 'Movistar_BAM'   ? 'selected' : '' }}>Movistar BAM</option>
-                </optgroup>
-                <optgroup label="Entel">
-                    <option value="Entel_Movil"    {{ $servicio === 'Entel_Movil'    ? 'selected' : '' }}>Entel Móvil</option>
-                    <option value="Entel_BAM"      {{ $servicio === 'Entel_BAM'      ? 'selected' : '' }}>Entel BAM</option>
-                </optgroup>
-            </select>
-
-            <select name="anio" id="sel_anio" class="form-select form-select-sm" style="width:90px" required>
-                <option value="">Año</option>
-                @foreach($periodos->pluck('anio')->unique()->sort()->reverse() as $y)
-                    <option value="{{ $y }}" {{ $anio == $y ? 'selected' : '' }}>{{ $y }}</option>
-                @endforeach
-            </select>
-
-            <select name="mes" id="sel_mes" class="form-select form-select-sm" style="width:130px" required>
-                <option value="">Mes</option>
-                @foreach(range(1,12) as $m)
-                    <option value="{{ $m }}" {{ $mes == $m ? 'selected' : '' }}>{{ $meses[$m] }}</option>
-                @endforeach
-            </select>
-
-            <button type="submit" class="btn btn-primary btn-sm">Ver informe</button>
-
+    <div class="mb-3 no-print">
+        <div class="vti-page-header">
+            <h4 class="mb-0"><i class="bi bi-graph-up me-2"></i>Informe Telefonía</h4>
             @if($datos !== null)
-                <button type="button" class="btn btn-secondary btn-sm" onclick="window.print()">
-                    🖨 Imprimir
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i>Imprimir
                 </button>
             @endif
+        </div>
+        <form method="GET" action="{{ route('informes.telefonia') }}" id="formInforme">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-sm-6 col-md-auto">
+                    <label class="form-label small mb-1 text-muted">Servicio</label>
+                    <select name="servicio" id="sel_servicio" class="form-select form-select-sm" required>
+                        <option value="">— Seleccionar —</option>
+                        <optgroup label="Movistar">
+                            <option value="Movistar_Movil" {{ $servicio === 'Movistar_Movil' ? 'selected' : '' }}>Movistar Móvil</option>
+                            <option value="Movistar_BAM"   {{ $servicio === 'Movistar_BAM'   ? 'selected' : '' }}>Movistar BAM</option>
+                        </optgroup>
+                        <optgroup label="Entel">
+                            <option value="Entel_Movil"    {{ $servicio === 'Entel_Movil'    ? 'selected' : '' }}>Entel Móvil</option>
+                            <option value="Entel_BAM"      {{ $servicio === 'Entel_BAM'      ? 'selected' : '' }}>Entel BAM</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="col-6 col-sm-3 col-md-auto">
+                    <label class="form-label small mb-1 text-muted">Año</label>
+                    <select name="anio" id="sel_anio" class="form-select form-select-sm" required>
+                        <option value="">Año</option>
+                        @foreach($periodos->pluck('anio')->unique()->sort()->reverse() as $y)
+                            <option value="{{ $y }}" {{ $anio == $y ? 'selected' : '' }}>{{ $y }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-6 col-sm-3 col-md-auto">
+                    <label class="form-label small mb-1 text-muted">Mes</label>
+                    <select name="mes" id="sel_mes" class="form-select form-select-sm" required>
+                        <option value="">Mes</option>
+                        @foreach(range(1,12) as $m)
+                            <option value="{{ $m }}" {{ $mes == $m ? 'selected' : '' }}>{{ $meses[$m] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-12 col-md-auto">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-bar-chart-fill me-1"></i>Ver informe
+                    </button>
+                </div>
+            </div>
         </form>
     </div>
 

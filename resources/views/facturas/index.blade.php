@@ -16,12 +16,12 @@
 
     {{-- ── Filtros ──────────────────────────────────────────────────────────── --}}
     <form method="GET" action="{{ route('facturas.index') }}" class="mb-3">
-        <div class="d-flex gap-2 align-items-end flex-wrap">
+        <div class="row g-2 align-items-end">
 
             {{-- Tipo --}}
-            <div>
+            <div class="col-6 col-sm-4 col-md-auto">
                 <label class="form-label small mb-1 text-muted">Tipo</label>
-                <select name="tipo" class="form-select form-select-sm" style="width:130px">
+                <select name="tipo" class="form-select form-select-sm">
                     <option value="Todas"      {{ request('tipo','Todas') === 'Todas'      ? 'selected' : '' }}>Todas</option>
                     <option value="Mensual"    {{ request('tipo') === 'Mensual'    ? 'selected' : '' }}>Mensual</option>
                     <option value="Esporádica" {{ request('tipo') === 'Esporádica' ? 'selected' : '' }}>Esporádica</option>
@@ -29,9 +29,9 @@
             </div>
 
             {{-- Año --}}
-            <div>
+            <div class="col-6 col-sm-4 col-md-auto">
                 <label class="form-label small mb-1 text-muted">Año</label>
-                <select name="anio" class="form-select form-select-sm" style="width:90px">
+                <select name="anio" class="form-select form-select-sm">
                     <option value="">Todos</option>
                     @foreach($aniosDisponibles as $a)
                         <option value="{{ $a }}" {{ request('anio') == $a ? 'selected' : '' }}>{{ $a }}</option>
@@ -40,9 +40,9 @@
             </div>
 
             {{-- Mes --}}
-            <div>
+            <div class="col-6 col-sm-4 col-md-auto">
                 <label class="form-label small mb-1 text-muted">Mes</label>
-                <select name="mes" class="form-select form-select-sm" style="width:120px">
+                <select name="mes" class="form-select form-select-sm">
                     <option value="">Todos</option>
                     @foreach($meses as $num => $nombre)
                         @if($num > 0)
@@ -53,9 +53,9 @@
             </div>
 
             {{-- Cuenta Contable --}}
-            <div>
+            <div class="col-12 col-sm-6 col-md-auto">
                 <label class="form-label small mb-1 text-muted">Cuenta Contable</label>
-                <select name="cuenta_contable" class="form-select form-select-sm" style="width:200px">
+                <select name="cuenta_contable" class="form-select form-select-sm">
                     <option value="">Todas</option>
                     @foreach($cuentasContables as $cc)
                         <option value="{{ $cc->id }}" {{ request('cuenta_contable') == $cc->id ? 'selected' : '' }}>
@@ -66,16 +66,14 @@
             </div>
 
             {{-- Búsqueda --}}
-            <div>
+            <div class="col-12 col-sm-6 col-md">
                 <label class="form-label small mb-1 text-muted">Buscar</label>
-                <div class="input-group input-group-sm">
-                    <input type="text" name="buscar" class="form-control" style="width:220px"
-                           placeholder="Factura, proveedor, descripción…" value="{{ request('buscar') }}">
-                </div>
+                <input type="text" name="buscar" class="form-control form-control-sm"
+                       placeholder="Factura, proveedor, descripción…" value="{{ request('buscar') }}">
             </div>
 
-            <div class="d-flex gap-1 align-self-end">
-                <button class="btn btn-primary btn-sm" type="submit">
+            <div class="col-12 col-md-auto d-flex gap-1">
+                <button class="btn btn-primary btn-sm flex-fill" type="submit">
                     <i class="bi bi-funnel-fill"></i> Filtrar
                 </button>
                 <a href="{{ route('facturas.index') }}" class="btn btn-outline-secondary btn-sm">

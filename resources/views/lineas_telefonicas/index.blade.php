@@ -13,125 +13,127 @@
 @endpush
 
 @section('content')
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">Líneas Telefónicas</h4>
+<div class="container-fluid vti-page">
 
-        <form action="{{ route('lineas_telefonicas.index') }}" method="GET" class="d-flex flex-column align-items-center gap-2">
-            {{-- Fila 1: buscador --}}
-            <div class="d-flex gap-2 align-items-center">
-                <input type="text" name="buscar" class="form-control form-control-sm" style="width:340px"
-                    placeholder="Buscar por línea, usuario, empresa, ubicación, emisor, aparato, IMEI..." value="{{ request('buscar') }}">
-                <button class="btn btn-primary btn-sm" type="submit">Buscar</button>
-                @if(request('buscar') || $estado !== 'Activo' || $emisorFiltro !== 'Todos' || $vigenciaFiltro !== 'Todos' || $soloIncompletas)
-                    <a href="{{ route('lineas_telefonicas.index') }}" class="btn btn-secondary btn-sm">Limpiar</a>
-                @endif
-            </div>
-            {{-- Fila 2: filtros --}}
-            <div class="d-flex gap-2 align-items-center flex-wrap">
-                {{-- Estado --}}
-                <div class="btn-group btn-group-sm" role="group">
-                    <input type="radio" class="btn-check" name="estado" id="estado_activo" value="Activo" autocomplete="off"
-                        {{ $estado === 'Activo' ? 'checked' : '' }} onchange="this.form.submit()">
-                    <label class="btn btn-outline-success fw-semibold" for="estado_activo">
-                        Activos <span class="badge bg-success ms-1">{{ $countActivo }}</span>
-                    </label>
-
-                    <input type="radio" class="btn-check" name="estado" id="estado_inactivo" value="Inactivo" autocomplete="off"
-                        {{ $estado === 'Inactivo' ? 'checked' : '' }} onchange="this.form.submit()">
-                    <label class="btn btn-outline-danger fw-semibold" for="estado_inactivo">
-                        Inactivos <span class="badge bg-danger ms-1">{{ $countInactivo }}</span>
-                    </label>
-
-                    <input type="radio" class="btn-check" name="estado" id="estado_todos" value="Todos" autocomplete="off"
-                        {{ $estado === 'Todos' ? 'checked' : '' }} onchange="this.form.submit()">
-                    <label class="btn btn-outline-secondary fw-semibold" for="estado_todos">
-                        Todos <span class="badge bg-secondary ms-1">{{ $totalLineas }}</span>
-                    </label>
-                </div>
-
-                <div class="vr"></div>
-
-                {{-- Vigencia --}}
-                <div class="btn-group btn-group-sm" role="group">
-                    <input type="radio" class="btn-check" name="vigencia" id="vigencia_todos" value="Todos" autocomplete="off"
-                        {{ $vigenciaFiltro === 'Todos' ? 'checked' : '' }} onchange="this.form.submit()">
-                    <label class="btn btn-outline-secondary fw-semibold" for="vigencia_todos">
-                        Todos <span class="badge bg-secondary ms-1">{{ $totalLineas }}</span>
-                    </label>
-
-                    <input type="radio" class="btn-check" name="vigencia" id="vigencia_vigente" value="Vigente" autocomplete="off"
-                        {{ $vigenciaFiltro === 'Vigente' ? 'checked' : '' }} onchange="this.form.submit()">
-                    <label class="btn btn-outline-success fw-semibold" for="vigencia_vigente">
-                        Vigente <span class="badge bg-success ms-1">{{ $countVigente }}</span>
-                    </label>
-
-                    <input type="radio" class="btn-check" name="vigencia" id="vigencia_no_vigente" value="No Vigente" autocomplete="off"
-                        {{ $vigenciaFiltro === 'No Vigente' ? 'checked' : '' }} onchange="this.form.submit()">
-                    <label class="btn btn-outline-danger fw-semibold" for="vigencia_no_vigente">
-                        No Vigente <span class="badge bg-danger ms-1">{{ $countNoVigente }}</span>
-                    </label>
-                </div>
-
-                <div class="vr"></div>
-
-                {{-- Emisor --}}
-                <div class="btn-group btn-group-sm" role="group">
-                    <input type="radio" class="btn-check" name="emisor" id="emisor_todos" value="Todos" autocomplete="off"
-                        {{ $emisorFiltro === 'Todos' ? 'checked' : '' }} onchange="this.form.submit()">
-                    <label class="btn btn-outline-secondary fw-semibold" for="emisor_todos">
-                        Todos <span class="badge bg-secondary ms-1">{{ $totalLineas }}</span>
-                    </label>
-
-                    <input type="radio" class="btn-check" name="emisor" id="emisor_entel" value="Entel" autocomplete="off"
-                        {{ $emisorFiltro === 'Entel' ? 'checked' : '' }} onchange="this.form.submit()">
-                    <label class="btn btn-outline-primary fw-semibold" for="emisor_entel">
-                        Entel <span class="badge bg-primary ms-1">{{ $countEntel }}</span>
-                    </label>
-
-                    <input type="radio" class="btn-check" name="emisor" id="emisor_movistar" value="Movistar" autocomplete="off"
-                        {{ $emisorFiltro === 'Movistar' ? 'checked' : '' }} onchange="this.form.submit()">
-                    <label class="btn btn-outline-movistar fw-semibold" for="emisor_movistar">
-                        Movistar <span class="badge ms-1" style="background:#0099CC">{{ $countMovistar }}</span>
-                    </label>
-
-                    <input type="radio" class="btn-check" name="emisor" id="emisor_wom" value="WOM" autocomplete="off"
-                        {{ $emisorFiltro === 'WOM' ? 'checked' : '' }} onchange="this.form.submit()">
-                    <label class="btn btn-outline-secondary emisor-wom fw-semibold" for="emisor_wom">
-                        WOM <span class="badge ms-1" style="background:#6f42c1">{{ $countWOM }}</span>
-                    </label>
-                </div>
-
-                <div class="vr"></div>
-
-                {{-- Incompletas --}}
-                <input type="checkbox" class="btn-check" name="incompletas" id="chk_incompletas"
-                    value="1" autocomplete="off"
-                    {{ $soloIncompletas ? 'checked' : '' }} onchange="this.form.submit()">
-                <label class="btn btn-outline-warning btn-sm fw-semibold" for="chk_incompletas">
-                    ⚠ Incompletas
-                    @if($totalIncompletas > 0)
-                        <span class="badge bg-warning text-dark ms-1">{{ $totalIncompletas }}</span>
-                    @endif
-                </label>
-            </div>
-
-            <input type="hidden" name="_keep" value="1">
-        </form>
-
-        <div class="d-flex flex-column gap-2 align-items-end">
+    {{-- ── Cabecera ────────────────────────────────────────────────────────── --}}
+    <div class="vti-page-header">
+        <h4><i class="bi bi-phone me-2"></i>Líneas Telefónicas</h4>
+        <div class="d-flex gap-2 flex-wrap">
             <a href="{{ route('lineas_telefonicas.create') }}" class="btn btn-success btn-sm">
                 <i class="bi bi-plus-lg"></i> Nueva Línea
             </a>
             <form action="{{ route('lineas_telefonicas.reprocesar_ccosto') }}" method="POST"
-                  onsubmit="return confirm('¿Asignar automáticamente centros de costo a líneas que tengan empresa y ubicación pero aún no tengan uno asignado?')">
+                  data-confirm="todas las líneas sin centro de costo"
+                  data-confirm-verb="reprocesar"
+                  data-confirm-title="Reprocesar centros de costo"
+                  data-confirm-sub="Se asignará automáticamente el CC a líneas con empresa + ubicación."
+                  data-confirm-btn="Sí, reprocesar"
+                  data-confirm-icon="bi-arrow-repeat"
+                  data-confirm-color="warning">
                 @csrf
-                <button type="submit" class="btn btn-outline-secondary btn-sm" title="Asigna el centro de costo correspondiente a todas las líneas que tienen empresa + ubicación pero no tienen CC asignado">
+                <button type="submit" class="btn btn-outline-secondary btn-sm"
+                        title="Asigna el CC correspondiente a líneas con empresa + ubicación pero sin CC asignado">
                     <i class="bi bi-arrow-repeat"></i> Reprocesar CC
                 </button>
             </form>
         </div>
     </div>
+
+    {{-- ── Filtros ─────────────────────────────────────────────────────────── --}}
+    <form action="{{ route('lineas_telefonicas.index') }}" method="GET" class="mb-3">
+        {{-- Buscador --}}
+        <div class="row g-2 mb-2">
+            <div class="col">
+                <input type="text" name="buscar" class="form-control form-control-sm"
+                    placeholder="Buscar por línea, usuario, empresa, ubicación, emisor, aparato, IMEI…"
+                    value="{{ request('buscar') }}">
+            </div>
+            <div class="col-auto d-flex gap-1">
+                <button class="btn btn-primary btn-sm" type="submit">
+                    <i class="bi bi-search"></i><span class="d-none d-sm-inline ms-1">Buscar</span>
+                </button>
+                @if(request('buscar') || $estado !== 'Activo' || $emisorFiltro !== 'Todos' || $vigenciaFiltro !== 'Todos' || $soloIncompletas)
+                    <a href="{{ route('lineas_telefonicas.index') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                @endif
+            </div>
+        </div>
+
+        {{-- Grupos de filtro (scrollables en móvil) --}}
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+            {{-- Estado --}}
+            <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="estado" id="estado_activo" value="Activo" autocomplete="off"
+                    {{ $estado === 'Activo' ? 'checked' : '' }} onchange="this.form.submit()">
+                <label class="btn btn-outline-success fw-semibold" for="estado_activo">
+                    Activos <span class="badge bg-success ms-1">{{ $countActivo }}</span>
+                </label>
+                <input type="radio" class="btn-check" name="estado" id="estado_inactivo" value="Inactivo" autocomplete="off"
+                    {{ $estado === 'Inactivo' ? 'checked' : '' }} onchange="this.form.submit()">
+                <label class="btn btn-outline-danger fw-semibold" for="estado_inactivo">
+                    Inactivos <span class="badge bg-danger ms-1">{{ $countInactivo }}</span>
+                </label>
+                <input type="radio" class="btn-check" name="estado" id="estado_todos" value="Todos" autocomplete="off"
+                    {{ $estado === 'Todos' ? 'checked' : '' }} onchange="this.form.submit()">
+                <label class="btn btn-outline-secondary fw-semibold" for="estado_todos">
+                    Todos <span class="badge bg-secondary ms-1">{{ $totalLineas }}</span>
+                </label>
+            </div>
+
+            {{-- Vigencia --}}
+            <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="vigencia" id="vigencia_todos" value="Todos" autocomplete="off"
+                    {{ $vigenciaFiltro === 'Todos' ? 'checked' : '' }} onchange="this.form.submit()">
+                <label class="btn btn-outline-secondary fw-semibold" for="vigencia_todos">Todos</label>
+                <input type="radio" class="btn-check" name="vigencia" id="vigencia_vigente" value="Vigente" autocomplete="off"
+                    {{ $vigenciaFiltro === 'Vigente' ? 'checked' : '' }} onchange="this.form.submit()">
+                <label class="btn btn-outline-success fw-semibold" for="vigencia_vigente">
+                    Vigente <span class="badge bg-success ms-1">{{ $countVigente }}</span>
+                </label>
+                <input type="radio" class="btn-check" name="vigencia" id="vigencia_no_vigente" value="No Vigente" autocomplete="off"
+                    {{ $vigenciaFiltro === 'No Vigente' ? 'checked' : '' }} onchange="this.form.submit()">
+                <label class="btn btn-outline-danger fw-semibold" for="vigencia_no_vigente">
+                    No Vigente <span class="badge bg-danger ms-1">{{ $countNoVigente }}</span>
+                </label>
+            </div>
+
+            {{-- Emisor --}}
+            <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="emisor" id="emisor_todos" value="Todos" autocomplete="off"
+                    {{ $emisorFiltro === 'Todos' ? 'checked' : '' }} onchange="this.form.submit()">
+                <label class="btn btn-outline-secondary fw-semibold" for="emisor_todos">Todos</label>
+                <input type="radio" class="btn-check" name="emisor" id="emisor_entel" value="Entel" autocomplete="off"
+                    {{ $emisorFiltro === 'Entel' ? 'checked' : '' }} onchange="this.form.submit()">
+                <label class="btn btn-outline-primary fw-semibold" for="emisor_entel">
+                    Entel <span class="badge bg-primary ms-1">{{ $countEntel }}</span>
+                </label>
+                <input type="radio" class="btn-check" name="emisor" id="emisor_movistar" value="Movistar" autocomplete="off"
+                    {{ $emisorFiltro === 'Movistar' ? 'checked' : '' }} onchange="this.form.submit()">
+                <label class="btn btn-outline-movistar fw-semibold" for="emisor_movistar">
+                    Movistar <span class="badge ms-1" style="background:#0099CC">{{ $countMovistar }}</span>
+                </label>
+                <input type="radio" class="btn-check" name="emisor" id="emisor_wom" value="WOM" autocomplete="off"
+                    {{ $emisorFiltro === 'WOM' ? 'checked' : '' }} onchange="this.form.submit()">
+                <label class="btn btn-outline-secondary emisor-wom fw-semibold" for="emisor_wom">
+                    WOM <span class="badge ms-1" style="background:#6f42c1">{{ $countWOM }}</span>
+                </label>
+            </div>
+
+            {{-- Incompletas --}}
+            <input type="checkbox" class="btn-check" name="incompletas" id="chk_incompletas"
+                value="1" autocomplete="off"
+                {{ $soloIncompletas ? 'checked' : '' }} onchange="this.form.submit()">
+            <label class="btn btn-outline-warning btn-sm fw-semibold" for="chk_incompletas">
+                ⚠ Incompletas
+                @if($totalIncompletas > 0)
+                    <span class="badge bg-warning text-dark ms-1">{{ $totalIncompletas }}</span>
+                @endif
+            </label>
+        </div>
+
+        <input type="hidden" name="_keep" value="1">
+    </form>
 
     <div class="vti-table-wrapper">
         <table class="vti-table">

@@ -155,6 +155,52 @@
         }
         .vti-footer .pagination { margin: 0; }
 
+        /* ── Responsive mobile ─────────────────────────────────────── */
+        @media (max-width: 767.98px) {
+            /* Reduce padding vertical del main */
+            main.py-4 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+
+            /* Page header: apilar título + acciones */
+            .vti-page-header { flex-direction: column; align-items: stretch; gap: .6rem; }
+            .vti-page-header h4 { white-space: normal; }
+            .vti-page-header > a.btn,
+            .vti-page-header > button.btn { width: 100%; justify-content: center; }
+            .vti-page-header > .d-flex { width: 100%; flex-wrap: wrap; }
+            .vti-page-header > .d-flex .btn { flex: 1 1 auto; justify-content: center; }
+
+            /* Tablas: scroll horizontal */
+            .vti-table-wrapper {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                border-radius: 10px;
+            }
+            /* Evitar que las celdas de acción queden muy angostas */
+            .vti-table th, .vti-table td { white-space: nowrap; }
+
+            /* Botones de acción: touch target más grande */
+            .vti-btn-edit, .vti-btn-delete, .vti-btn-view {
+                width: 36px; height: 36px; font-size: .82rem;
+            }
+
+            /* Footer: apilar total + paginación */
+            .vti-footer { flex-direction: column; align-items: center; gap: .5rem; text-align: center; }
+
+            /* Formularios de filtro: inputs al 100% */
+            .form-select[style*="width"],
+            .form-control[style*="width"],
+            input.form-control[style*="width"] {
+                width: 100% !important;
+                min-width: 0 !important;
+            }
+
+            /* Cards de formulario: menos padding */
+            .card-body.p-4 { padding: 1rem !important; }
+            .card-body.p-3 { padding: .75rem !important; }
+
+            /* Paginación más compacta */
+            .pagination .page-link { padding: .3rem .55rem; font-size: .8rem; }
+        }
+
         /* ── Barra de progreso superior (NProgress-style manual) ──── */
         #page-bar {
             position: fixed;
