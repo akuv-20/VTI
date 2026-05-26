@@ -188,24 +188,25 @@
         <div class="loader-text">Cargando…</div>
     </div>
 
-    {{-- Modal de confirmación de eliminación --}}
+    {{-- Modal de confirmación (genérico: eliminar, deshabilitar, habilitar, etc.) --}}
     <div class="modal fade" id="modalConfirmarEliminar" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
             <div class="modal-content border-0 shadow-lg rounded-3 overflow-hidden">
-                <div class="modal-header border-0 pb-0" style="background:#fff1f2">
+                <div class="modal-header border-0 pb-0" id="modal-confirm-header" style="background:#fff1f2">
                     <div class="d-flex align-items-center gap-3 w-100 px-1 pt-1">
-                        <div style="width:44px;height:44px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                            <i class="bi bi-trash3-fill" style="font-size:1.2rem;color:#dc2626"></i>
+                        <div id="modal-confirm-icon-wrap" style="width:44px;height:44px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                            <i id="modal-confirm-icon" class="bi bi-trash3-fill" style="font-size:1.2rem;color:#dc2626"></i>
                         </div>
                         <div>
-                            <h6 class="mb-0 fw-bold" style="color:#1e293b">Confirmar eliminación</h6>
-                            <small class="text-muted">Esta acción no se puede deshacer</small>
+                            <h6 class="mb-0 fw-bold" style="color:#1e293b" id="modal-confirm-title">Confirmar eliminación</h6>
+                            <small class="text-muted" id="modal-confirm-subtitle">Esta acción no se puede deshacer</small>
                         </div>
                     </div>
                 </div>
                 <div class="modal-body pt-3 pb-2">
                     <p class="mb-0 text-center" style="color:#475569;font-size:.9rem">
-                        ¿Estás seguro de que deseas eliminar
+                        ¿Estás seguro de que deseas
+                        <span id="modal-confirm-verb">eliminar</span>
                         <strong id="modal-confirm-nombre" class="text-dark"></strong>?
                     </p>
                 </div>
@@ -215,7 +216,8 @@
                         <i class="bi bi-x-lg me-1"></i>Cancelar
                     </button>
                     <button type="button" class="btn btn-danger btn-sm px-4" id="modal-confirm-btn">
-                        <i class="bi bi-trash3-fill me-1"></i>Sí, eliminar
+                        <i id="modal-confirm-btn-icon" class="bi bi-trash3-fill me-1"></i>
+                        <span id="modal-confirm-btn-text">Sí, eliminar</span>
                     </button>
                 </div>
             </div>
@@ -249,6 +251,7 @@
                         @else
                         <!-- Left Side Of Navbar -->
                         <ul class="navbar-nav me-auto">
+                            @if(auth()->user()->tieneAcceso('facturas.index'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="{{ route('facturas.index') }}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     Facturación
@@ -256,6 +259,7 @@
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item fw-semibold" href="{{ route('facturas.pendientes') }}">Facturas Pendientes</a></li>
                                     <li><a class="dropdown-item" href="{{ route('facturas.index') }}">Facturas</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('facturas.resumen') }}">Resumen Anual</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{{ route('servicios.index') }}">Servicios</a></li>
                                     <li><a class="dropdown-item" href="{{ route('familias.index') }}">Familias</a></li>
@@ -264,6 +268,8 @@
                                     <li><a class="dropdown-item" href="{{ route('cuentas_contables.index') }}">Cuentas Contables</a></li>
                                 </ul>
                             </li>
+                            @endif
+                            @if(auth()->user()->tieneAcceso('lineas_telefonicas.index'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Telefonía</a>
                                 <ul class="dropdown-menu">
@@ -282,6 +288,15 @@
                                     <li><a class="dropdown-item fw-semibold" href="{{ route('informes.telefonia') }}">📊 Informe Telefonía</a></li>
                                 </ul>
                             </li>
+                            @endif
+                            @can('acceso_ad')
+                            <li class="nav-item">
+                                <a class="nav-link fw-semibold" href="{{ route('admin.active_directory.index') }}"
+                                   style="color:#6366f1">
+                                    <i class="bi bi-diagram-3-fill me-1"></i>Active Directory
+                                </a>
+                            </li>
+                            @endcan
                             @can('admin')
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-danger fw-semibold" href="#"
@@ -292,6 +307,7 @@
                                     <li><a class="dropdown-item" href="{{ route('admin.usuarios.index') }}">
                                         <i class="bi bi-people-fill me-1"></i>Usuarios
                                     </a></li>
+                                    <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.configuracion.index') }}">
                                         <i class="bi bi-gear-fill me-1"></i>Configuración
                                     </a></li>
@@ -368,15 +384,22 @@
                 @endif
 
                 @if ($errors->any())
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <strong>Por favor corrige los siguientes errores:</strong>
-                        <ul class="mb-0 mt-1">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    {{-- Alert fijo: no desplaza el contenido de la página --}}
+                    <div id="globalErrorAlert"
+                         style="position:fixed;top:72px;right:1.25rem;z-index:1090;max-width:360px;animation:slideInRight .25s ease">
+                        <div class="alert alert-danger alert-dismissible shadow mb-0" role="alert">
+                            <strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Corrige los siguientes campos:</strong>
+                            <ul class="mb-0 mt-1 ps-3">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
                     </div>
+                    <style>
+                        @keyframes slideInRight { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:translateX(0); } }
+                    </style>
                 @endif
             </div>
 
@@ -398,9 +421,17 @@
                 let pendingForm = null;
                 let modal       = null;
 
-                const modalEl = document.getElementById('modalConfirmarEliminar');
-                const btnOk   = document.getElementById('modal-confirm-btn');
-                const lblNom  = document.getElementById('modal-confirm-nombre');
+                const modalEl   = document.getElementById('modalConfirmarEliminar');
+                const btnOk     = document.getElementById('modal-confirm-btn');
+                const lblNom    = document.getElementById('modal-confirm-nombre');
+                const lblVerb   = document.getElementById('modal-confirm-verb');
+                const lblTitle  = document.getElementById('modal-confirm-title');
+                const lblSub    = document.getElementById('modal-confirm-subtitle');
+                const btnIcon   = document.getElementById('modal-confirm-btn-icon');
+                const btnText   = document.getElementById('modal-confirm-btn-text');
+                const hdr       = document.getElementById('modal-confirm-header');
+                const iconWrap  = document.getElementById('modal-confirm-icon-wrap');
+                const iconEl    = document.getElementById('modal-confirm-icon');
                 if (!modalEl || !btnOk || !lblNom) return;
 
                 function getModal() {
@@ -419,7 +450,32 @@
                     if (!m) return; // Bootstrap no disponible, dejar pasar el submit normal
                     e.preventDefault();
                     pendingForm = form;
+
+                    // Texto del objeto a confirmar
                     lblNom.textContent = form.dataset.confirm || 'este registro';
+
+                    // Verbo y textos personalizables (por defecto: "eliminar")
+                    const verb    = form.dataset.confirmVerb    || 'eliminar';
+                    const title   = form.dataset.confirmTitle   || 'Confirmar eliminación';
+                    const sub     = form.dataset.confirmSub     || 'Esta acción no se puede deshacer';
+                    const btnLbl  = form.dataset.confirmBtn     || ('Sí, ' + verb);
+                    const icon    = form.dataset.confirmIcon    || 'bi-trash3-fill';
+                    const color   = form.dataset.confirmColor   || 'danger'; // danger | warning | success
+
+                    if (lblVerb)  lblVerb.textContent  = verb;
+                    if (lblTitle) lblTitle.textContent = title;
+                    if (lblSub)   lblSub.textContent   = sub;
+                    if (btnText)  btnText.textContent  = btnLbl;
+                    if (btnIcon)  { btnIcon.className = ''; btnIcon.classList.add('bi', icon, 'me-1'); }
+
+                    // Adaptar colores al tipo de acción
+                    const colors = { danger: ['#fff1f2','#fee2e2','#dc2626'], warning: ['#fffbeb','#fef3c7','#d97706'], success: ['#f0fdf4','#dcfce7','#16a34a'] };
+                    const [bgHdr, bgIcon, clrIcon] = colors[color] || colors.danger;
+                    if (hdr)      hdr.style.background      = bgHdr;
+                    if (iconWrap) iconWrap.style.background = bgIcon;
+                    if (iconEl)   iconEl.style.color        = clrIcon;
+                    btnOk.className = `btn btn-${color} btn-sm px-4`;
+
                     m.show();
                 });
 
@@ -533,5 +589,6 @@
             })();
         </script>
     </div>
+    @stack('scripts')
 </body>
 </html>

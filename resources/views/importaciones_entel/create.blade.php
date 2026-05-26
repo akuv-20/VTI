@@ -14,14 +14,6 @@
                 o <strong>BAM</strong> (1.10290392) según el contenido del archivo.
             </div>
 
-            @if($errors->any())
-                <div class="alert alert-danger">
-                    @foreach($errors->all() as $error)
-                        <div>{{ $error }}</div>
-                    @endforeach
-                </div>
-            @endif
-
             <form action="{{ route('importaciones_entel.store') }}" method="POST"
                   enctype="multipart/form-data" id="formImport" data-no-loader>
                 @csrf

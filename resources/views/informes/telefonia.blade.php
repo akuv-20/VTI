@@ -95,12 +95,18 @@
 
         {{-- Encabezado visible solo en impresión --}}
         <div class="print-header" style="display:none;">
-            <strong>Informe Telefonía — {{ $servicioLabel }} — {{ $meses[$mes] }} {{ $anio }}</strong>
+            <strong>Informe Telefonía — {{ $servicioLabel }}{{ $folio ? ' — Factura ' . $folio : '' }} — {{ $meses[$mes] }} {{ $anio }}</strong>
         </div>
 
         {{-- Encabezado pantalla --}}
-        <div class="mb-2 no-print">
-            <strong>{{ $servicioLabel }} — {{ $meses[$mes] }} {{ $anio }}</strong>
+        <div class="mb-3 no-print">
+            <span style="font-size:1.15rem;font-weight:700;color:#1e293b">
+                {{ $servicioLabel }}
+                @if($folio)
+                    <span style="color:#2563eb"> — Factura <span style="font-size:1.25rem">{{ $folio }}</span></span>
+                @endif
+            </span>
+            <span class="text-muted ms-2" style="font-size:.95rem;font-weight:600">{{ $meses[$mes] }} {{ $anio }}</span>
         </div>
 
         <table class="table table-bordered table-sm informe-table mb-0">

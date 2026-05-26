@@ -22,6 +22,26 @@
     </div>
 @endif
 
+@if(session('azure_pendiente'))
+    <div class="alert py-2 px-3 mb-3 rounded-3" style="font-size:.83rem;background:#fef9c3;color:#854d0e;border:1px solid #fde68a">
+        <i class="bi bi-clock-fill me-1"></i>{{ session('azure_pendiente') }}
+    </div>
+@endif
+
+@if(!empty($azureEnabled))
+    <a href="{{ route('azure.redirect') }}" class="btn-microsoft mb-1">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 23 23">
+            <path fill="#f3f3f3" d="M0 0h23v23H0z"/>
+            <path fill="#f35325" d="M1 1h10v10H1z"/>
+            <path fill="#81bc06" d="M12 1h10v10H12z"/>
+            <path fill="#05a6f0" d="M1 12h10v10H1z"/>
+            <path fill="#ffba08" d="M12 12h10v10H12z"/>
+        </svg>
+        Continuar con Microsoft 365
+    </a>
+    <div class="login-divider">o ingresa con tu cuenta</div>
+@endif
+
 <form method="POST" action="{{ route('login') }}">
     @csrf
 

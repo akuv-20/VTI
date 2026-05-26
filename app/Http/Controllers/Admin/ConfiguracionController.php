@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Configuracion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use LdapRecord\Container as LdapContainer;
+use LdapRecord\Connection  as LdapConnection;
 
 class ConfiguracionController extends Controller
 {
@@ -15,7 +17,22 @@ class ConfiguracionController extends Controller
         $appNombre = Configuracion::get('app_nombre') ?: config('app.name');
         $appLogo   = Configuracion::get('app_logo');
 
-        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo'));
+        $azureCfg = [
+            'enabled'       => (bool) Configuracion::get('azure_enabled', false),
+            'client_id'     => Configuracion::get('azure_client_id', ''),
+            'client_secret' => Configuracion::get('azure_client_secret', ''),
+            'tenant_id'     => Configuracion::get('azure_tenant_id', ''),
+        ];
+
+        $ldapCfg = [
+            'host'     => Configuracion::get('ldap_host',     env('LDAP_HOST',    'vfrpdc01.verfrut.cl,vfrpdc02.verfrut.cl')),
+            'port'     => Configuracion::get('ldap_port',     env('LDAP_PORT',    389)),
+            'base_dn'  => Configuracion::get('ldap_base_dn',  env('LDAP_BASE_DN', 'DC=verfrut,DC=cl')),
+            'username' => Configuracion::get('ldap_username', env('LDAP_USERNAME', '')),
+            // Nunca mostramos la contraseña guardada
+        ];
+
+        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'azureCfg', 'ldapCfg'));
     }
 
     public function update(Request $request)
@@ -102,6 +119,77 @@ class ConfiguracionController extends Controller
             return back()->with('success', 'Imagen de fondo actualizada correctamente.');
         }
 
+        // ── Azure AD ─────────────────────────────────────────────────────
+        if ($request->input('seccion') === 'azure') {
+            Configuracion::set('azure_enabled',   $request->boolean('azure_enabled') ? '1' : '0');
+            Configuracion::set('azure_tenant_id', trim($request->input('azure_tenant_id', '')));
+
+            if ($request->filled('azure_client_id')) {
+                Configuracion::set('azure_client_id', trim($request->input('azure_client_id')));
+            }
+            if ($request->filled('azure_client_secret')) {
+                Configuracion::set('azure_client_secret', trim($request->input('azure_client_secret')));
+            }
+
+            return back()->with('success', 'Configuración de Azure AD guardada.');
+        }
+
+        // ── Active Directory / LDAP ──────────────────────────────────────
+        if ($request->input('seccion') === 'ldap') {
+            $request->validate([
+                'ldap_host'     => 'required|string|max:500',
+                'ldap_port'     => 'required|integer|between:1,65535',
+                'ldap_base_dn'  => 'required|string|max:200',
+                'ldap_username' => 'required|string|max:200',
+            ]);
+
+            Configuracion::set('ldap_host',    trim($request->input('ldap_host')));
+            Configuracion::set('ldap_port',    $request->input('ldap_port'));
+            Configuracion::set('ldap_base_dn', trim($request->input('ldap_base_dn')));
+            Configuracion::set('ldap_username', trim($request->input('ldap_username')));
+
+            // Solo actualizar contraseña si se ingresó una nueva
+            if ($request->filled('ldap_password')) {
+                Configuracion::set('ldap_password', $request->input('ldap_password'));
+            }
+
+            return back()->with('success', 'Configuración de Active Directory guardada.');
+        }
+
         return back()->with('success', 'Configuración guardada.');
+    }
+
+    /** Test de conexión LDAP — responde JSON */
+    public function testLdap(Request $request)
+    {
+        $host     = Configuracion::get('ldap_host');
+        $username = Configuracion::get('ldap_username');
+        $password = Configuracion::get('ldap_password');
+        $baseDn   = Configuracion::get('ldap_base_dn', 'DC=verfrut,DC=cl');
+        $port     = (int)(Configuracion::get('ldap_port') ?: 389);
+
+        if (!$host || !$username || !$password) {
+            return response()->json(['ok' => false, 'message' => 'Completa los datos y guarda antes de probar.']);
+        }
+
+        try {
+            if (extension_loaded('ldap')) {
+                ldap_set_option(null, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER);
+            }
+            $hosts = array_values(array_filter(array_map('trim', explode(',', $host))));
+            $conn  = new LdapConnection([
+                'hosts'    => $hosts,
+                'username' => $username,
+                'password' => $password,
+                'base_dn'  => $baseDn,
+                'port'     => $port,
+                'timeout'  => 5,
+                'use_tls'  => $port === 636,
+            ]);
+            $conn->connect();
+            return response()->json(['ok' => true, 'message' => 'Conexión exitosa con ' . $hosts[0]]);
+        } catch (\Throwable $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()]);
+        }
     }
 }

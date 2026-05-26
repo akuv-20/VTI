@@ -26,4 +26,9 @@ class CuentaContable extends Model
     {
         return $this->hasMany(Servicio::class, 'id_cuenta_contable');
     }
+
+    public function facturas()
+    {
+        return $this->hasMany(Factura::class, 'id_cuenta_contable');
+    }
 }

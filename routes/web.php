@@ -19,6 +19,8 @@ use App\Http\Controllers\InformeController;
 use App\Http\Controllers\ImportacionMovistarController;
 use App\Http\Controllers\Admin\UsuarioController as AdminUsuarioController;
 use App\Http\Controllers\Admin\ConfiguracionController as AdminConfiguracionController;
+use App\Http\Controllers\Admin\ActiveDirectoryController as AdminADController;
+use App\Http\Controllers\Auth\AzureController;
 
 // Route::get('/', function () {
 //     return view('home');
@@ -26,11 +28,16 @@ use App\Http\Controllers\Admin\ConfiguracionController as AdminConfiguracionCont
 
 Auth::routes();
 
+// ── Azure AD OAuth ───────────────────────────────────────────────────────────
+Route::get('auth/azure/redirect',  [AzureController::class, 'redirect'])->name('azure.redirect');
+Route::get('auth/azure/callback',  [AzureController::class, 'callback'])->name('azure.callback');
+
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
 Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
 Route::get('facturas/pendientes', [FacturaController::class, 'pendientes'])->name('facturas.pendientes');
+Route::get('facturas/resumen',   [FacturaController::class, 'resumen'])->name('facturas.resumen');
 Route::resource('facturas', FacturaController::class);
 
 Route::resource('servicios', ServicioController::class);
@@ -62,6 +69,20 @@ Route::post('importaciones_movistar/{importaciones_movistar}/recruzar', [Importa
 // ── Administración (solo admins) ─────────────────────────────────────────────
 Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('usuarios', AdminUsuarioController::class);
-    Route::get('configuracion',         [AdminConfiguracionController::class, 'index'])->name('configuracion.index');
-    Route::post('configuracion',        [AdminConfiguracionController::class, 'update'])->name('configuracion.update');
+    Route::get('configuracion',            [AdminConfiguracionController::class, 'index'])->name('configuracion.index');
+    Route::post('configuracion',           [AdminConfiguracionController::class, 'update'])->name('configuracion.update');
+    Route::post('configuracion/test-ldap', [AdminConfiguracionController::class, 'testLdap'])->name('configuracion.test-ldap');
+});
+
+// ── Active Directory (admins + usuarios con permiso AD) ───────────────────────
+Route::middleware(['auth', 'can:acceso_ad'])->prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('active-directory')->name('active_directory.')->group(function () {
+        Route::get('/',                           [AdminADController::class, 'index'])->name('index');
+        Route::get('/importar-correos',           [AdminADController::class, 'importarCorreos'])->name('importar_correos');
+        Route::post('/importar-correos',          [AdminADController::class, 'procesarImportacion'])->name('procesar_importacion');
+        Route::get('/{username}/editar',          [AdminADController::class, 'edit'])->name('edit');
+        Route::put('/{username}',                 [AdminADController::class, 'update'])->name('update');
+        Route::post('/{username}/toggle',         [AdminADController::class, 'toggleEnabled'])->name('toggle');
+        Route::post('/{username}/reset-password', [AdminADController::class, 'resetPassword'])->name('reset-password');
+    });
 });

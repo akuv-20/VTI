@@ -6,168 +6,384 @@
         <h4><i class="bi bi-gear-fill me-2"></i>Configuración del Sistema</h4>
     </div>
 
-    <div class="row g-4" style="max-width:700px">
+    <div style="max-width:780px">
 
-        {{-- Nombre de la aplicación --}}
-        <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
-                <div class="card-header fw-bold border-0" style="background:#f8fafc">
-                    <i class="bi bi-fonts me-2 text-primary"></i>Nombre de la aplicación
-                </div>
-                <div class="card-body">
-                    <form action="{{ route('admin.configuracion.update') }}" method="POST" data-loader>
-                        @csrf
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Nombre que aparece en la barra de navegación y pantalla de login</label>
-                            <input type="text" name="app_nombre" class="form-control @error('app_nombre') is-invalid @enderror"
-                                   value="{{ old('app_nombre', $appNombre) }}"
-                                   maxlength="60" placeholder="{{ config('app.name') }}">
-                            <div class="form-text">Máximo 60 caracteres. Si se deja vacío se usa el nombre por defecto del sistema.</div>
-                            @error('app_nombre')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+        {{-- ── Tabs ──────────────────────────────────────────────────── --}}
+        <ul class="nav nav-tabs mb-0" id="cfgTabs" role="tablist"
+            style="border-bottom:2px solid #e2e8f0">
+            <li class="nav-item">
+                <button class="nav-link active fw-semibold" id="tab-apariencia"
+                        data-bs-toggle="tab" data-bs-target="#pane-apariencia"
+                        type="button" style="font-size:.88rem">
+                    <i class="bi bi-palette me-1"></i>Apariencia
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-semibold" id="tab-ldap"
+                        data-bs-toggle="tab" data-bs-target="#pane-ldap"
+                        type="button" style="font-size:.88rem">
+                    <i class="bi bi-diagram-3 me-1"></i>Active Directory
+                    @if($ldapCfg['username'])
+                        <span class="badge bg-success ms-1" style="font-size:.65rem">ON</span>
+                    @endif
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-semibold" id="tab-azure"
+                        data-bs-toggle="tab" data-bs-target="#pane-azure"
+                        type="button" style="font-size:.88rem">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 23 23" class="me-1" style="vertical-align:-.1em">
+                        <path fill="#f3f3f3" d="M0 0h23v23H0z"/><path fill="#f35325" d="M1 1h10v10H1z"/>
+                        <path fill="#81bc06" d="M12 1h10v10H12z"/><path fill="#05a6f0" d="M1 12h10v10H1z"/>
+                        <path fill="#ffba08" d="M12 12h10v10H12z"/>
+                    </svg>
+                    Microsoft 365
+                    @if($azureCfg['enabled'])
+                        <span class="badge bg-success ms-1" style="font-size:.65rem">ON</span>
+                    @endif
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content bg-white border border-top-0 rounded-bottom-3 shadow-sm p-4"
+             style="border-color:#e2e8f0 !important">
+
+            {{-- ══════════════════════════════════════════════════════════
+                 Tab: Apariencia
+            ══════════════════════════════════════════════════════════ --}}
+            <div class="tab-pane fade show active" id="pane-apariencia">
+
+                {{-- Nombre --}}
+                <div class="mb-4 pb-4" style="border-bottom:1px solid #f1f5f9">
+                    <div class="row align-items-start g-3">
+                        <div class="col-md-4">
+                            <div class="fw-bold" style="font-size:.88rem;color:#1e293b">
+                                <i class="bi bi-fonts me-1 text-primary"></i>Nombre
+                            </div>
+                            <div class="text-muted" style="font-size:.78rem;margin-top:2px">
+                                Aparece en la barra de navegación y en el login.
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="bi bi-check-lg me-1"></i>Guardar nombre
-                        </button>
-                    </form>
+                        <div class="col-md-8">
+                            <form action="{{ route('admin.configuracion.update') }}" method="POST"
+                                  class="d-flex gap-2 align-items-start" data-loader>
+                                @csrf
+                                <div class="flex-grow-1">
+                                    <input type="text" name="app_nombre"
+                                           class="form-control form-control-sm @error('app_nombre') is-invalid @enderror"
+                                           value="{{ old('app_nombre', $appNombre) }}"
+                                           maxlength="60" placeholder="{{ config('app.name') }}">
+                                    @error('app_nombre')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm flex-shrink-0">
+                                    <i class="bi bi-check-lg"></i> Guardar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        {{-- Logo / Ícono de la aplicación --}}
-        <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
-                <div class="card-header fw-bold border-0" style="background:#f8fafc">
-                    <i class="bi bi-image-fill me-2 text-primary"></i>Logo / Ícono de la aplicación
+                {{-- Logo --}}
+                <div class="mb-4 pb-4" style="border-bottom:1px solid #f1f5f9">
+                    <div class="row align-items-start g-3">
+                        <div class="col-md-4">
+                            <div class="fw-bold" style="font-size:.88rem;color:#1e293b">
+                                <i class="bi bi-image-fill me-1 text-primary"></i>Logo
+                            </div>
+                            <div class="text-muted" style="font-size:.78rem;margin-top:2px">
+                                PNG, JPG, WebP o SVG — máx. 2 MB.
+                            </div>
+                            {{-- Preview --}}
+                            <div class="mt-2">
+                                @if($appLogo)
+                                    <img src="{{ Storage::url($appLogo) }}" alt="Logo"
+                                         class="rounded-2 border"
+                                         style="height:52px;object-fit:contain;background:#f8fafc;padding:6px;max-width:140px">
+                                    <div class="mt-1">
+                                        <form action="{{ route('admin.configuracion.update') }}" method="POST"
+                                              data-confirm="el logo de la aplicación">
+                                            @csrf
+                                            <input type="hidden" name="eliminar_logo" value="1">
+                                            <button class="btn btn-link btn-sm text-danger p-0" style="font-size:.75rem">
+                                                <i class="bi bi-trash3-fill me-1"></i>Quitar logo
+                                            </button>
+                                        </form>
+                                    </div>
+                                @else
+                                    <div class="rounded-2 d-inline-flex align-items-center justify-content-center"
+                                         style="height:52px;width:52px;background:linear-gradient(135deg,#1e3a5f,#2563eb)">
+                                        <i class="bi bi-building-check" style="font-size:1.4rem;color:#fff"></i>
+                                    </div>
+                                    <div class="text-muted mt-1" style="font-size:.74rem">Ícono por defecto</div>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <form action="{{ route('admin.configuracion.update') }}" method="POST"
+                                  enctype="multipart/form-data" data-loader>
+                                @csrf
+                                <input type="file" name="app_logo" class="form-control form-control-sm"
+                                       accept="image/jpeg,image/png,image/webp,image/svg+xml">
+                                @error('app_logo')
+                                    <div class="alert alert-danger py-1 px-2 mt-2 mb-0 small">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ $message }}
+                                    </div>
+                                @enderror
+                                <button type="submit" class="btn btn-primary btn-sm mt-2">
+                                    <i class="bi bi-upload me-1"></i>Subir logo
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
 
-                    {{-- Preview actual --}}
-                    <div class="mb-3">
-                        @if($appLogo)
-                            <div class="position-relative d-inline-block">
-                                <img src="{{ Storage::url($appLogo) }}"
-                                     alt="Logo actual"
-                                     class="rounded-2 border"
-                                     style="height:80px;object-fit:contain;background:#f8fafc;padding:8px">
-                                <span class="badge bg-success position-absolute top-0 start-0 m-1" style="font-size:.7rem">
-                                    <i class="bi bi-check-circle-fill me-1"></i>Logo actual
-                                </span>
+                {{-- Fondo del login --}}
+                <div>
+                    <div class="row align-items-start g-3">
+                        <div class="col-md-4">
+                            <div class="fw-bold" style="font-size:.88rem;color:#1e293b">
+                                <i class="bi bi-image me-1 text-primary"></i>Fondo del Login
                             </div>
-                        @else
-                            <div class="rounded-2 d-inline-flex align-items-center justify-content-center"
-                                 style="height:80px;width:80px;background:linear-gradient(135deg,#1e3a5f,#2563eb)">
-                                <i class="bi bi-building-check" style="font-size:2rem;color:#fff"></i>
+                            <div class="text-muted" style="font-size:.78rem;margin-top:2px">
+                                JPG, PNG o WebP — máx. 10 MB.<br>Recomendado: 1920×1080 px.
                             </div>
-                            <div class="text-muted small mt-1">Sin logo — se usa el ícono por defecto</div>
-                        @endif
+                            {{-- Preview --}}
+                            <div class="mt-2">
+                                @if($loginBg)
+                                    <img src="{{ Storage::url($loginBg) }}" alt="Fondo"
+                                         class="rounded-2 border"
+                                         style="height:72px;object-fit:cover;width:140px">
+                                    <div class="mt-1">
+                                        <form action="{{ route('admin.configuracion.update') }}" method="POST"
+                                              data-confirm="la imagen de fondo del login">
+                                            @csrf
+                                            <input type="hidden" name="eliminar_fondo" value="1">
+                                            <button class="btn btn-link btn-sm text-danger p-0" style="font-size:.75rem">
+                                                <i class="bi bi-trash3-fill me-1"></i>Quitar imagen
+                                            </button>
+                                        </form>
+                                    </div>
+                                @else
+                                    <div class="rounded-2 d-flex align-items-center justify-content-center"
+                                         style="height:72px;width:140px;background:linear-gradient(135deg,#1e3a5f,#2563eb)">
+                                        <div class="text-center text-white">
+                                            <i class="bi bi-image" style="font-size:1.3rem;opacity:.6"></i>
+                                            <div style="font-size:.62rem;opacity:.75;margin-top:2px">Gradiente azul</div>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <form action="{{ route('admin.configuracion.update') }}" method="POST"
+                                  enctype="multipart/form-data" data-loader>
+                                @csrf
+                                <input type="file" name="login_background" class="form-control form-control-sm"
+                                       accept="image/jpeg,image/png,image/webp">
+                                @error('login_background')
+                                    <div class="alert alert-danger py-1 px-2 mt-2 mb-0 small">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ $message }}
+                                    </div>
+                                @enderror
+                                <button type="submit" class="btn btn-primary btn-sm mt-2">
+                                    <i class="bi bi-upload me-1"></i>Subir imagen
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+            </div>{{-- /pane-apariencia --}}
+
+            {{-- ══════════════════════════════════════════════════════════
+                 Tab: Active Directory / LDAP
+            ══════════════════════════════════════════════════════════ --}}
+            <div class="tab-pane fade" id="pane-ldap">
+
+                <form action="{{ route('admin.configuracion.update') }}" method="POST" data-loader id="formLdap">
+                    @csrf
+                    <input type="hidden" name="seccion" value="ldap">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-9">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">
+                                Servidores (Domain Controllers)
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="ldap_host"
+                                   class="form-control form-control-sm font-monospace @error('ldap_host') is-invalid @enderror"
+                                   value="{{ old('ldap_host', $ldapCfg['host']) }}"
+                                   placeholder="vfrpdc01.verfrut.cl,vfrpdc02.verfrut.cl">
+                            <div class="form-text">Separados por coma si hay más de uno. El primero es el principal.</div>
+                            @error('ldap_host')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Puerto <span class="text-danger">*</span></label>
+                            <input type="number" name="ldap_port"
+                                   class="form-control form-control-sm @error('ldap_port') is-invalid @enderror"
+                                   value="{{ old('ldap_port', $ldapCfg['port']) }}"
+                                   min="1" max="65535">
+                            <div class="form-text">389 LDAP · 636 LDAPS</div>
+                            @error('ldap_port')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Base DN <span class="text-danger">*</span></label>
+                            <input type="text" name="ldap_base_dn"
+                                   class="form-control form-control-sm font-monospace @error('ldap_base_dn') is-invalid @enderror"
+                                   value="{{ old('ldap_base_dn', $ldapCfg['base_dn']) }}"
+                                   placeholder="DC=verfrut,DC=cl">
+                            <div class="form-text">Raíz del directorio desde donde se buscarán los objetos.</div>
+                            @error('ldap_base_dn')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Usuario de servicio <span class="text-danger">*</span></label>
+                            <input type="text" name="ldap_username"
+                                   class="form-control form-control-sm font-monospace @error('ldap_username') is-invalid @enderror"
+                                   value="{{ old('ldap_username', $ldapCfg['username']) }}"
+                                   placeholder="usuario@verfrut.cl">
+                            <div class="form-text">Formato UPN: usuario@verfrut.cl</div>
+                            @error('ldap_username')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Contraseña</label>
+                            <input type="password" name="ldap_password"
+                                   class="form-control form-control-sm"
+                                   autocomplete="new-password"
+                                   placeholder="{{ $ldapCfg['username'] ? 'Dejar en blanco para no cambiar' : 'Ingresar contraseña' }}">
+                        </div>
                     </div>
 
-                    {{-- Subir nuevo logo --}}
-                    <form action="{{ route('admin.configuracion.update') }}" method="POST"
-                          enctype="multipart/form-data" data-loader>
-                        @csrf
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Subir nuevo logo</label>
-                            <input type="file" name="app_logo" class="form-control"
-                                   accept="image/jpeg,image/png,image/webp,image/svg+xml">
-                            <div class="form-text">JPG, PNG, WebP o SVG — máx. 2 MB. Se mostrará en la barra de navegación y en la pantalla de login.</div>
-                            @error('app_logo')
-                                <div class="alert alert-danger py-2 px-3 mt-2 mb-0 small">
-                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ $message }}
-                                </div>
-                            @enderror
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="bi bi-upload me-1"></i>Guardar logo
-                        </button>
-                    </form>
-
-                    {{-- Eliminar logo --}}
-                    @if($appLogo)
-                    <form action="{{ route('admin.configuracion.update') }}" method="POST"
-                          class="mt-2" data-confirm="el logo de la aplicación">
-                        @csrf
-                        <input type="hidden" name="eliminar_logo" value="1">
-                        <button type="submit" class="btn btn-outline-danger btn-sm">
-                            <i class="bi bi-trash3-fill me-1"></i>Quitar logo (usar ícono por defecto)
-                        </button>
-                    </form>
-                    @endif
-
-                </div>
-            </div>
-        </div>
-
-        {{-- Fondo del login --}}
-        <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
-                <div class="card-header fw-bold border-0" style="background:#f8fafc">
-                    <i class="bi bi-image me-2 text-primary"></i>Fondo de pantalla del Login
-                </div>
-                <div class="card-body">
-
-                    {{-- Preview actual --}}
-                    <div class="mb-3">
-                        @if($loginBg)
-                            <div class="position-relative d-inline-block">
-                                <img src="{{ Storage::url($loginBg) }}"
-                                     alt="Fondo actual"
-                                     class="rounded-2 border"
-                                     style="height:160px;object-fit:cover;width:320px">
-                                <span class="badge bg-success position-absolute top-0 start-0 m-2">
-                                    <i class="bi bi-check-circle-fill me-1"></i>Imagen actual
-                                </span>
-                            </div>
-                        @else
-                            <div class="rounded-2 d-flex align-items-center justify-content-center"
-                                 style="height:160px;width:320px;background:linear-gradient(135deg,#1e3a5f,#2563eb)">
-                                <div class="text-center text-white">
-                                    <i class="bi bi-image" style="font-size:2rem;opacity:.5"></i>
-                                    <div class="small mt-1 opacity-75">Sin imagen — fondo azul por defecto</div>
-                                </div>
-                            </div>
-                        @endif
+                    {{-- Info --}}
+                    <div class="p-3 rounded-2 mb-3 d-flex align-items-start gap-2"
+                         style="background:#f0f9ff;border:1px solid #bae6fd;font-size:.8rem">
+                        <i class="bi bi-info-circle-fill flex-shrink-0 mt-1" style="color:#0284c7"></i>
+                        <span>
+                            Para <strong>resetear contraseñas</strong> de usuarios AD se requiere conexión
+                            <strong>LDAPS (puerto 636)</strong> con certificado SSL válido.
+                            La lectura y modificación de atributos funciona con LDAP estándar (389).
+                        </span>
                     </div>
 
-                    {{-- Subir nueva imagen --}}
-                    <form action="{{ route('admin.configuracion.update') }}" method="POST"
-                          enctype="multipart/form-data" data-loader>
-                        @csrf
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Subir nueva imagen de fondo</label>
-                            <input type="file" name="login_background" class="form-control"
-                                   accept="image/jpeg,image/png,image/webp">
-                            <div class="form-text">JPG, PNG o WebP — máx. 10 MB. Recomendado: 1920×1080 px.</div>
-                            @error('login_background')
-                                <div class="alert alert-danger py-2 px-3 mt-2 mb-0 small">
-                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ $message }}
-                                </div>
-                            @enderror
-                        </div>
+                    <div class="d-flex gap-2 align-items-center">
                         <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="bi bi-upload me-1"></i>Guardar imagen
+                            <i class="bi bi-check-lg me-1"></i>Guardar configuración
                         </button>
-                    </form>
-
-                    {{-- Eliminar imagen --}}
-                    @if($loginBg)
-                    <form action="{{ route('admin.configuracion.update') }}" method="POST"
-                          class="mt-2" data-confirm="la imagen de fondo del login">
-                        @csrf
-                        <input type="hidden" name="eliminar_fondo" value="1">
-                        <button type="submit" class="btn btn-outline-danger btn-sm">
-                            <i class="bi bi-trash3-fill me-1"></i>Quitar imagen (usar fondo azul)
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTestLdap">
+                            <i class="bi bi-plug me-1"></i>Probar conexión
                         </button>
-                    </form>
-                    @endif
+                        <span id="ldapTestResult" class="small ms-1"></span>
+                    </div>
+                </form>
 
-                </div>
-            </div>
-        </div>
+            </div>{{-- /pane-ldap --}}
 
+            {{-- ══════════════════════════════════════════════════════════
+                 Tab: Microsoft 365
+            ══════════════════════════════════════════════════════════ --}}
+            <div class="tab-pane fade" id="pane-azure">
+
+                <form action="{{ route('admin.configuracion.update') }}" method="POST" data-loader>
+                    @csrf
+                    <input type="hidden" name="seccion" value="azure">
+
+                    {{-- Toggle activar --}}
+                    <div class="d-flex align-items-center justify-content-between mb-4 pb-3"
+                         style="border-bottom:1px solid #f1f5f9">
+                        <div>
+                            <div class="fw-bold" style="font-size:.88rem;color:#1e293b">Habilitar login con Microsoft 365</div>
+                            <div class="text-muted" style="font-size:.78rem">Muestra el botón "Continuar con Microsoft 365" en la pantalla de inicio de sesión.</div>
+                        </div>
+                        <div class="form-check form-switch ms-3 mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                   name="azure_enabled" id="azure_enabled" value="1"
+                                   style="width:2.5em;height:1.3em"
+                                   {{ $azureCfg['enabled'] ? 'checked' : '' }}>
+                        </div>
+                    </div>
+
+                    {{-- Credenciales --}}
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">
+                                Application (Client) ID
+                            </label>
+                            <input type="text" name="azure_client_id"
+                                   class="form-control form-control-sm font-monospace"
+                                   value="{{ $azureCfg['client_id'] }}"
+                                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        </div>
+                        <div class="col-sm-8">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">
+                                Client Secret
+                            </label>
+                            <input type="password" name="azure_client_secret"
+                                   class="form-control form-control-sm font-monospace"
+                                   value="{{ $azureCfg['client_secret'] }}"
+                                   placeholder="Dejar en blanco para no cambiar">
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">
+                                Directory (Tenant) ID
+                            </label>
+                            <input type="text" name="azure_tenant_id"
+                                   class="form-control form-control-sm font-monospace"
+                                   value="{{ $azureCfg['tenant_id'] }}"
+                                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        </div>
+                    </div>
+
+                    {{-- Info URI --}}
+                    <div class="p-3 rounded-2 mb-3 d-flex align-items-center gap-2"
+                         style="background:#f0f9ff;border:1px solid #bae6fd;font-size:.8rem">
+                        <i class="bi bi-info-circle-fill flex-shrink-0" style="color:#0284c7"></i>
+                        <span>
+                            <strong>URI de redirección</strong> registrada en Azure:
+                            <code class="ms-1">{{ url('/auth/azure/callback') }}</code>
+                        </span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-check-lg me-1"></i>Guardar configuración
+                    </button>
+                </form>
+
+            </div>{{-- /pane-azure --}}
+
+        </div>{{-- /tab-content --}}
     </div>
 
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.getElementById('btnTestLdap')?.addEventListener('click', function () {
+    var btn = this;
+    var result = document.getElementById('ldapTestResult');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Probando…';
+    result.textContent = '';
+    result.className = 'small ms-1';
+
+    fetch('{{ route("admin.configuracion.test-ldap") }}', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        result.textContent = (data.ok ? '✓ ' : '✗ ') + data.message;
+        result.className   = 'small ms-1 ' + (data.ok ? 'text-success' : 'text-danger');
+    })
+    .catch(() => {
+        result.textContent = '✗ Error al conectar con el servidor';
+        result.className   = 'small ms-1 text-danger';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-plug me-1"></i>Probar conexión';
+    });
+});
+</script>
+@endpush

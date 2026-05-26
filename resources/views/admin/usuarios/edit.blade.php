@@ -9,17 +9,6 @@
         </a>
     </div>
 
-    @if($errors->any())
-        <div class="alert alert-danger no-autodismiss">
-            <strong>Por favor corrige los siguientes errores:</strong>
-            <ul class="mb-0 mt-1">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
     <form action="{{ route('admin.usuarios.update', $usuario) }}" method="POST" data-loader>
         @csrf @method('PUT')
         @include('admin.usuarios._form', ['asignados' => $asignados])

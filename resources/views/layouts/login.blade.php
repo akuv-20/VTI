@@ -172,6 +172,52 @@
         }
 
         .password-wrapper .toggle-pw:hover { color: #64748b; }
+
+        /* Botón Microsoft */
+        .btn-microsoft {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .65rem;
+            padding: .68rem 1rem;
+            border-radius: 10px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+            color: #1e293b;
+            font-weight: 600;
+            font-size: .9rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background .15s, border-color .15s, box-shadow .15s, transform .1s;
+        }
+        .btn-microsoft:hover {
+            background: #f8fafc;
+            border-color: #2563eb;
+            box-shadow: 0 4px 14px rgba(37,99,235,.12);
+            transform: translateY(-1px);
+            color: #1e293b;
+        }
+        .btn-microsoft:active { transform: translateY(0); }
+
+        .login-divider {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            margin: 1.1rem 0;
+            color: #cbd5e1;
+            font-size: .78rem;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+        .login-divider::before,
+        .login-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e2e8f0;
+        }
     </style>
 </head>
 <body>

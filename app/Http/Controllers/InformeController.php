@@ -59,11 +59,12 @@ class InformeController extends Controller
         $meses = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-        $datos     = null;
+        $datos        = null;
         $totalGeneral = 0;
-        $servicio  = $request->input('servicio');
-        $anio      = $request->integer('anio');
-        $mes       = $request->integer('mes');
+        $importacion  = null;
+        $servicio     = $request->input('servicio');
+        $anio         = $request->integer('anio');
+        $mes          = $request->integer('mes');
 
         if ($servicio && $anio && $mes) {
             [$operadora, $tipo] = explode('_', $servicio); // ej: Movistar_Movil
@@ -130,9 +131,11 @@ class InformeController extends Controller
             unset($ccostos, $cc);
         }
 
+        $folio = $importacion->folio ?? null;
+
         return view('informes.telefonia', compact(
             'periodos', 'meses', 'datos', 'totalGeneral',
-            'servicio', 'anio', 'mes', 'ultimoPorServicio'
+            'servicio', 'anio', 'mes', 'ultimoPorServicio', 'folio'
         ));
     }
 }
