@@ -453,6 +453,35 @@
         </main>
 
         <script>
+            // ── Fallback navbar hamburger (por si Bootstrap JS no carga) ───
+            (function () {
+                var toggler  = document.querySelector('.navbar-toggler');
+                var collapse = document.getElementById('navbarSupportedContent');
+                if (!toggler || !collapse) return;
+
+                toggler.addEventListener('click', function () {
+                    var open = collapse.classList.contains('show');
+                    collapse.classList.toggle('show', !open);
+                    toggler.setAttribute('aria-expanded', String(!open));
+                });
+
+                // Cerrar al hacer clic fuera del navbar
+                document.addEventListener('click', function (e) {
+                    if (!toggler.contains(e.target) && !collapse.contains(e.target)) {
+                        collapse.classList.remove('show');
+                        toggler.setAttribute('aria-expanded', 'false');
+                    }
+                });
+
+                // Cerrar al hacer clic en un link del menú (navegación)
+                collapse.querySelectorAll('a.nav-link:not(.dropdown-toggle)').forEach(function (link) {
+                    link.addEventListener('click', function () {
+                        collapse.classList.remove('show');
+                        toggler.setAttribute('aria-expanded', 'false');
+                    });
+                });
+            })();
+
             // ── Auto-dismiss alertas ────────────────────────────────────────
             setTimeout(() => {
                 document.querySelectorAll('.alert:not(.no-autodismiss)').forEach(el => {
