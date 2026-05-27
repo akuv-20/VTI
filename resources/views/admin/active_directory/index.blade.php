@@ -43,9 +43,9 @@
                 </div>
                 <div class="col-8 col-md-3">
                     <select name="estado" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <option value="todos"         {{ $filtroEstado === 'todos'         ? 'selected' : '' }}>Todos los estados</option>
                         <option value="habilitados"   {{ $filtroEstado === 'habilitados'   ? 'selected' : '' }}>Solo habilitados</option>
                         <option value="deshabilitados"{{ $filtroEstado === 'deshabilitados'? 'selected' : '' }}>Solo deshabilitados</option>
+                        <option value="todos"         {{ $filtroEstado === 'todos'         ? 'selected' : '' }}>Todos los estados</option>
                     </select>
                 </div>
                 <div class="col-4 col-md-auto">

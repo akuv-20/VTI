@@ -17,7 +17,7 @@ class ActiveDirectoryController extends Controller
     {
         try {
             $buscar     = trim($request->input('buscar', ''));
-            $filtroEstado = $request->input('estado', 'todos');
+            $filtroEstado = $request->input('estado', 'habilitados');
             $perPage    = 40;
             $page       = (int) $request->input('page', 1);
 
