@@ -8,6 +8,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ $appNombre ?? config('app.name', 'Laravel') }}</title>
+    @if(!empty($favicon))
+        <link rel="icon" href="{{ $favicon }}">
+        <link rel="shortcut icon" href="{{ $favicon }}">
+    @endif
 
     <style>
         .navbar .dropdown:hover .dropdown-menu {

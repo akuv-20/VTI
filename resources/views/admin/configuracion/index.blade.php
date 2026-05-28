@@ -139,6 +139,75 @@
                     </div>
                 </div>
 
+                {{-- Favicon --}}
+                <div class="mb-4 pb-4" style="border-bottom:1px solid #f1f5f9">
+                    <div class="row align-items-start g-3">
+                        <div class="col-md-4">
+                            <div class="fw-bold" style="font-size:.88rem;color:#1e293b">
+                                <i class="bi bi-globe me-1 text-primary"></i>Favicon
+                            </div>
+                            <div class="text-muted" style="font-size:.78rem;margin-top:2px">
+                                ICO, PNG, SVG o WebP — máx. 512 KB.<br>
+                                Recomendado: 32×32 px o 64×64 px.
+                            </div>
+                            {{-- Preview --}}
+                            <div class="mt-2">
+                                @php
+                                    $faviconUrl = $favicon && \Illuminate\Support\Facades\Storage::disk('public')->exists($favicon)
+                                        ? \Illuminate\Support\Facades\Storage::url($favicon)
+                                        : null;
+                                @endphp
+                                @if($faviconUrl)
+                                    <div class="d-flex align-items-center gap-2">
+                                        <img src="{{ $faviconUrl }}" alt="Favicon"
+                                             class="rounded border"
+                                             style="width:40px;height:40px;object-fit:contain;background:#f8fafc;padding:4px">
+                                        <div class="rounded border d-flex align-items-center gap-1 px-2 py-1"
+                                             style="background:#f1f5f9;font-size:.72rem;color:#475569">
+                                            <img src="{{ $faviconUrl }}" style="width:14px;height:14px;object-fit:contain">
+                                            {{ $appNombre ?? config('app.name') }}
+                                        </div>
+                                    </div>
+                                    <div class="mt-1">
+                                        <form action="{{ route('admin.configuracion.update') }}" method="POST"
+                                              data-confirm="el favicon de la aplicación">
+                                            @csrf
+                                            <input type="hidden" name="eliminar_favicon" value="1">
+                                            <button class="btn btn-link btn-sm text-danger p-0" style="font-size:.75rem">
+                                                <i class="bi bi-trash3-fill me-1"></i>Quitar favicon
+                                            </button>
+                                        </form>
+                                    </div>
+                                @else
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded border d-flex align-items-center justify-content-center"
+                                             style="width:40px;height:40px;background:#f8fafc">
+                                            <i class="bi bi-globe" style="font-size:1.1rem;color:#94a3b8"></i>
+                                        </div>
+                                        <div class="text-muted" style="font-size:.74rem">Sin favicon</div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <form action="{{ route('admin.configuracion.update') }}" method="POST"
+                                  enctype="multipart/form-data" data-loader>
+                                @csrf
+                                <input type="file" name="favicon" class="form-control form-control-sm"
+                                       accept=".ico,image/x-icon,image/png,image/svg+xml,image/webp">
+                                @error('favicon')
+                                    <div class="alert alert-danger py-1 px-2 mt-2 mb-0 small">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ $message }}
+                                    </div>
+                                @enderror
+                                <button type="submit" class="btn btn-primary btn-sm mt-2">
+                                    <i class="bi bi-upload me-1"></i>Subir favicon
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Fondo del login --}}
                 <div>
                     <div class="row align-items-start g-3">

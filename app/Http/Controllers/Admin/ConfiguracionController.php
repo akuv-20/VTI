@@ -16,6 +16,7 @@ class ConfiguracionController extends Controller
         $loginBg   = Configuracion::get('login_background');
         $appNombre = Configuracion::get('app_nombre') ?: config('app.name');
         $appLogo   = Configuracion::get('app_logo');
+        $favicon   = Configuracion::get('favicon');
 
         $azureCfg = [
             'enabled'       => (bool) Configuracion::get('azure_enabled', false),
@@ -32,7 +33,7 @@ class ConfiguracionController extends Controller
             // Nunca mostramos la contraseña guardada
         ];
 
-        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'azureCfg', 'ldapCfg'));
+        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'favicon', 'azureCfg', 'ldapCfg'));
     }
 
     public function update(Request $request)
@@ -82,6 +83,40 @@ class ConfiguracionController extends Controller
             }
             Configuracion::set('app_logo', $path);
             return back()->with('success', 'Logo actualizado correctamente.');
+        }
+
+        // ── Favicon ──────────────────────────────────────────────────────
+        if ($request->input('eliminar_favicon')) {
+            $anterior = Configuracion::get('favicon');
+            if ($anterior && Storage::disk('public')->exists($anterior)) {
+                Storage::disk('public')->delete($anterior);
+            }
+            Configuracion::set('favicon', null);
+            return back()->with('success', 'Favicon eliminado.');
+        }
+
+        if ($request->hasFile('favicon')) {
+            if (!$request->file('favicon')->isValid()) {
+                return back()->withErrors(['favicon' => 'No se recibió un archivo válido.']);
+            }
+            $request->validate([
+                'favicon' => 'file|mimes:ico,png,svg,webp|max:512',
+            ], [
+                'favicon.mimes' => 'Solo se permiten ICO, PNG, SVG o WebP.',
+                'favicon.max'   => 'El favicon no puede superar 512 KB.',
+            ]);
+
+            $anterior = Configuracion::get('favicon');
+            if ($anterior && Storage::disk('public')->exists($anterior)) {
+                Storage::disk('public')->delete($anterior);
+            }
+
+            $path = $request->file('favicon')->store('config', 'public');
+            if (!$path) {
+                return back()->withErrors(['favicon' => 'Error al guardar el archivo.']);
+            }
+            Configuracion::set('favicon', $path);
+            return back()->with('success', 'Favicon actualizado correctamente.');
         }
 
         // ── Fondo del login ──────────────────────────────────────────────

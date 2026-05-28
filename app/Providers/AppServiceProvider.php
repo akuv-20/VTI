@@ -97,13 +97,19 @@ class AppServiceProvider extends ServiceProvider
                     : null;
 
                 $azureEnabled = (bool) Configuracion::get('azure_enabled', false);
+
+                $faviconPath = Configuracion::get('favicon');
+                $favicon     = ($faviconPath && Storage::disk('public')->exists($faviconPath))
+                    ? Storage::url($faviconPath)
+                    : null;
             } catch (\Throwable) {
                 $appNombre       = config('app.name');
                 $appLogo         = null;
                 $loginBackground = null;
                 $azureEnabled    = false;
+                $favicon         = null;
             }
-            $view->with(compact('appNombre', 'appLogo', 'loginBackground', 'azureEnabled'));
+            $view->with(compact('appNombre', 'appLogo', 'loginBackground', 'azureEnabled', 'favicon'));
         });
     }
 }
