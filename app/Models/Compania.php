@@ -9,7 +9,7 @@ class Compania extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nombre'];
+    protected $fillable = ['nombre', 'rut'];
 
     // Relación uno a muchos con Servicio
     public function servicios()

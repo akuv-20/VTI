@@ -1,4 +1,9 @@
 @extends('layouts.app')
+
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+@endpush
+
 @section('content')
 <div class="container-fluid vti-page">
 
@@ -65,6 +70,20 @@
                 </select>
             </div>
 
+            {{-- Servicio --}}
+            <div class="col-12 col-sm-6 col-md-4">
+                <label class="form-label small mb-1 text-muted">Servicio</label>
+                <select name="id_servicio" id="filtro_servicio" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    @foreach($servicios as $s)
+                        <option value="{{ $s->id }}"
+                            {{ request('id_servicio') == $s->id ? 'selected' : '' }}>
+                            {{ $s->codigo_servicio ? "[{$s->codigo_servicio}] " : '' }}{{ $s->servicio }}{{ $s->compania ? ' — '.$s->compania->nombre : '' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
             {{-- Búsqueda --}}
             <div class="col-12 col-sm-6 col-md">
                 <label class="form-label small mb-1 text-muted">Buscar</label>
@@ -84,7 +103,7 @@
     </form>
 
     {{-- ── Totales del filtro ───────────────────────────────────────────────── --}}
-    @if(request()->hasAny(['tipo','anio','mes','cuenta_contable','buscar']))
+    @if(request()->hasAny(['tipo','anio','mes','cuenta_contable','id_servicio','buscar']))
     <div class="d-flex gap-3 mb-3 flex-wrap">
         <div class="card border-0 shadow-sm px-3 py-2 d-flex flex-row align-items-center gap-2">
             <i class="bi bi-cash-coin text-secondary"></i>
@@ -201,3 +220,14 @@
 
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+new TomSelect('#filtro_servicio', {
+    placeholder: 'Todos los servicios',
+    allowEmptyOption: true,
+    maxOptions: null,
+});
+</script>
+@endpush

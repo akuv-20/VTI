@@ -60,12 +60,18 @@ class FacturaController extends Controller
             });
         }
 
+        // Filtro por servicio
+        if ($request->filled('id_servicio')) {
+            $query->where('id_servicio', $request->input('id_servicio'));
+        }
+
         // Totales del filtro actual (antes de paginar)
         $totalNeto = (clone $query)->sum('valor_neto');
         $totalIva  = (clone $query)->sum('valor_iva');
 
         $facturas         = $query->orderBy('fecha_emision', 'desc')->paginate(25)->withQueryString();
         $cuentasContables = CuentaContable::orderBy('numero_cuenta')->get();
+        $servicios        = Servicio::with(['empresa', 'compania'])->orderBy('codigo_servicio')->get();
 
         // Años disponibles para el filtro
         $aniosDisponibles = Factura::selectRaw('YEAR(fecha_emision) as anio')
@@ -75,7 +81,7 @@ class FacturaController extends Controller
                        'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
         return view('facturas.index', compact(
-            'facturas', 'cuentasContables', 'aniosDisponibles', 'meses',
+            'facturas', 'cuentasContables', 'servicios', 'aniosDisponibles', 'meses',
             'totalNeto', 'totalIva'
         ));
     }

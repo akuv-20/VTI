@@ -68,4 +68,10 @@ class LineaTelefonica extends Model
     {
         return $this->hasOne(LineaUsuarioHistorial::class, 'id_linea_telefonica')->latestOfMany();
     }
+
+    /** Todos los registros de cambio de IMEI, del más reciente al más antiguo. */
+    public function historialImei()
+    {
+        return $this->hasMany(LineaImeiHistorial::class, 'id_linea_telefonica')->latest();
+    }
 }

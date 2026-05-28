@@ -29,6 +29,7 @@ class CompaniaController extends Controller
     {
         $validated = $request->validate([
             'nombre' => 'required|string|unique:companias,nombre',
+            'rut'    => 'nullable|string|max:15',
         ]);
 
         Compania::create($validated);
@@ -53,6 +54,7 @@ class CompaniaController extends Controller
     {
         $validated = $request->validate([
             'nombre' => 'required|string|unique:companias,nombre,' . $compania->id,
+            'rut'    => 'nullable|string|max:15',
         ]);
 
         $compania->update($validated);

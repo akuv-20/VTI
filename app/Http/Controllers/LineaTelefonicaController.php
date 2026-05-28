@@ -12,6 +12,7 @@ use App\Models\CentroCosto;
 use App\Models\ImportacionMovistar;
 use App\Models\ImportacionEntel;
 use App\Models\LineaUsuarioHistorial;
+use App\Models\LineaImeiHistorial;
 use Illuminate\Http\Request;
 
 class LineaTelefonicaController extends Controller
@@ -92,7 +93,10 @@ class LineaTelefonicaController extends Controller
                   ->orWhereHas('empresa',       fn($q2) => $q2->where('nombre', 'like', "%$b%"))
                   ->orWhereHas('ubicacion',     fn($q2) => $q2->where('nombre', 'like', "%$b%"))
                   ->orWhereHas('aparato',       fn($q2) => $q2->where('modelo', 'like', "%$b%"))
-                  ->orWhereHas('aparato.marca', fn($q2) => $q2->where('nombre', 'like', "%$b%"));
+                  ->orWhereHas('aparato.marca', fn($q2) => $q2->where('nombre', 'like', "%$b%"))
+                  // Buscar también en historial de IMEI (IMEIs anteriores)
+                  ->orWhereHas('historialImei', fn($q2) => $q2->where('valor_anterior', 'like', "%$b%")
+                                                             ->orWhere('valor_nuevo',    'like', "%$b%"));
             });
         }
 
@@ -173,6 +177,18 @@ class LineaTelefonicaController extends Controller
             ]);
         }
 
+        // Registrar IMEI iniciales
+        foreach (['imei_equipo', 'imei_sim'] as $campo) {
+            if (!empty($validated[$campo])) {
+                LineaImeiHistorial::create([
+                    'id_linea_telefonica' => $linea->id,
+                    'campo'               => $campo,
+                    'valor_anterior'      => null,
+                    'valor_nuevo'         => $validated[$campo],
+                ]);
+            }
+        }
+
         return $this->redirectIndex('Línea telefónica creada exitosamente.');
     }
 
@@ -183,6 +199,7 @@ class LineaTelefonicaController extends Controller
             'aparato.marca', 'centroCosto',
             'historialUsuarios.usuarioAnterior',
             'historialUsuarios.usuarioNuevo',
+            'historialImei',
         ]);
         return view('lineas_telefonicas.show', compact('lineas_telefonica'));
     }
@@ -218,6 +235,12 @@ class LineaTelefonicaController extends Controller
         $usuarioAnterior = $lineas_telefonica->id_usuario;
         $usuarioNuevo    = $validated['id_usuario'] ?? null;
 
+        // Capturar IMEI actuales antes de actualizar
+        $imeiAntes = [
+            'imei_equipo' => $lineas_telefonica->imei_equipo,
+            'imei_sim'    => $lineas_telefonica->imei_sim,
+        ];
+
         $lineas_telefonica->update($validated);
 
         // Registrar cambio de usuario solo si realmente cambió
@@ -227,6 +250,20 @@ class LineaTelefonicaController extends Controller
                 'id_usuario_anterior' => $usuarioAnterior,
                 'id_usuario_nuevo'    => $usuarioNuevo,
             ]);
+        }
+
+        // Registrar cambios de IMEI
+        foreach (['imei_equipo', 'imei_sim'] as $campo) {
+            $anterior = $imeiAntes[$campo];
+            $nuevo    = $validated[$campo] ?? null;
+            if ($anterior !== $nuevo) {
+                LineaImeiHistorial::create([
+                    'id_linea_telefonica' => $lineas_telefonica->id,
+                    'campo'               => $campo,
+                    'valor_anterior'      => $anterior ?: null,
+                    'valor_nuevo'         => $nuevo    ?: null,
+                ]);
+            }
         }
 
         return $this->redirectIndex('Línea telefónica actualizada exitosamente.');

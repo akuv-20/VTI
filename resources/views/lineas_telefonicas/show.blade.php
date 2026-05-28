@@ -189,6 +189,87 @@
             </div>
         </div>
 
+        {{-- ── Historial de IMEI ─────────────────────────────────────── --}}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header fw-bold border-0 d-flex align-items-center justify-content-between"
+                     style="background:#f8fafc">
+                    <span><i class="bi bi-cpu me-2 text-secondary"></i>Historial de IMEI / SIM</span>
+                    @if($lineas_telefonica->historialImei->count() > 0)
+                        <span class="badge rounded-pill bg-secondary" style="font-size:.72rem">
+                            {{ $lineas_telefonica->historialImei->count() }}
+                            {{ $lineas_telefonica->historialImei->count() === 1 ? 'cambio' : 'cambios' }}
+                        </span>
+                    @endif
+                </div>
+                <div class="card-body p-0">
+                    @if($lineas_telefonica->historialImei->isEmpty())
+                        <div class="text-center py-4 text-muted" style="font-size:.88rem">
+                            <i class="bi bi-clock me-1"></i>Sin historial de cambios aún.
+                        </div>
+                    @else
+                        <div class="vti-table-wrapper m-0 shadow-none rounded-0">
+                            <table class="vti-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:180px">Fecha del cambio</th>
+                                        <th style="width:120px">Campo</th>
+                                        <th>Valor anterior</th>
+                                        <th style="width:40px;text-align:center">
+                                            <i class="bi bi-arrow-right"></i>
+                                        </th>
+                                        <th>Valor nuevo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($lineas_telefonica->historialImei as $h)
+                                    <tr>
+                                        <td>
+                                            <span class="fw-semibold">
+                                                {{ $h->created_at->format('d/m/Y') }}
+                                            </span>
+                                            <span class="text-muted ms-1" style="font-size:.78rem">
+                                                {{ $h->created_at->format('H:i') }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-secondary border" style="font-size:.75rem">
+                                                {{ $h->label }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @if($h->valor_anterior)
+                                                <span class="font-monospace"
+                                                      style="font-size:.82rem;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px">
+                                                    {{ $h->valor_anterior }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted fst-italic" style="font-size:.82rem">Sin valor</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-center text-muted">
+                                            <i class="bi bi-arrow-right"></i>
+                                        </td>
+                                        <td>
+                                            @if($h->valor_nuevo)
+                                                <span class="font-monospace"
+                                                      style="font-size:.82rem;background:#dcfce7;color:#166534;padding:2px 6px;border-radius:4px">
+                                                    {{ $h->valor_nuevo }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted fst-italic" style="font-size:.82rem">Sin valor</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 @endsection

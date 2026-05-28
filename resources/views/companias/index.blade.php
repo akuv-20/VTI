@@ -15,6 +15,7 @@
                 <tr>
                     <th>#</th>
                     <th>Nombre</th>
+                    <th>RUT</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -23,6 +24,7 @@
                 <tr>
                     <td class="text-muted">{{ $compania->id }}</td>
                     <td>{{ $compania->nombre }}</td>
+                    <td class="text-muted font-monospace" style="font-size:.83rem">{{ $compania->rut ?? '—' }}</td>
                     <td>
                         <div class="vti-actions">
                             <a href="{{ route('companias.edit', $compania->id) }}" class="vti-btn-edit" title="Editar">
@@ -37,7 +39,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr class="vti-empty"><td colspan="3">No hay compañías registradas.</td></tr>
+                <tr class="vti-empty"><td colspan="4">No hay compañías registradas.</td></tr>
                 @endforelse
             </tbody>
         </table>

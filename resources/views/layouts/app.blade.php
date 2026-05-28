@@ -300,38 +300,79 @@
                             @if(auth()->user()->tieneAcceso('facturas.index'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="{{ route('facturas.index') }}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Facturación
+                                    <i class="bi bi-receipt-cutoff me-1"></i>Facturación
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item fw-semibold" href="{{ route('facturas.pendientes') }}">Facturas Pendientes</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('facturas.index') }}">Facturas</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('facturas.resumen') }}">Resumen Anual</a></li>
+                                    <li><a class="dropdown-item fw-semibold" href="{{ route('facturas.pendientes') }}">
+                                        <i class="bi bi-hourglass-split me-1 text-warning"></i>Facturas Pendientes
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('facturas.index') }}">
+                                        <i class="bi bi-receipt me-1"></i>Facturas
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('facturas.resumen') }}">
+                                        <i class="bi bi-bar-chart-line me-1"></i>Resumen Anual
+                                    </a></li>
+                                    <li><a class="dropdown-item fw-semibold" href="{{ route('entregas_facturas.index') }}">
+                                        <i class="bi bi-box-arrow-up-right me-1 text-success"></i>Entregas de Facturas
+                                    </a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ route('servicios.index') }}">Servicios</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('familias.index') }}">Familias</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('empresas.index') }}">Empresas</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('companias.index') }}">Compañías</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('cuentas_contables.index') }}">Cuentas Contables</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('servicios.index') }}">
+                                        <i class="bi bi-grid me-1"></i>Servicios
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('familias.index') }}">
+                                        <i class="bi bi-collection me-1"></i>Familias
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('empresas.index') }}">
+                                        <i class="bi bi-building me-1"></i>Empresas
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('companias.index') }}">
+                                        <i class="bi bi-buildings me-1"></i>Compañías
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('cuentas_contables.index') }}">
+                                        <i class="bi bi-journal-bookmark me-1"></i>Cuentas Contables
+                                    </a></li>
                                 </ul>
                             </li>
                             @endif
                             @if(auth()->user()->tieneAcceso('lineas_telefonicas.index'))
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Telefonía</a>
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-phone me-1"></i>Telefonía
+                                </a>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{{ route('lineas_telefonicas.index') }}">Líneas Telefónicas</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('lineas_telefonicas.index') }}">
+                                        <i class="bi bi-telephone-fill me-1"></i>Líneas Telefónicas
+                                    </a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ route('emisores.index') }}">Emisores</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('usuarios_telefonicos.index') }}">Usuarios</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('ubicaciones.index') }}">Ubicaciones</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('marcas.index') }}">Marcas</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('aparatos.index') }}">Aparatos</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('centros_costo.index') }}">Centros de Costo</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('emisores.index') }}">
+                                        <i class="bi bi-broadcast me-1"></i>Emisores
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('usuarios_telefonicos.index') }}">
+                                        <i class="bi bi-person-fill me-1"></i>Usuarios
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('ubicaciones.index') }}">
+                                        <i class="bi bi-geo-alt-fill me-1"></i>Ubicaciones
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('marcas.index') }}">
+                                        <i class="bi bi-tag-fill me-1"></i>Marcas
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('aparatos.index') }}">
+                                        <i class="bi bi-phone-fill me-1"></i>Aparatos
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('centros_costo.index') }}">
+                                        <i class="bi bi-diagram-2-fill me-1"></i>Centros de Costo
+                                    </a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ route('importaciones_movistar.index') }}">Importaciones Movistar</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('importaciones_entel.index') }}">Importaciones Entel</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('importaciones_movistar.index') }}">
+                                        <i class="bi bi-cloud-upload me-1"></i>Importaciones Movistar
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('importaciones_entel.index') }}">
+                                        <i class="bi bi-cloud-upload me-1"></i>Importaciones Entel
+                                    </a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item fw-semibold" href="{{ route('informes.telefonia') }}">📊 Informe Telefonía</a></li>
+                                    <li><a class="dropdown-item fw-semibold" href="{{ route('informes.telefonia') }}">
+                                        <i class="bi bi-bar-chart-fill me-1"></i>Informe Telefonía
+                                    </a></li>
                                 </ul>
                             </li>
                             @endif

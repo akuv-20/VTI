@@ -43,9 +43,9 @@
     <form action="{{ route('lineas_telefonicas.index') }}" method="GET" class="mb-3">
         {{-- Buscador --}}
         <div class="row g-2 mb-2">
-            <div class="col">
+            <div class="col-12 col-md-6 col-lg-5">
                 <input type="text" name="buscar" class="form-control form-control-sm"
-                    placeholder="Buscar por línea, usuario, empresa, ubicación, emisor, aparato, IMEI…"
+                    placeholder="Línea, usuario, empresa, IMEI…"
                     value="{{ request('buscar') }}">
             </div>
             <div class="col-auto d-flex gap-1">

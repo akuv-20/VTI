@@ -53,4 +53,10 @@ class Factura extends Model
     {
         return $this->valor_neto + $this->valor_iva;
     }
+
+    /** Ítem de entrega al que pertenece esta factura (si ya fue entregada). */
+    public function entregaItem()
+    {
+        return $this->hasOne(EntregaFacturaItem::class, 'id_factura');
+    }
 }

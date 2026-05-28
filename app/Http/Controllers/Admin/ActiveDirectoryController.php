@@ -40,11 +40,16 @@ class ActiveDirectoryController extends Controller
 
             $todos = $query->orderBy('cn')->get();
 
+            // Contadores por estado (sobre el resultado ya buscado)
+            $countHabilitados   = $todos->filter(fn($u) => !(((int)$u->getFirstAttribute('useraccountcontrol')) & 2))->count();
+            $countDeshabilitados = $todos->filter(fn($u) =>   (((int)$u->getFirstAttribute('useraccountcontrol')) & 2))->count();
+            $countTodos          = $todos->count();
+
             // Filtro habilitado/deshabilitado — bit 2 de userAccountControl = ACCOUNTDISABLE
             if ($filtroEstado === 'habilitados') {
                 $todos = $todos->filter(fn($u) => !(((int)$u->getFirstAttribute('useraccountcontrol')) & 2));
             } elseif ($filtroEstado === 'deshabilitados') {
-                $todos = $todos->filter(fn($u) =>  (((int)$u->getFirstAttribute('useraccountcontrol')) & 2));
+                $todos = $todos->filter(fn($u) =>   (((int)$u->getFirstAttribute('useraccountcontrol')) & 2));
             }
 
             $todos  = $todos->values();
@@ -56,15 +61,21 @@ class ActiveDirectoryController extends Controller
                 'query' => $request->query(),
             ]);
 
-            return view('admin.active_directory.index', compact('usuarios', 'buscar', 'filtroEstado', 'total'));
+            return view('admin.active_directory.index', compact(
+                'usuarios', 'buscar', 'filtroEstado', 'total',
+                'countHabilitados', 'countDeshabilitados', 'countTodos'
+            ));
 
         } catch (\Throwable $e) {
             return view('admin.active_directory.index', [
-                'usuarios'     => null,
-                'buscar'       => $request->input('buscar', ''),
-                'filtroEstado' => $request->input('estado', 'todos'),
-                'total'        => 0,
-                'ldapError'    => $this->mensajeError($e),
+                'usuarios'            => null,
+                'buscar'              => $request->input('buscar', ''),
+                'filtroEstado'        => $request->input('estado', 'habilitados'),
+                'total'               => 0,
+                'countHabilitados'    => 0,
+                'countDeshabilitados' => 0,
+                'countTodos'          => 0,
+                'ldapError'           => $this->mensajeError($e),
             ]);
         }
     }

@@ -17,6 +17,7 @@ use App\Http\Controllers\CentroCostoController;
 use App\Http\Controllers\ImportacionEntelController;
 use App\Http\Controllers\InformeController;
 use App\Http\Controllers\ImportacionMovistarController;
+use App\Http\Controllers\EntregaFacturaController;
 use App\Http\Controllers\Admin\UsuarioController as AdminUsuarioController;
 use App\Http\Controllers\Admin\ConfiguracionController as AdminConfiguracionController;
 use App\Http\Controllers\Admin\ActiveDirectoryController as AdminADController;
@@ -39,6 +40,13 @@ Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('ho
 Route::get('facturas/pendientes', [FacturaController::class, 'pendientes'])->name('facturas.pendientes');
 Route::get('facturas/resumen',   [FacturaController::class, 'resumen'])->name('facturas.resumen');
 Route::resource('facturas', FacturaController::class);
+
+// ── Entregas de Facturas ─────────────────────────────────────────────────────
+Route::get('entregas_facturas/buscar', [EntregaFacturaController::class, 'buscarFacturas'])->name('entregas_facturas.buscar');
+Route::get('entregas_facturas/{entrega}/imprimir', [EntregaFacturaController::class, 'imprimir'])->name('entregas_facturas.imprimir');
+Route::resource('entregas_facturas', EntregaFacturaController::class)
+    ->only(['index', 'create', 'store', 'show', 'destroy'])
+    ->parameters(['entregas_facturas' => 'entrega']);
 
 Route::resource('servicios', ServicioController::class);
 

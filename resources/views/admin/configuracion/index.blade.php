@@ -98,7 +98,7 @@
                             {{-- Preview --}}
                             <div class="mt-2">
                                 @if($appLogo)
-                                    <img src="{{ Storage::url($appLogo) }}" alt="Logo"
+                                    <img src="{{ $appLogo }}" alt="Logo"
                                          class="rounded-2 border"
                                          style="height:52px;object-fit:contain;background:#f8fafc;padding:6px;max-width:140px">
                                     <div class="mt-1">
@@ -151,8 +151,8 @@
                             </div>
                             {{-- Preview --}}
                             <div class="mt-2">
-                                @if($loginBg)
-                                    <img src="{{ Storage::url($loginBg) }}" alt="Fondo"
+                                @if($loginBackground)
+                                    <img src="{{ $loginBackground }}" alt="Fondo"
                                          class="rounded-2 border"
                                          style="height:72px;object-fit:cover;width:140px">
                                     <div class="mt-1">

@@ -1,24 +1,49 @@
-<!-- resources/views/familias/edit.blade.php -->
 @extends('layouts.app')
 
 @section('content')
-<center><h3>Editar Compañia</h3></center>
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-    <form action="{{ route('companias.update', $compania->id) }}" method="POST">
-        @csrf
-        @method('PUT')
-        <div class="mb-3">
-            <label for="nombre" class="form-label">Nombre:</label>
-            <input type="text" name="nombre" id="nombre" class="form-control" value="{{ $compania->nombre }}" required>
+<div class="container-fluid vti-page">
+
+    <div class="vti-page-header">
+        <h4><i class="bi bi-building me-2"></i>Editar Compañía</h4>
+        <a href="{{ route('companias.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+
+    <div style="max-width:480px">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-body">
+                <form action="{{ route('companias.update', $compania->id) }}" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size:.85rem">
+                            Nombre <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="nombre"
+                               class="form-control form-control-sm @error('nombre') is-invalid @enderror"
+                               value="{{ old('nombre', $compania->nombre) }}" required>
+                        @error('nombre')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold" style="font-size:.85rem">RUT</label>
+                        <input type="text" name="rut"
+                               class="form-control form-control-sm @error('rut') is-invalid @enderror"
+                               value="{{ old('rut', $compania->rut) }}"
+                               placeholder="Ej: 92580000-7" maxlength="15">
+                        <div class="form-text">Opcional. Se usa en el documento de entrega de facturas.</div>
+                        @error('rut')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning btn-sm">
+                            <i class="bi bi-check-lg me-1"></i>Actualizar
+                        </button>
+                        <a href="{{ route('companias.index') }}" class="btn btn-outline-secondary btn-sm">Cancelar</a>
+                    </div>
+                </form>
+            </div>
         </div>
-        <div>
-            <br>
-            <button class="btn btn-success form-control" type="submit">Guardar</button>
-            <br>
-            <br>
-            <a href="{{ route('companias.index') }}" class="btn btn-danger form-control mb-3">Cancelar</a>
-        </div>
-    </form>
+    </div>
+
+</div>
 @endsection

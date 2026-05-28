@@ -27,8 +27,8 @@
 
         {{-- Filtros --}}
         <form method="GET" action="{{ route('admin.active_directory.index') }}" class="mb-3">
-            <div class="row g-2 align-items-end">
-                <div class="col-12 col-md-5">
+            <div class="row g-2 align-items-end mb-2">
+                <div class="col">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                         <input type="text" name="buscar" class="form-control"
@@ -41,17 +41,36 @@
                         @endif
                     </div>
                 </div>
-                <div class="col-8 col-md-3">
-                    <select name="estado" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <option value="habilitados"   {{ $filtroEstado === 'habilitados'   ? 'selected' : '' }}>Solo habilitados</option>
-                        <option value="deshabilitados"{{ $filtroEstado === 'deshabilitados'? 'selected' : '' }}>Solo deshabilitados</option>
-                        <option value="todos"         {{ $filtroEstado === 'todos'         ? 'selected' : '' }}>Todos los estados</option>
-                    </select>
-                </div>
-                <div class="col-4 col-md-auto">
-                    <button type="submit" class="btn btn-primary btn-sm w-100">
-                        <i class="bi bi-funnel me-1"></i><span class="d-none d-sm-inline">Filtrar</span>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-search"></i><span class="d-none d-sm-inline ms-1">Buscar</span>
                     </button>
+                </div>
+            </div>
+
+            {{-- Filtro de estado estilo btn-group --}}
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+                <div class="btn-group btn-group-sm" role="group">
+                    <input type="radio" class="btn-check" name="estado" id="estado_habilitados"
+                           value="habilitados" autocomplete="off"
+                           {{ $filtroEstado === 'habilitados' ? 'checked' : '' }} onchange="this.form.submit()">
+                    <label class="btn btn-outline-success fw-semibold" for="estado_habilitados">
+                        Habilitados <span class="badge bg-success ms-1">{{ $countHabilitados }}</span>
+                    </label>
+
+                    <input type="radio" class="btn-check" name="estado" id="estado_deshabilitados"
+                           value="deshabilitados" autocomplete="off"
+                           {{ $filtroEstado === 'deshabilitados' ? 'checked' : '' }} onchange="this.form.submit()">
+                    <label class="btn btn-outline-danger fw-semibold" for="estado_deshabilitados">
+                        Deshabilitados <span class="badge bg-danger ms-1">{{ $countDeshabilitados }}</span>
+                    </label>
+
+                    <input type="radio" class="btn-check" name="estado" id="estado_todos"
+                           value="todos" autocomplete="off"
+                           {{ $filtroEstado === 'todos' ? 'checked' : '' }} onchange="this.form.submit()">
+                    <label class="btn btn-outline-secondary fw-semibold" for="estado_todos">
+                        Todos <span class="badge bg-secondary ms-1">{{ $countTodos }}</span>
+                    </label>
                 </div>
             </div>
         </form>
@@ -91,7 +110,8 @@
                             $ouSegmentos = array_reverse($ouMatches[1]);   // ['Verfrut','Soporte','Desarrollo']
                             $ouPath      = implode(' / ', $ouSegmentos);   // "Verfrut / Soporte / Desarrollo"
                         @endphp
-                        <tr>
+                        <tr class="ad-fila-click" data-href="{{ route('admin.active_directory.edit', $sam) }}"
+                            style="cursor:pointer">
                             {{-- Avatar --}}
                             <td>
                                 <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold text-white"
@@ -196,4 +216,15 @@
     @endif
 
 </div>
+@push('scripts')
+<script>
+document.querySelectorAll('tr.ad-fila-click').forEach(function (fila) {
+    fila.addEventListener('click', function (e) {
+        // Ignorar clics en botones, links, formularios y sus hijos
+        if (e.target.closest('a, button, form, input, label')) return;
+        window.location.href = fila.dataset.href;
+    });
+});
+</script>
+@endpush
 @endsection
