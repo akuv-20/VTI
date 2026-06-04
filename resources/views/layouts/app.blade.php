@@ -314,7 +314,10 @@
                                         <i class="bi bi-receipt me-1"></i>Facturas
                                     </a></li>
                                     <li><a class="dropdown-item" href="{{ route('facturas.resumen') }}">
-                                        <i class="bi bi-bar-chart-line me-1"></i>Resumen Anual
+                                        <i class="bi bi-bar-chart-line me-1"></i>Resumen por Cuenta Contable
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('facturas.resumen_servicios') }}">
+                                        <i class="bi bi-grid-3x3-gap me-1"></i>Resumen por Servicio
                                     </a></li>
                                     <li><a class="dropdown-item fw-semibold" href="{{ route('entregas_facturas.index') }}">
                                         <i class="bi bi-box-arrow-up-right me-1 text-success"></i>Entregas de Facturas
@@ -373,6 +376,9 @@
                                     <li><a class="dropdown-item" href="{{ route('importaciones_entel.index') }}">
                                         <i class="bi bi-cloud-upload me-1"></i>Importaciones Entel
                                     </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('importaciones_wom.index') }}">
+                                        <i class="bi bi-cloud-upload me-1" style="color:#6f42c1"></i>Importaciones WOM
+                                    </a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item fw-semibold" href="{{ route('informes.telefonia') }}">
                                         <i class="bi bi-bar-chart-fill me-1"></i>Informe Telefonía
@@ -385,6 +391,12 @@
                                 <a class="nav-link fw-semibold" href="{{ route('admin.active_directory.index') }}"
                                    style="color:#6366f1">
                                     <i class="bi bi-diagram-3-fill me-1"></i>Active Directory
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link fw-semibold" href="{{ route('admin.active_directory2.index') }}"
+                                   style="color:#6366f1">
+                                    <i class="bi bi-diagram-3-fill me-1"></i>AD Grupo Verfrut (Perú)
                                 </a>
                             </li>
                             @endcan

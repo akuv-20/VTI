@@ -149,9 +149,11 @@
                     <th>Aparato</th>
                     <th>Estado</th>
                     <th>Vigencia</th>
-                    <th title="Azul claro=Movistar · Azul oscuro=Entel&#10;Movistar: {{ $ultimoMovil ? 'Móvil '.$ultimoMovil->periodo_label : '-' }} / {{ $ultimoBAM ? 'BAM '.$ultimoBAM->periodo_label : '-' }}&#10;Entel: {{ $ultimoEntelMovil ? 'Móvil '.$ultimoEntelMovil->periodo_label : '-' }} / {{ $ultimoEntelBAM ? 'BAM '.$ultimoEntelBAM->periodo_label : '-' }}">
+                    <th title="Azul claro=Movistar · Azul oscuro=Entel · Morado=WOM&#10;Movistar: {{ $ultimoMovil ? 'Móvil '.$ultimoMovil->periodo_label : '-' }} / {{ $ultimoBAM ? 'BAM '.$ultimoBAM->periodo_label : '-' }}&#10;Entel: {{ $ultimoEntelMovil ? 'Móvil '.$ultimoEntelMovil->periodo_label : '-' }} / {{ $ultimoEntelBAM ? 'BAM '.$ultimoEntelBAM->periodo_label : '-' }}&#10;WOM: {{ $ultimoWom ? $ultimoWom->periodo_label : '-' }}">
                         Emisor_IMP
                     </th>
+                    <th>Plan Tarifario</th>
+                    <th class="text-end">Monto / +IVA</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -190,7 +192,7 @@
                         @endif
                     </td>
                     <td>
-                        @if($lineasMovistarMovil->has($linea->id) || $lineasMovistarBAM->has($linea->id) || $lineasEntelMovil->has($linea->id) || $lineasEntelBAM->has($linea->id))
+                        @if($lineasMovistarMovil->has($linea->id) || $lineasMovistarBAM->has($linea->id) || $lineasEntelMovil->has($linea->id) || $lineasEntelBAM->has($linea->id) || $lineasWom->has($linea->id))
                             <span class="badge bg-success">Vigente</span>
                         @else
                             <span class="badge bg-danger">No Vigente</span>
@@ -209,7 +211,28 @@
                         @if($lineasEntelBAM->has($linea->id))
                             <span class="badge" style="background-color:#002C7F" title="Entel BAM — {{ $ultimoEntelBAM->periodo_label }}">BAM</span>
                         @endif
-                        @if(!$lineasMovistarMovil->has($linea->id) && !$lineasMovistarBAM->has($linea->id) && !$lineasEntelMovil->has($linea->id) && !$lineasEntelBAM->has($linea->id))
+                        @if($lineasWom->has($linea->id))
+                            <span class="badge" style="background:#6f42c1" title="WOM — {{ $ultimoWom->periodo_label }}">WOM</span>
+                        @endif
+                        @if(!$lineasMovistarMovil->has($linea->id) && !$lineasMovistarBAM->has($linea->id) && !$lineasEntelMovil->has($linea->id) && !$lineasEntelBAM->has($linea->id) && !$lineasWom->has($linea->id))
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
+                    @php $det = $planMonto->get($linea->id); @endphp
+                    <td style="font-size:.8rem;max-width:160px">
+                        @if($det && $det->plan_tarifario)
+                            <span title="{{ $det->plan_tarifario }}">
+                                {{ Str::limit($det->plan_tarifario, 35) }}
+                            </span>
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
+                    <td class="text-end text-nowrap" style="font-size:.82rem">
+                        @if($det && $det->monto)
+                            <div class="fw-semibold">$ {{ number_format($det->monto, 0, ',', '.') }}</div>
+                            <div class="text-muted" style="font-size:.74rem">$ {{ number_format($det->monto * 1.19, 0, ',', '.') }}</div>
+                        @else
                             <span class="text-muted">—</span>
                         @endif
                     </td>
@@ -230,7 +253,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr class="vti-empty"><td colspan="12">No hay líneas que coincidan con los filtros.</td></tr>
+                <tr class="vti-empty"><td colspan="14">No hay líneas que coincidan con los filtros.</td></tr>
                 @endforelse
             </tbody>
         </table>

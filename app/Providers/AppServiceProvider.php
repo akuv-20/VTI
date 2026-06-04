@@ -64,6 +64,34 @@ class AppServiceProvider extends ServiceProvider
             // BD no disponible (ej: primera migración) — usa .env como fallback
         }
 
+        // ── Conexión LDAP secundaria (Grupo Verfrut Perú) ────────────────────
+        try {
+            $ldap2Host = Configuracion::get('ldap2_host');
+            $ldap2User = Configuracion::get('ldap2_username');
+            $ldap2Pass = Configuracion::get('ldap2_password');
+            $ldap2Base = Configuracion::get('ldap2_base_dn', '');
+            $ldap2Port = (int)(Configuracion::get('ldap2_port') ?: 389);
+
+            if ($ldap2Host && $ldap2User && $ldap2Pass) {
+                $hosts2 = array_values(array_filter(array_map('trim', explode(',', $ldap2Host))));
+                LdapContainer::addConnection(
+                    new LdapConnection([
+                        'hosts'        => $hosts2,
+                        'username'     => $ldap2User,
+                        'password'     => $ldap2Pass,
+                        'base_dn'      => $ldap2Base,
+                        'port'         => $ldap2Port,
+                        'timeout'      => 5,
+                        'use_tls'      => $ldap2Port === 636,
+                        'use_starttls' => false,
+                    ]),
+                    'secondary'
+                );
+            }
+        } catch (\Throwable) {
+            // Segunda conexión no configurada aún
+        }
+
         // Registrar provider de Azure AD para Socialite
         Event::listen(function (\SocialiteProviders\Manager\SocialiteWasCalled $event) {
             $event->extendSocialite('azure', \SocialiteProviders\Azure\Provider::class);

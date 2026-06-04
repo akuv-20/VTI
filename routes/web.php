@@ -17,10 +17,12 @@ use App\Http\Controllers\CentroCostoController;
 use App\Http\Controllers\ImportacionEntelController;
 use App\Http\Controllers\InformeController;
 use App\Http\Controllers\ImportacionMovistarController;
+use App\Http\Controllers\ImportacionWomController;
 use App\Http\Controllers\EntregaFacturaController;
 use App\Http\Controllers\Admin\UsuarioController as AdminUsuarioController;
 use App\Http\Controllers\Admin\ConfiguracionController as AdminConfiguracionController;
 use App\Http\Controllers\Admin\ActiveDirectoryController as AdminADController;
+use App\Http\Controllers\Admin\ActiveDirectory2Controller as AdminAD2Controller;
 use App\Http\Controllers\Auth\AzureController;
 
 // Route::get('/', function () {
@@ -37,8 +39,9 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 
 Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
-Route::get('facturas/pendientes', [FacturaController::class, 'pendientes'])->name('facturas.pendientes');
-Route::get('facturas/resumen',   [FacturaController::class, 'resumen'])->name('facturas.resumen');
+Route::get('facturas/pendientes',        [FacturaController::class, 'pendientes'])->name('facturas.pendientes');
+Route::get('facturas/resumen',           [FacturaController::class, 'resumen'])->name('facturas.resumen');
+Route::get('facturas/resumen-servicios', [FacturaController::class, 'resumenServicios'])->name('facturas.resumen_servicios');
 Route::resource('facturas', FacturaController::class);
 
 // ── Entregas de Facturas ─────────────────────────────────────────────────────
@@ -73,6 +76,14 @@ Route::resource('importaciones_entel', ImportacionEntelController::class)->only(
 Route::post('importaciones_entel/{importaciones_entel}/recruzar', [ImportacionEntelController::class, 'recruzar'])->name('importaciones_entel.recruzar');
 Route::resource('importaciones_movistar', ImportacionMovistarController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
 Route::post('importaciones_movistar/{importaciones_movistar}/recruzar', [ImportacionMovistarController::class, 'recruzar'])->name('importaciones_movistar.recruzar');
+Route::get('importaciones_wom/buscar-lineas',     [ImportacionWomController::class, 'buscarLineas'])->name('importaciones_wom.buscar_lineas');
+Route::get('importaciones_wom/plantilla',          [ImportacionWomController::class, 'plantilla'])->name('importaciones_wom.plantilla');
+Route::get('importaciones_wom/plantilla/lineas',   [ImportacionWomController::class, 'plantillaLineas'])->name('importaciones_wom.plantilla_lineas');
+Route::post('importaciones_wom/plantilla/agregar', [ImportacionWomController::class, 'plantillaAgregar'])->name('importaciones_wom.plantilla_agregar');
+Route::delete('importaciones_wom/plantilla/{plantilla}/quitar',  [ImportacionWomController::class, 'plantillaQuitar'])->name('importaciones_wom.plantilla_quitar');
+Route::patch('importaciones_wom/plantilla/{plantilla}/monto',   [ImportacionWomController::class, 'plantillaActualizarMonto'])->name('importaciones_wom.plantilla_monto');
+Route::get('importaciones_wom/{importaciones_wom}/imprimir', [ImportacionWomController::class, 'imprimir'])->name('importaciones_wom.imprimir');
+Route::resource('importaciones_wom', ImportacionWomController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
 
 // ── Administración (solo admins) ─────────────────────────────────────────────
 Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -93,4 +104,20 @@ Route::middleware(['auth', 'can:acceso_ad'])->prefix('admin')->name('admin.')->g
         Route::post('/{username}/toggle',         [AdminADController::class, 'toggleEnabled'])->name('toggle');
         Route::post('/{username}/reset-password', [AdminADController::class, 'resetPassword'])->name('reset-password');
     });
+
+    // Active Directory — Grupo Verfrut Perú (conexión secundaria)
+    Route::prefix('active-directory-2')->name('active_directory2.')->group(function () {
+        Route::get('/',                           [AdminAD2Controller::class, 'index'])->name('index');
+        Route::get('/importar-correos',           [AdminAD2Controller::class, 'importarCorreos'])->name('importar_correos');
+        Route::post('/importar-correos',          [AdminAD2Controller::class, 'procesarImportacion'])->name('procesar_importacion');
+        Route::get('/{username}/editar',          [AdminAD2Controller::class, 'edit'])->name('edit');
+        Route::put('/{username}',                 [AdminAD2Controller::class, 'update'])->name('update');
+        Route::post('/{username}/toggle',         [AdminAD2Controller::class, 'toggleEnabled'])->name('toggle');
+        Route::post('/{username}/reset-password', [AdminAD2Controller::class, 'resetPassword'])->name('reset-password');
+    });
+});
+
+// Test LDAP secundario (también admin)
+Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::post('configuracion/test-ldap2', [AdminConfiguracionController::class, 'testLdap2'])->name('configuracion.test-ldap2');
 });

@@ -30,10 +30,16 @@ class ConfiguracionController extends Controller
             'port'     => Configuracion::get('ldap_port',     env('LDAP_PORT',    389)),
             'base_dn'  => Configuracion::get('ldap_base_dn',  env('LDAP_BASE_DN', 'DC=verfrut,DC=cl')),
             'username' => Configuracion::get('ldap_username', env('LDAP_USERNAME', '')),
-            // Nunca mostramos la contraseña guardada
         ];
 
-        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'favicon', 'azureCfg', 'ldapCfg'));
+        $ldap2Cfg = [
+            'host'     => Configuracion::get('ldap2_host',    ''),
+            'port'     => Configuracion::get('ldap2_port',    389),
+            'base_dn'  => Configuracion::get('ldap2_base_dn', ''),
+            'username' => Configuracion::get('ldap2_username',''),
+        ];
+
+        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'favicon', 'azureCfg', 'ldapCfg', 'ldap2Cfg'));
     }
 
     public function update(Request $request)
@@ -191,26 +197,71 @@ class ConfiguracionController extends Controller
             return back()->with('success', 'Configuración de Active Directory guardada.');
         }
 
+        // ── Active Directory secundario (Grupo Verfrut Perú) ────────────────
+        if ($request->input('seccion') === 'ldap2') {
+            $request->validate([
+                'ldap2_host'     => 'required|string|max:500',
+                'ldap2_port'     => 'required|integer|between:1,65535',
+                'ldap2_base_dn'  => 'required|string|max:200',
+                'ldap2_username' => 'required|string|max:200',
+            ]);
+
+            Configuracion::set('ldap2_host',    trim($request->input('ldap2_host')));
+            Configuracion::set('ldap2_port',    $request->input('ldap2_port'));
+            Configuracion::set('ldap2_base_dn', trim($request->input('ldap2_base_dn')));
+            Configuracion::set('ldap2_username', trim($request->input('ldap2_username')));
+
+            if ($request->filled('ldap2_password')) {
+                Configuracion::set('ldap2_password', $request->input('ldap2_password'));
+            }
+
+            return back()->with('success', 'Configuración de Active Directory (Grupo Verfrut Perú) guardada.');
+        }
+
         return back()->with('success', 'Configuración guardada.');
+    }
+
+    /** Test de conexión LDAP secundaria — responde JSON */
+    public function testLdap2(Request $request)
+    {
+        return $this->probarConexionLdap(
+            Configuracion::get('ldap2_host'),
+            Configuracion::get('ldap2_username'),
+            Configuracion::get('ldap2_password'),
+            Configuracion::get('ldap2_base_dn', ''),
+            (int)(Configuracion::get('ldap2_port') ?: 389)
+        );
     }
 
     /** Test de conexión LDAP — responde JSON */
     public function testLdap(Request $request)
     {
-        $host     = Configuracion::get('ldap_host');
-        $username = Configuracion::get('ldap_username');
-        $password = Configuracion::get('ldap_password');
-        $baseDn   = Configuracion::get('ldap_base_dn', 'DC=verfrut,DC=cl');
-        $port     = (int)(Configuracion::get('ldap_port') ?: 389);
+        return $this->probarConexionLdap(
+            Configuracion::get('ldap_host'),
+            Configuracion::get('ldap_username'),
+            Configuracion::get('ldap_password'),
+            Configuracion::get('ldap_base_dn', 'DC=verfrut,DC=cl'),
+            (int)(Configuracion::get('ldap_port') ?: 389)
+        );
+    }
 
+    private function probarConexionLdap(?string $host, ?string $username, ?string $password, string $baseDn, int $port)
+    {
         if (!$host || !$username || !$password) {
             return response()->json(['ok' => false, 'message' => 'Completa los datos y guarda antes de probar.']);
         }
 
+        // Limitar a 10 s para no chocar con el max_execution_time del servidor
+        set_time_limit(10);
+
         try {
             if (extension_loaded('ldap')) {
                 ldap_set_option(null, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER);
+                // Timeout de red (TCP connect): evita colgar 30 s si el DC no responde
+                ldap_set_option(null, LDAP_OPT_NETWORK_TIMEOUT, 5);
+                ldap_set_option(null, LDAP_OPT_TIMELIMIT, 5);
             }
+
             $hosts = array_values(array_filter(array_map('trim', explode(',', $host))));
             $conn  = new LdapConnection([
                 'hosts'    => $hosts,

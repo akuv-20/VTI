@@ -11,6 +11,7 @@ use App\Models\Aparato;
 use App\Models\CentroCosto;
 use App\Models\ImportacionMovistar;
 use App\Models\ImportacionEntel;
+use App\Models\ImportacionWom;
 use App\Models\LineaUsuarioHistorial;
 use App\Models\LineaImeiHistorial;
 use Illuminate\Http\Request;
@@ -30,29 +31,61 @@ class LineaTelefonicaController extends Controller
         $ultimoMovil = ImportacionMovistar::ultimaPorTipo('Movil');
         $ultimoBAM   = ImportacionMovistar::ultimaPorTipo('BAM');
 
-        $lineasMovistarMovil = $ultimoMovil
-            ? $ultimoMovil->detalles()->whereNotNull('id_linea_telefonica')->pluck('id_linea_telefonica')->flip()
+        $detallesMovistarMovil = $ultimoMovil
+            ? $ultimoMovil->detalles()->whereNotNull('id_linea_telefonica')
+                ->get(['id_linea_telefonica', 'plan_tarifario', 'monto'])
+                ->keyBy('id_linea_telefonica')
             : collect();
-        $lineasMovistarBAM = $ultimoBAM
-            ? $ultimoBAM->detalles()->whereNotNull('id_linea_telefonica')->pluck('id_linea_telefonica')->flip()
+        $detallesMovistarBAM = $ultimoBAM
+            ? $ultimoBAM->detalles()->whereNotNull('id_linea_telefonica')
+                ->get(['id_linea_telefonica', 'plan_tarifario', 'monto'])
+                ->keyBy('id_linea_telefonica')
             : collect();
+
+        $lineasMovistarMovil = $detallesMovistarMovil->keys()->flip();
+        $lineasMovistarBAM   = $detallesMovistarBAM->keys()->flip();
 
         // Últimas importaciones Entel
         $ultimoEntelMovil = ImportacionEntel::ultimaPorTipo('Movil');
         $ultimoEntelBAM   = ImportacionEntel::ultimaPorTipo('BAM');
 
-        $lineasEntelMovil = $ultimoEntelMovil
-            ? $ultimoEntelMovil->detalles()->whereNotNull('id_linea_telefonica')->pluck('id_linea_telefonica')->flip()
+        $detallesEntelMovil = $ultimoEntelMovil
+            ? $ultimoEntelMovil->detalles()->whereNotNull('id_linea_telefonica')
+                ->get(['id_linea_telefonica', 'plan_tarifario', 'monto'])
+                ->keyBy('id_linea_telefonica')
             : collect();
-        $lineasEntelBAM = $ultimoEntelBAM
-            ? $ultimoEntelBAM->detalles()->whereNotNull('id_linea_telefonica')->pluck('id_linea_telefonica')->flip()
+        $detallesEntelBAM = $ultimoEntelBAM
+            ? $ultimoEntelBAM->detalles()->whereNotNull('id_linea_telefonica')
+                ->get(['id_linea_telefonica', 'plan_tarifario', 'monto'])
+                ->keyBy('id_linea_telefonica')
             : collect();
 
-        // IDs vigentes = aparecen en cualquier última importación (Movistar o Entel)
+        $lineasEntelMovil = $detallesEntelMovil->keys()->flip();
+        $lineasEntelBAM   = $detallesEntelBAM->keys()->flip();
+
+        // Última importación WOM
+        $ultimoWom = ImportacionWom::ultima();
+        $detallesWom = $ultimoWom
+            ? $ultimoWom->detalles()
+                ->get(['id_linea_telefonica', 'monto'])
+                ->keyBy('id_linea_telefonica')
+            : collect();
+        $lineasWom = $detallesWom->keys()->flip();
+
+        // Lookup consolidado plan+monto (orden de prioridad: Movistar > Entel > WOM, Movil > BAM)
+        $planMonto = collect()
+            ->union($detallesMovistarMovil)
+            ->union($detallesMovistarBAM)
+            ->union($detallesEntelMovil)
+            ->union($detallesEntelBAM)
+            ->union($detallesWom);
+
+        // IDs vigentes = aparecen en cualquier última importación (Movistar, Entel o WOM)
         $idsVigentes = $lineasMovistarMovil->keys()
             ->merge($lineasMovistarBAM->keys())
             ->merge($lineasEntelMovil->keys())
             ->merge($lineasEntelBAM->keys())
+            ->merge($lineasWom->keys())
             ->unique();
 
         $estado = $request->input('estado', 'Activo');
@@ -131,6 +164,8 @@ class LineaTelefonicaController extends Controller
             'lineas', 'estado', 'emisorFiltro', 'vigenciaFiltro', 'soloIncompletas',
             'ultimoMovil', 'ultimoBAM', 'lineasMovistarMovil', 'lineasMovistarBAM',
             'ultimoEntelMovil', 'ultimoEntelBAM', 'lineasEntelMovil', 'lineasEntelBAM',
+            'ultimoWom', 'lineasWom',
+            'planMonto',
             'totalLineas', 'countActivo', 'countInactivo',
             'countVigente', 'countNoVigente',
             'countEntel', 'countMovistar', 'countWOM',

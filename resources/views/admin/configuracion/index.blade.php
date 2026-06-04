@@ -29,6 +29,16 @@
                 </button>
             </li>
             <li class="nav-item">
+                <button class="nav-link fw-semibold" id="tab-ldap2"
+                        data-bs-toggle="tab" data-bs-target="#pane-ldap2"
+                        type="button" style="font-size:.88rem">
+                    <i class="bi bi-diagram-3 me-1"></i>AD Grupo Verfrut (Perú)
+                    @if($ldap2Cfg['username'])
+                        <span class="badge bg-success ms-1" style="font-size:.65rem">ON</span>
+                    @endif
+                </button>
+            </li>
+            <li class="nav-item">
                 <button class="nav-link fw-semibold" id="tab-azure"
                         data-bs-toggle="tab" data-bs-target="#pane-azure"
                         type="button" style="font-size:.88rem">
@@ -349,6 +359,85 @@
             </div>{{-- /pane-ldap --}}
 
             {{-- ══════════════════════════════════════════════════════════
+                 Tab: Active Directory — Grupo Verfrut (Perú)
+            ══════════════════════════════════════════════════════════ --}}
+            <div class="tab-pane fade" id="pane-ldap2">
+
+                <form action="{{ route('admin.configuracion.update') }}" method="POST" data-loader id="formLdap2">
+                    @csrf
+                    <input type="hidden" name="seccion" value="ldap2">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-9">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">
+                                Servidores (Domain Controllers) <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="ldap2_host"
+                                   class="form-control form-control-sm font-monospace @error('ldap2_host') is-invalid @enderror"
+                                   value="{{ old('ldap2_host', $ldap2Cfg['host']) }}"
+                                   placeholder="dc01.dominio.pe,dc02.dominio.pe">
+                            <div class="form-text">Separados por coma si hay más de uno.</div>
+                            @error('ldap2_host')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Puerto <span class="text-danger">*</span></label>
+                            <input type="number" name="ldap2_port"
+                                   class="form-control form-control-sm @error('ldap2_port') is-invalid @enderror"
+                                   value="{{ old('ldap2_port', $ldap2Cfg['port']) }}"
+                                   min="1" max="65535">
+                            <div class="form-text">389 LDAP · 636 LDAPS</div>
+                            @error('ldap2_port')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Base DN <span class="text-danger">*</span></label>
+                            <input type="text" name="ldap2_base_dn"
+                                   class="form-control form-control-sm font-monospace @error('ldap2_base_dn') is-invalid @enderror"
+                                   value="{{ old('ldap2_base_dn', $ldap2Cfg['base_dn']) }}"
+                                   placeholder="DC=grupoVerfrut,DC=pe">
+                            <div class="form-text">Raíz del directorio desde donde se buscarán los objetos.</div>
+                            @error('ldap2_base_dn')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Usuario de servicio <span class="text-danger">*</span></label>
+                            <input type="text" name="ldap2_username"
+                                   class="form-control form-control-sm font-monospace @error('ldap2_username') is-invalid @enderror"
+                                   value="{{ old('ldap2_username', $ldap2Cfg['username']) }}"
+                                   placeholder="usuario@dominio.pe">
+                            <div class="form-text">Formato UPN: usuario@dominio.pe</div>
+                            @error('ldap2_username')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Contraseña</label>
+                            <input type="password" name="ldap2_password"
+                                   class="form-control form-control-sm"
+                                   autocomplete="new-password"
+                                   placeholder="{{ $ldap2Cfg['username'] ? 'Dejar en blanco para no cambiar' : 'Ingresar contraseña' }}">
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded-2 mb-3 d-flex align-items-start gap-2"
+                         style="background:#f0f9ff;border:1px solid #bae6fd;font-size:.8rem">
+                        <i class="bi bi-info-circle-fill flex-shrink-0 mt-1" style="color:#0284c7"></i>
+                        <span>
+                            Esta es la conexión secundaria para el dominio <strong>Grupo Verfrut (Perú)</strong>.
+                            Para <strong>resetear contraseñas</strong> se requiere <strong>LDAPS (puerto 636)</strong>.
+                        </span>
+                    </div>
+
+                    <div class="d-flex gap-2 align-items-center">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-check-lg me-1"></i>Guardar configuración
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTestLdap2">
+                            <i class="bi bi-plug me-1"></i>Probar conexión
+                        </button>
+                        <span id="ldap2TestResult" class="small ms-1"></span>
+                    </div>
+                </form>
+
+            </div>{{-- /pane-ldap2 --}}
+
+            {{-- ══════════════════════════════════════════════════════════
                  Tab: Microsoft 365
             ══════════════════════════════════════════════════════════ --}}
             <div class="tab-pane fade" id="pane-azure">
@@ -461,6 +550,33 @@ document.getElementById('btnTestLdap')?.addEventListener('click', function () {
     result.className = 'small ms-1';
 
     fetch('{{ route("admin.configuracion.test-ldap") }}', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        result.textContent = (data.ok ? '✓ ' : '✗ ') + data.message;
+        result.className   = 'small ms-1 ' + (data.ok ? 'text-success' : 'text-danger');
+    })
+    .catch(() => {
+        result.textContent = '✗ Error al conectar con el servidor';
+        result.className   = 'small ms-1 text-danger';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-plug me-1"></i>Probar conexión';
+    });
+});
+
+document.getElementById('btnTestLdap2')?.addEventListener('click', function () {
+    var btn    = this;
+    var result = document.getElementById('ldap2TestResult');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Probando…';
+    result.textContent = '';
+    result.className = 'small ms-1';
+
+    fetch('{{ route("admin.configuracion.test-ldap2") }}', {
         method: 'POST',
         headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
     })

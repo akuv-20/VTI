@@ -199,6 +199,45 @@ class FacturaController extends Controller
         return redirect()->route('facturas.index')->with('success', 'Factura eliminada exitosamente.');
     }
 
+    // ── Resumen por servicio ──────────────────────────────────────────────────
+
+    public function resumenServicios(Request $request)
+    {
+        $anio = $request->integer('anio', Carbon::now()->year);
+
+        $aniosDisponibles = Factura::selectRaw('YEAR(fecha_emision) as anio')
+            ->groupBy('anio')->orderByDesc('anio')->pluck('anio');
+
+        // Solo facturas mensuales con servicio periódico
+        $facturas = Factura::with(['servicio.empresa', 'servicio.compania', 'servicio.cuentaContable'])
+            ->where('tipo', 'Mensual')
+            ->whereNotNull('id_servicio')
+            ->whereYear('fecha_emision', $anio)
+            ->whereHas('servicio', fn($q) => $q->where('es_periodico', true))
+            ->get();
+
+        $meses      = ['', 'Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        $matriz     = [];
+        $servicios  = [];
+        $totalesCol = array_fill(1, 12, 0.0);
+
+        foreach ($facturas as $f) {
+            $id  = $f->id_servicio;
+            $mes = $f->fecha_emision->month;
+
+            $servicios[$id]       = $f->servicio;
+            $matriz[$id][$mes]    = ($matriz[$id][$mes] ?? 0) + $f->valor_neto;
+            $totalesCol[$mes]    += $f->valor_neto;
+        }
+
+        // Ordenar por nombre de servicio
+        uasort($servicios, fn($a, $b) => strcmp($a->servicio, $b->servicio));
+
+        return view('facturas.resumen_servicios', compact(
+            'matriz', 'servicios', 'meses', 'anio', 'aniosDisponibles', 'totalesCol'
+        ));
+    }
+
     // ── Pendientes ────────────────────────────────────────────────────────────
 
     public function pendientes(Request $request)

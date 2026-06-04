@@ -206,12 +206,13 @@ class ImportacionMovistarController extends Controller
             ->pluck('id_linea_telefonica')
             ->unique();
 
-        // Líneas Movistar del mismo tipo que NO aparecen en esta importación
+        // Líneas Movistar activas del mismo tipo que NO aparecen en esta importación
+        // (las inactivas se excluyen: si fueron dadas de baja, es esperado que no estén)
         $lineasSinImportar = LineaTelefonica::with(['usuario', 'empresa'])
             ->whereHas('emisor', fn($q) => $q->where('nombre', 'like', '%Movistar%'))
             ->whereIn('id', $idsConHistorial)
             ->whereNotIn('id', $idsEnImportacion)
-            ->orderByRaw("FIELD(estado, 'Activo', 'Inactivo')")
+            ->where('estado', 'Activo')
             ->orderBy('linea')
             ->get();
 
