@@ -19,6 +19,9 @@ use App\Http\Controllers\InformeController;
 use App\Http\Controllers\ImportacionMovistarController;
 use App\Http\Controllers\ImportacionWomController;
 use App\Http\Controllers\EntregaFacturaController;
+use App\Http\Controllers\ActaEntregaTelefonoController;
+use App\Http\Controllers\InventarioTiController;
+use App\Http\Controllers\InventarioDashboardController;
 use App\Http\Controllers\Admin\UsuarioController as AdminUsuarioController;
 use App\Http\Controllers\Admin\ConfiguracionController as AdminConfiguracionController;
 use App\Http\Controllers\Admin\ActiveDirectoryController as AdminADController;
@@ -71,6 +74,21 @@ Route::resource('centros_costo', CentroCostoController::class);
 Route::post('lineas_telefonicas/reprocesar_ccosto', [LineaTelefonicaController::class, 'reprocesarCentroCosto'])->name('lineas_telefonicas.reprocesar_ccosto');
 Route::resource('lineas_telefonicas', LineaTelefonicaController::class);
 Route::get('informes/telefonia', [InformeController::class, 'telefonia'])->name('informes.telefonia');
+
+// ── Actas de Entrega Teléfono ────────────────────────────────────────────────
+Route::get('actas_entrega_telefono/{acta}/imprimir', [ActaEntregaTelefonoController::class, 'imprimir'])->name('actas_entrega_telefono.imprimir');
+Route::post('actas_entrega_telefono/linea/{linea}', [ActaEntregaTelefonoController::class, 'store'])->name('actas_entrega_telefono.store');
+Route::delete('actas_entrega_telefono/{acta}', [ActaEntregaTelefonoController::class, 'destroy'])->name('actas_entrega_telefono.destroy');
+Route::get('actas_entrega_telefono', [ActaEntregaTelefonoController::class, 'index'])->name('actas_entrega_telefono.index');
+
+// ── Inventario TI ────────────────────────────────────────────────────────────
+Route::get('inventario_ti/dashboard',                          [InventarioDashboardController::class, 'index'])->name('inventario_ti.dashboard');
+Route::get('inventario_ti',                                    [InventarioTiController::class, 'index'])->name('inventario_ti.index');
+Route::get('inventario_ti/actas',                              [InventarioTiController::class, 'actas'])->name('inventario_ti.actas');
+Route::get('inventario_ti/actas/{acta}/imprimir',              [InventarioTiController::class, 'imprimirActa'])->name('inventario_ti.actas.imprimir');
+Route::delete('inventario_ti/actas/{acta}',                    [InventarioTiController::class, 'destroyActa'])->name('inventario_ti.actas.destroy');
+Route::get('inventario_ti/{id}',                               [InventarioTiController::class, 'show'])->name('inventario_ti.show');
+Route::post('inventario_ti/{id}/acta',                         [InventarioTiController::class, 'storeActa'])->name('inventario_ti.acta.store');
 
 Route::resource('importaciones_entel', ImportacionEntelController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
 Route::post('importaciones_entel/{importaciones_entel}/recruzar', [ImportacionEntelController::class, 'recruzar'])->name('importaciones_entel.recruzar');

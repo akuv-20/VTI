@@ -3,7 +3,7 @@
 @section('content')
 <div class="container-fluid vti-page">
 
-    <div class="vti-page-header">
+    <div class="vti-page-header" style="max-width:900px;margin-left:auto;margin-right:auto">
         <h4>
             <i class="bi bi-telephone-fill me-2"></i>
             Línea <strong>{{ $lineas_telefonica->linea }}</strong>
@@ -14,6 +14,9 @@
             @endif
         </h4>
         <div class="d-flex gap-2">
+            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalActaEntrega">
+                <i class="bi bi-file-earmark-text-fill me-1"></i>Imprimir Acta de Entrega
+            </button>
             <a href="{{ route('lineas_telefonicas.edit', $lineas_telefonica->id) }}"
                class="btn btn-warning btn-sm">
                 <i class="bi bi-pencil-fill me-1"></i>Editar
@@ -24,7 +27,7 @@
         </div>
     </div>
 
-    <div class="row g-4" style="max-width:900px">
+    <div class="row g-4" style="max-width:900px;margin-left:auto;margin-right:auto">
 
         {{-- ── Datos generales ──────────────────────────────────────── --}}
         <div class="col-12">
@@ -270,6 +273,154 @@
             </div>
         </div>
 
+    </div>
+</div>
+
+{{-- ── Modal Acta de Entrega ──────────────────────────────────────────────── --}}
+<div class="modal fade" id="modalActaEntrega" tabindex="-1" aria-labelledby="modalActaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST"
+                  action="{{ route('actas_entrega_telefono.store', $lineas_telefonica) }}"
+                  target="_blank">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalActaLabel">
+                        <i class="bi bi-file-earmark-text-fill me-2 text-success"></i>
+                        Acta de Entrega — Línea {{ $lineas_telefonica->linea }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+
+                    {{-- Resumen --}}
+                    <div class="alert alert-light border mb-4" style="font-size:.85rem">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <span class="text-muted">Empleado:</span>
+                                <strong>{{ $lineas_telefonica->usuario->nombre ?? '(sin asignar)' }}</strong>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted">Zona:</span>
+                                <strong>
+                                    {{ $lineas_telefonica->empresa->nombre ?? '' }}
+                                    @if($lineas_telefonica->empresa && $lineas_telefonica->ubicacion) — @endif
+                                    {{ $lineas_telefonica->ubicacion->nombre ?? '' }}
+                                </strong>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted">Equipo:</span>
+                                <strong>
+                                    {{ $lineas_telefonica->aparato?->marca?->nombre }}
+                                    {{ $lineas_telefonica->aparato?->modelo ?? '—' }}
+                                </strong>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted">Compañía:</span>
+                                <strong>{{ $lineas_telefonica->emisor->nombre ?? '—' }}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Condición --}}
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Condición del equipo</label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="condicion" id="condNuevo"
+                                       value="Nuevo" checked>
+                                <label class="form-check-label" for="condNuevo">Nuevo</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="condicion" id="condUsado"
+                                       value="Usado">
+                                <label class="form-check-label" for="condUsado">Usado</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Accesorios --}}
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Accesorios</label>
+                        <table class="table table-sm table-bordered" style="font-size:.88rem">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Accesorio</th>
+                                    <th class="text-center" style="width:90px">SI</th>
+                                    <th class="text-center" style="width:90px">NO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach([
+                                    'cargador_usb'   => 'Cargador (Cable USB C)',
+                                    'cargador_auto'  => 'Cargador de automóvil',
+                                    'manos_libres'   => 'Manos libres (auricular)',
+                                    'cd_informacion' => 'Cd de información',
+                                ] as $key => $label)
+                                <tr>
+                                    <td>{{ $label }}</td>
+                                    <td class="text-center">
+                                        <input type="radio" name="accesorios[{{ $key }}]"
+                                               value="SI" class="form-check-input">
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="radio" name="accesorios[{{ $key }}]"
+                                               value="NO" class="form-check-input" checked>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{-- Documentación --}}
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Documentación</label>
+                        <table class="table table-sm table-bordered" style="font-size:.88rem">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Documento</th>
+                                    <th class="text-center" style="width:90px">SI</th>
+                                    <th class="text-center" style="width:90px">NO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach([
+                                    'manual_propietario' => 'Manual del Propietario',
+                                    'procedimiento_uso'  => 'Procedimiento uso de teléfono móvil',
+                                ] as $key => $label)
+                                <tr>
+                                    <td>{{ $label }}</td>
+                                    <td class="text-center">
+                                        <input type="radio" name="documentacion[{{ $key }}]"
+                                               value="SI" class="form-check-input">
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="radio" name="documentacion[{{ $key }}]"
+                                               value="NO" class="form-check-input" checked>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{-- Observación --}}
+                    <div>
+                        <label for="observacionActa" class="form-label fw-semibold">Observación</label>
+                        <textarea class="form-control" id="observacionActa" name="observacion"
+                                  rows="2" maxlength="500" placeholder="(opcional)"></textarea>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-printer-fill me-1"></i>Generar e Imprimir Acta
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 @endsection

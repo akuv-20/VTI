@@ -162,7 +162,16 @@
                 <tr>
                     <td><strong>{{ $linea->linea }}</strong></td>
                     <td>{{ $linea->emisor->nombre ?? '—' }}</td>
-                    <td>{{ $linea->usuario->nombre ?? '—' }}</td>
+                    <td>
+                        @if($linea->usuario)
+                            <span class="badge rounded-pill"
+                                  style="background:#dcfce7;color:#166534;font-weight:600;font-size:.74rem">
+                                {{ $linea->usuario->nombre }}
+                            </span>
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
                     <td>
                         @php $ultHist = $linea->lastHistorialUsuario; @endphp
                         @if($ultHist && $ultHist->usuarioAnterior)

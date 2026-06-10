@@ -383,9 +383,28 @@
                                     <li><a class="dropdown-item fw-semibold" href="{{ route('informes.telefonia') }}">
                                         <i class="bi bi-bar-chart-fill me-1"></i>Informe Telefonía
                                     </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('actas_entrega_telefono.index') }}">
+                                        <i class="bi bi-file-earmark-text-fill me-1"></i>Actas de Entrega
+                                    </a></li>
                                 </ul>
                             </li>
                             @endif
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-pc-display me-1"></i>Inventario TI
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{{ route('inventario_ti.dashboard') }}">
+                                        <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('inventario_ti.index') }}">
+                                        <i class="bi bi-display-fill me-1"></i>Equipos
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ route('inventario_ti.actas') }}">
+                                        <i class="bi bi-file-earmark-text-fill me-1"></i>Actas de Entrega
+                                    </a></li>
+                                </ul>
+                            </li>
                             @can('acceso_ad')
                             <li class="nav-item">
                                 <a class="nav-link fw-semibold" href="{{ route('admin.active_directory.index') }}"

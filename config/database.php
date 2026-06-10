@@ -62,6 +62,20 @@ return [
             ]) : [],
         ],
 
+        'glpi' => [
+            'driver'    => 'mysql',
+            'host'      => env('GLPI_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port'      => env('GLPI_DB_PORT', env('DB_PORT', '3306')),
+            'database'  => env('GLPI_DB_DATABASE', 'glpi'),
+            'username'  => env('GLPI_DB_USERNAME', env('DB_USERNAME', 'root')),
+            'password'  => env('GLPI_DB_PASSWORD', ''),
+            'charset'   => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix'    => '',
+            'strict'    => false,
+            'engine'    => null,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
