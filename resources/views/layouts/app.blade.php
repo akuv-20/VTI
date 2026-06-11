@@ -7,6 +7,11 @@
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    <script>
+        // Estado contraído del sidebar antes del primer paint (evita parpadeo)
+        try { if (localStorage.getItem('vti_sb_collapsed') === '1') document.documentElement.classList.add('sb-collapsed'); } catch (e) {}
+    </script>
+
     <title>{{ $appNombre ?? config('app.name', 'Laravel') }}</title>
     @if(!empty($favicon))
         <link rel="icon" href="{{ $favicon }}">
@@ -268,6 +273,63 @@
         }
         .vti-main-inner { padding: 1.25rem 1.25rem 2rem; }
 
+        /* Botón contraer (parte inferior del sidebar) */
+        .vti-collapse-btn {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            width: 100%;
+            padding: 11px 20px;
+            background: none;
+            border: none;
+            border-top: 1px solid rgba(255,255,255,.08);
+            color: #94a3b8;
+            font-size: .8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .12s, color .12s;
+            flex-shrink: 0;
+        }
+        .vti-collapse-btn:hover { background: var(--sidebar-hover); color: #fff; }
+        .vti-collapse-btn i { font-size: .85rem; transition: transform .25s ease; }
+
+        /* ── Sidebar contraído (solo desktop) ───────────────────────── */
+        @media (min-width: 992px) {
+            html.sb-collapsed .vti-sidebar { width: 72px; }
+            html.sb-collapsed .vti-topbar  { left: 72px; }
+            html.sb-collapsed .vti-main    { margin-left: 72px; }
+
+            /* Expandir al pasar el cursor (flota sobre el contenido) */
+            html.sb-collapsed .vti-sidebar:hover {
+                width: var(--sidebar-w);
+                box-shadow: 8px 0 30px rgba(0,0,0,.25);
+            }
+
+            /* Ocultar textos y submenús cuando está contraído sin hover */
+            html.sb-collapsed .vti-sidebar:not(:hover) .sb-text,
+            html.sb-collapsed .vti-sidebar:not(:hover) .vti-nav-group-items,
+            html.sb-collapsed .vti-sidebar:not(:hover) .vti-nav-group-toggle .bi-chevron-down {
+                display: none;
+            }
+
+            /* Centrar iconos cuando está contraído */
+            html.sb-collapsed .vti-sidebar:not(:hover) .vti-nav-link.top-level,
+            html.sb-collapsed .vti-sidebar:not(:hover) .vti-nav-group-toggle,
+            html.sb-collapsed .vti-sidebar:not(:hover) .vti-collapse-btn {
+                justify-content: center;
+                padding-left: 0;
+                padding-right: 0;
+            }
+            html.sb-collapsed .vti-sidebar:not(:hover) .vti-sidebar-brand {
+                justify-content: center;
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+
+            /* Rotar flecha del botón contraer */
+            html.sb-collapsed .vti-collapse-btn i { transform: rotate(180deg); }
+        }
+
         /* Backdrop móvil */
         .vti-sidebar-backdrop {
             display: none;
@@ -522,14 +584,14 @@
                     <i class="bi bi-building-check" style="font-size:.9rem;color:#fff"></i>
                 </span>
             @endif
-            <span>{{ $appNombre ?? config('app.name', 'Laravel') }}</span>
+            <span class="sb-text">{{ $appNombre ?? config('app.name', 'Laravel') }}</span>
         </a>
 
         @php $ta = fn(string $r) => auth()->user()->tieneAcceso($r); @endphp
         <nav class="vti-sidebar-nav">
 
             <a href="{{ url('/home') }}" class="vti-nav-link top-level {{ request()->is('home') || request()->is('/') ? 'active' : '' }}">
-                <i class="bi bi-house-fill"></i>Inicio
+                <i class="bi bi-house-fill"></i><span class="sb-text">Inicio</span>
             </a>
 
             <div class="vti-nav-divider"></div>
@@ -538,7 +600,7 @@
             @if($ta('facturas.index') || $ta('entregas_facturas.index') || $ta('servicios.index') || $ta('familias.index') || $ta('empresas.index') || $ta('companias.index') || $ta('cuentas_contables.index'))
             <div class="vti-nav-group" data-group="facturacion">
                 <button type="button" class="vti-nav-group-toggle">
-                    <i class="bi bi-receipt-cutoff"></i>Facturación
+                    <i class="bi bi-receipt-cutoff"></i><span class="sb-text">Facturación</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="vti-nav-group-items">
@@ -597,7 +659,7 @@
             @if($ta('lineas_telefonicas.index') || $ta('emisores.index') || $ta('usuarios_telefonicos.index') || $ta('ubicaciones.index') || $ta('marcas.index') || $ta('aparatos.index') || $ta('centros_costo.index') || $ta('importaciones_movistar.index') || $ta('importaciones_entel.index') || $ta('importaciones_wom.index') || $ta('informes.telefonia') || $ta('actas_entrega_telefono.index'))
             <div class="vti-nav-group" data-group="telefonia">
                 <button type="button" class="vti-nav-group-toggle">
-                    <i class="bi bi-phone"></i>Telefonía
+                    <i class="bi bi-phone"></i><span class="sb-text">Telefonía</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="vti-nav-group-items">
@@ -676,7 +738,7 @@
             @if($ta('inventario_ti.index'))
             <div class="vti-nav-group" data-group="inventario">
                 <button type="button" class="vti-nav-group-toggle">
-                    <i class="bi bi-pc-display"></i>Inventario TI
+                    <i class="bi bi-pc-display"></i><span class="sb-text">Inventario TI</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="vti-nav-group-items">
@@ -697,7 +759,7 @@
             @if(auth()->user()->can('acceso_ad') || auth()->user()->can('acceso_ad2'))
             <div class="vti-nav-group" data-group="ad">
                 <button type="button" class="vti-nav-group-toggle">
-                    <i class="bi bi-diagram-3-fill"></i>Active Directory
+                    <i class="bi bi-diagram-3-fill"></i><span class="sb-text">Active Directory</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="vti-nav-group-items">
@@ -720,7 +782,7 @@
             <div class="vti-nav-divider"></div>
             <div class="vti-nav-group" data-group="admin">
                 <button type="button" class="vti-nav-group-toggle" style="color:#fca5a5">
-                    <i class="bi bi-shield-lock-fill"></i>Admin
+                    <i class="bi bi-shield-lock-fill"></i><span class="sb-text">Admin</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="vti-nav-group-items">
@@ -735,6 +797,10 @@
             @endcan
 
         </nav>
+
+        <button type="button" class="vti-collapse-btn d-none d-lg-flex" id="sidebarCollapseBtn" title="Contraer / expandir menú">
+            <i class="bi bi-chevron-double-left"></i><span class="sb-text">Contraer menú</span>
+        </button>
     </aside>
 
     {{-- ════════════════════════════ TOPBAR ════════════════════════════ --}}
@@ -915,6 +981,13 @@
 
                 toggle?.addEventListener('click', openSidebar);
                 backdrop?.addEventListener('click', closeSidebar);
+
+                // Contraer / expandir (desktop)
+                const collapseBtn = document.getElementById('sidebarCollapseBtn');
+                collapseBtn?.addEventListener('click', () => {
+                    const contraido = document.documentElement.classList.toggle('sb-collapsed');
+                    try { localStorage.setItem('vti_sb_collapsed', contraido ? '1' : '0'); } catch (e) {}
+                });
 
                 // Cerrar al navegar (móvil)
                 sidebar.querySelectorAll('a.vti-nav-link').forEach(link => {
