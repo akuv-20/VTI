@@ -14,11 +14,6 @@
     @endif
 
     <style>
-        .navbar .dropdown:hover .dropdown-menu {
-            display: block;
-            margin-top: 0;
-        }
-
         /* ── Loading overlay ────────────────────────────────────────────── */
         #page-loader {
             display: none;
@@ -49,6 +44,249 @@
             letter-spacing: 0.03em;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Layout: sidebar + topbar ──────────────────────────────────── */
+        :root {
+            --sidebar-w: 250px;
+            --topbar-h: 52px;
+            --sidebar-bg: #1e293b;
+            --sidebar-hover: #283548;
+            --sidebar-active: #2563eb;
+        }
+
+        body { background: #f1f5f9; }
+
+        /* Sidebar */
+        .vti-sidebar {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            width: var(--sidebar-w);
+            background: var(--sidebar-bg);
+            z-index: 1040;
+            display: flex;
+            flex-direction: column;
+            transition: transform .25s ease;
+        }
+
+        .vti-sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: .95rem;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            flex-shrink: 0;
+        }
+        .vti-sidebar-brand:hover { color: #fff; }
+        .vti-sidebar-brand img { object-fit: contain; max-width: 140px; }
+
+        .vti-sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 8px 20px;
+        }
+        .vti-sidebar-nav::-webkit-scrollbar { width: 5px; }
+        .vti-sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
+
+        /* Grupo (botón que colapsa) */
+        .vti-nav-group { margin-bottom: 2px; }
+        .vti-nav-group-toggle {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            width: 100%;
+            padding: 8px 12px;
+            background: none;
+            border: none;
+            border-radius: 8px;
+            color: #cbd5e1;
+            font-size: .84rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            transition: background .12s, color .12s;
+        }
+        .vti-nav-group-toggle:hover { background: var(--sidebar-hover); color: #fff; }
+        .vti-nav-group-toggle .bi-chevron-down {
+            margin-left: auto;
+            font-size: .68rem;
+            transition: transform .2s ease;
+        }
+        .vti-nav-group.open .vti-nav-group-toggle .bi-chevron-down { transform: rotate(180deg); }
+        .vti-nav-group.open .vti-nav-group-toggle { color: #fff; }
+
+        .vti-nav-group-items {
+            display: none;
+            padding: 2px 0 4px;
+        }
+        .vti-nav-group.open .vti-nav-group-items { display: block; }
+
+        /* Links */
+        .vti-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 6px 12px 6px 34px;
+            border-radius: 8px;
+            color: #94a3b8;
+            font-size: .82rem;
+            text-decoration: none;
+            transition: background .12s, color .12s;
+            margin: 1px 0;
+        }
+        .vti-nav-link:hover { background: var(--sidebar-hover); color: #fff; }
+        .vti-nav-link.active {
+            background: var(--sidebar-active);
+            color: #fff;
+            font-weight: 600;
+        }
+        .vti-nav-link i { font-size: .8rem; width: 16px; text-align: center; flex-shrink: 0; }
+
+        /* Link de primer nivel (sin grupo) */
+        .vti-nav-link.top-level { padding-left: 12px; font-weight: 600; color: #cbd5e1; font-size: .84rem; }
+        .vti-nav-link.top-level:hover { color: #fff; }
+        .vti-nav-link.top-level.active { color: #fff; }
+
+        .vti-nav-divider {
+            height: 1px;
+            background: rgba(255,255,255,.07);
+            margin: 6px 12px;
+        }
+
+        /* Topbar */
+        .vti-topbar {
+            position: fixed;
+            top: 0;
+            left: var(--sidebar-w);
+            right: 0;
+            height: var(--topbar-h);
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 18px;
+            z-index: 1030;
+        }
+
+        .vti-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: .84rem;
+            color: #64748b;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+        .vti-breadcrumb a {
+            color: #64748b;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .vti-breadcrumb a:hover { color: #2563eb; }
+        .vti-breadcrumb .sep { color: #cbd5e1; font-size: .7rem; }
+        .vti-breadcrumb .current { color: #1e293b; font-weight: 600; }
+
+        /* Botón hamburguesa (solo móvil) */
+        .vti-burger {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: #475569;
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+        .vti-burger:hover { background: #f1f5f9; }
+
+        /* Usuario (derecha del topbar) */
+        .vti-user-menu { margin-left: auto; position: relative; }
+        .vti-user-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: background .12s;
+        }
+        .vti-user-btn:hover { background: #f1f5f9; }
+        .vti-user-avatar {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1e3a5f, #2563eb);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .72rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .vti-user-name { font-size: .83rem; font-weight: 600; color: #334155; }
+
+        .vti-user-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,.14);
+            border: 1px solid #e2e8f0;
+            min-width: 200px;
+            padding: 6px;
+            display: none;
+            z-index: 1050;
+        }
+        .vti-user-dropdown.show { display: block; }
+        .vti-user-dropdown a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 7px;
+            font-size: .84rem;
+            color: #334155;
+            text-decoration: none;
+        }
+        .vti-user-dropdown a:hover { background: #f1f5f9; }
+        .vti-user-dropdown hr { margin: 5px 4px; border-color: #e2e8f0; }
+
+        /* Contenido */
+        .vti-main {
+            margin-left: var(--sidebar-w);
+            padding-top: var(--topbar-h);
+            min-height: 100vh;
+        }
+        .vti-main-inner { padding: 1.25rem 1.25rem 2rem; }
+
+        /* Backdrop móvil */
+        .vti-sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,.5);
+            z-index: 1039;
+        }
+
+        /* ── Responsive ─────────────────────────────────────────────── */
+        @media (max-width: 991.98px) {
+            .vti-sidebar { transform: translateX(-100%); }
+            .vti-sidebar.show { transform: translateX(0); }
+            .vti-sidebar-backdrop.show { display: block; }
+            .vti-topbar { left: 0; }
+            .vti-main { margin-left: 0; }
+            .vti-burger { display: inline-flex; }
+            .vti-user-name { display: none; }
+        }
 
         /* ── VTI Design System ──────────────────────────────────────── */
         .vti-page { padding: 0 4px; }
@@ -161,8 +399,7 @@
 
         /* ── Responsive mobile ─────────────────────────────────────── */
         @media (max-width: 767.98px) {
-            /* Reduce padding vertical del main */
-            main.py-4 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+            .vti-main-inner { padding: .85rem .75rem 1.5rem; }
 
             /* Page header: apilar título + acciones */
             .vti-page-header { flex-direction: column; align-items: stretch; gap: .6rem; }
@@ -178,18 +415,14 @@
                 -webkit-overflow-scrolling: touch;
                 border-radius: 10px;
             }
-            /* Evitar que las celdas de acción queden muy angostas */
             .vti-table th, .vti-table td { white-space: nowrap; }
 
-            /* Botones de acción: touch target más grande */
             .vti-btn-edit, .vti-btn-delete, .vti-btn-view {
                 width: 36px; height: 36px; font-size: .82rem;
             }
 
-            /* Footer: apilar total + paginación */
             .vti-footer { flex-direction: column; align-items: center; gap: .5rem; text-align: center; }
 
-            /* Formularios de filtro: inputs al 100% */
             .form-select[style*="width"],
             .form-control[style*="width"],
             input.form-control[style*="width"] {
@@ -197,15 +430,16 @@
                 min-width: 0 !important;
             }
 
-            /* Cards de formulario: menos padding */
             .card-body.p-4 { padding: 1rem !important; }
             .card-body.p-3 { padding: .75rem !important; }
 
-            /* Paginación más compacta */
             .pagination .page-link { padding: .3rem .55rem; font-size: .8rem; }
+
+            /* Breadcrumb: ocultar segmentos intermedios en pantallas chicas */
+            .vti-breadcrumb .crumb-mid { display: none; }
         }
 
-        /* ── Barra de progreso superior (NProgress-style manual) ──── */
+        /* ── Barra de progreso superior ─────────────────────────────── */
         #page-bar {
             position: fixed;
             top: 0; left: 0;
@@ -274,223 +508,362 @@
         </div>
     </div>
 
-    <div id="app">
-        <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
-            <div class="container-fluid">
-                <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url('/home') }}">
-                    @if(!empty($appLogo))
-                        <img src="{{ $appLogo }}" height="28" alt="Logo"
-                             style="object-fit:contain;max-width:120px">
-                    @else
-                        <span class="d-inline-flex align-items-center justify-content-center rounded-2"
-                              style="width:28px;height:28px;background:linear-gradient(135deg,#1e3a5f,#2563eb);flex-shrink:0">
-                            <i class="bi bi-building-check" style="font-size:.9rem;color:#fff"></i>
-                        </span>
-                    @endif
-                    {{ $appNombre ?? config('app.name', 'Laravel') }}
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
-                    <span class="navbar-toggler-icon"></span>
+    @auth
+    {{-- ════════════════════════════ SIDEBAR ════════════════════════════ --}}
+    <div class="vti-sidebar-backdrop" id="sidebarBackdrop"></div>
+    <aside class="vti-sidebar" id="vtiSidebar">
+
+        <a class="vti-sidebar-brand" href="{{ url('/home') }}">
+            @if(!empty($appLogo))
+                <img src="{{ $appLogo }}" height="28" alt="Logo">
+            @else
+                <span class="d-inline-flex align-items-center justify-content-center rounded-2"
+                      style="width:28px;height:28px;background:linear-gradient(135deg,#1e3a5f,#2563eb);flex-shrink:0">
+                    <i class="bi bi-building-check" style="font-size:.9rem;color:#fff"></i>
+                </span>
+            @endif
+            <span>{{ $appNombre ?? config('app.name', 'Laravel') }}</span>
+        </a>
+
+        @php $ta = fn(string $r) => auth()->user()->tieneAcceso($r); @endphp
+        <nav class="vti-sidebar-nav">
+
+            <a href="{{ url('/home') }}" class="vti-nav-link top-level {{ request()->is('home') || request()->is('/') ? 'active' : '' }}">
+                <i class="bi bi-house-fill"></i>Inicio
+            </a>
+
+            <div class="vti-nav-divider"></div>
+
+            {{-- ── Facturación ── --}}
+            @if($ta('facturas.index') || $ta('entregas_facturas.index') || $ta('servicios.index') || $ta('familias.index') || $ta('empresas.index') || $ta('companias.index') || $ta('cuentas_contables.index'))
+            <div class="vti-nav-group" data-group="facturacion">
+                <button type="button" class="vti-nav-group-toggle">
+                    <i class="bi bi-receipt-cutoff"></i>Facturación
+                    <i class="bi bi-chevron-down"></i>
                 </button>
-
-                <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    @guest
-                        @if (Route::has('login'))
-                            
-                        @endif
-                        @else
-                        <!-- Left Side Of Navbar -->
-                        <ul class="navbar-nav me-auto">
-                            @if(auth()->user()->tieneAcceso('facturas.index'))
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="{{ route('facturas.index') }}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-receipt-cutoff me-1"></i>Facturación
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item fw-semibold" href="{{ route('facturas.pendientes') }}">
-                                        <i class="bi bi-hourglass-split me-1 text-warning"></i>Facturas Pendientes
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('facturas.index') }}">
-                                        <i class="bi bi-receipt me-1"></i>Facturas
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('facturas.resumen') }}">
-                                        <i class="bi bi-bar-chart-line me-1"></i>Resumen por Cuenta Contable
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('facturas.resumen_servicios') }}">
-                                        <i class="bi bi-grid-3x3-gap me-1"></i>Resumen por Servicio
-                                    </a></li>
-                                    <li><a class="dropdown-item fw-semibold" href="{{ route('entregas_facturas.index') }}">
-                                        <i class="bi bi-box-arrow-up-right me-1 text-success"></i>Entregas de Facturas
-                                    </a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ route('servicios.index') }}">
-                                        <i class="bi bi-grid me-1"></i>Servicios
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('familias.index') }}">
-                                        <i class="bi bi-collection me-1"></i>Familias
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('empresas.index') }}">
-                                        <i class="bi bi-building me-1"></i>Empresas
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('companias.index') }}">
-                                        <i class="bi bi-buildings me-1"></i>Compañías
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('cuentas_contables.index') }}">
-                                        <i class="bi bi-journal-bookmark me-1"></i>Cuentas Contables
-                                    </a></li>
-                                </ul>
-                            </li>
-                            @endif
-                            @if(auth()->user()->tieneAcceso('lineas_telefonicas.index'))
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="bi bi-phone me-1"></i>Telefonía
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{{ route('lineas_telefonicas.index') }}">
-                                        <i class="bi bi-telephone-fill me-1"></i>Líneas Telefónicas
-                                    </a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ route('emisores.index') }}">
-                                        <i class="bi bi-broadcast me-1"></i>Emisores
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('usuarios_telefonicos.index') }}">
-                                        <i class="bi bi-person-fill me-1"></i>Usuarios
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('ubicaciones.index') }}">
-                                        <i class="bi bi-geo-alt-fill me-1"></i>Ubicaciones
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('marcas.index') }}">
-                                        <i class="bi bi-tag-fill me-1"></i>Marcas
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('aparatos.index') }}">
-                                        <i class="bi bi-phone-fill me-1"></i>Aparatos
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('centros_costo.index') }}">
-                                        <i class="bi bi-diagram-2-fill me-1"></i>Centros de Costo
-                                    </a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ route('importaciones_movistar.index') }}">
-                                        <i class="bi bi-cloud-upload me-1"></i>Importaciones Movistar
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('importaciones_entel.index') }}">
-                                        <i class="bi bi-cloud-upload me-1"></i>Importaciones Entel
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('importaciones_wom.index') }}">
-                                        <i class="bi bi-cloud-upload me-1" style="color:#6f42c1"></i>Importaciones WOM
-                                    </a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item fw-semibold" href="{{ route('informes.telefonia') }}">
-                                        <i class="bi bi-bar-chart-fill me-1"></i>Informe Telefonía
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('actas_entrega_telefono.index') }}">
-                                        <i class="bi bi-file-earmark-text-fill me-1"></i>Actas de Entrega
-                                    </a></li>
-                                </ul>
-                            </li>
-                            @endif
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="bi bi-pc-display me-1"></i>Inventario TI
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{{ route('inventario_ti.dashboard') }}">
-                                        <i class="bi bi-speedometer2 me-1"></i>Dashboard
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('inventario_ti.index') }}">
-                                        <i class="bi bi-display-fill me-1"></i>Equipos
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{{ route('inventario_ti.actas') }}">
-                                        <i class="bi bi-file-earmark-text-fill me-1"></i>Actas de Entrega
-                                    </a></li>
-                                </ul>
-                            </li>
-                            @can('acceso_ad')
-                            <li class="nav-item">
-                                <a class="nav-link fw-semibold" href="{{ route('admin.active_directory.index') }}"
-                                   style="color:#6366f1">
-                                    <i class="bi bi-diagram-3-fill me-1"></i>Active Directory
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link fw-semibold" href="{{ route('admin.active_directory2.index') }}"
-                                   style="color:#6366f1">
-                                    <i class="bi bi-diagram-3-fill me-1"></i>AD Grupo Verfrut (Perú)
-                                </a>
-                            </li>
-                            @endcan
-                            @can('admin')
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-danger fw-semibold" href="#"
-                                   role="button" data-bs-toggle="dropdown">
-                                    <i class="bi bi-shield-lock-fill me-1"></i>Admin
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{{ route('admin.usuarios.index') }}">
-                                        <i class="bi bi-people-fill me-1"></i>Usuarios
-                                    </a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ route('admin.configuracion.index') }}">
-                                        <i class="bi bi-gear-fill me-1"></i>Configuración
-                                    </a></li>
-                                </ul>
-                            </li>
-                            @endcan
-                        </ul>
-                    @endguest
-                    
-                    
-                    <!-- Right Side Of Navbar -->
-                    <ul class="navbar-nav ms-auto">
-                        <!-- Authentication Links -->
-                        @guest
-                            @if (Route::has('login'))
-                                
-                            @endif
-
-                            @if (Route::has('register'))
-                                
-                            @endif
-                        @else
-                        {{-- <li class="nav-item">
-                            <a class="nav-link" href="{{ route('login') }}">{{ __('Login') }}</a>
-                        </li> --}}
-                        {{-- <li class="nav-item">
-                            <b><a class="nav-link" href="{{ route('register') }}">{{ __('Registrar Usuario') }}</a></b>
-                        </li> --}}
-                            <li class="nav-item dropdown">
-                                <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                    {{ Auth::user()->name }}
-                                </a>
-
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                                    @can('admin')
-                                    <a class="dropdown-item" href="{{ route('admin.usuarios.index') }}">
-                                        <i class="bi bi-people-fill me-1"></i>{{ __('Gestión de Usuarios') }}
-                                    </a>
-                                    <hr class="dropdown-divider">
-                                    @endcan
-
-                                    <a class="dropdown-item" href="{{ route('logout') }}"
-                                       onclick="event.preventDefault();
-                                                     document.getElementById('logout-form').submit();">
-                                        <i class="bi bi-box-arrow-right me-1"></i>{{ __('Cerrar Sesión') }}
-                                    </a>
-
-                                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                                        @csrf
-                                    </form>
-                                </div>
-                            </li>
-                        @endguest
-                    </ul>
+                <div class="vti-nav-group-items">
+                    @if($ta('facturas.index'))
+                    <a href="{{ route('facturas.pendientes') }}" class="vti-nav-link {{ request()->routeIs('facturas.pendientes') ? 'active' : '' }}">
+                        <i class="bi bi-hourglass-split"></i>Facturas Pendientes
+                    </a>
+                    <a href="{{ route('facturas.index') }}" class="vti-nav-link {{ request()->routeIs('facturas.index', 'facturas.create', 'facturas.edit', 'facturas.show') ? 'active' : '' }}">
+                        <i class="bi bi-receipt"></i>Facturas
+                    </a>
+                    <a href="{{ route('facturas.resumen') }}" class="vti-nav-link {{ request()->routeIs('facturas.resumen') ? 'active' : '' }}">
+                        <i class="bi bi-bar-chart-line"></i>Resumen por Cuenta
+                    </a>
+                    <a href="{{ route('facturas.resumen_servicios') }}" class="vti-nav-link {{ request()->routeIs('facturas.resumen_servicios') ? 'active' : '' }}">
+                        <i class="bi bi-grid-3x3-gap"></i>Resumen por Servicio
+                    </a>
+                    @endif
+                    @if($ta('entregas_facturas.index'))
+                    <a href="{{ route('entregas_facturas.index') }}" class="vti-nav-link {{ request()->routeIs('entregas_facturas.*') ? 'active' : '' }}">
+                        <i class="bi bi-box-arrow-up-right"></i>Entregas de Facturas
+                    </a>
+                    @endif
+                    @if($ta('servicios.index') || $ta('familias.index') || $ta('empresas.index') || $ta('companias.index') || $ta('cuentas_contables.index'))
+                    <div class="vti-nav-divider"></div>
+                    @endif
+                    @if($ta('servicios.index'))
+                    <a href="{{ route('servicios.index') }}" class="vti-nav-link {{ request()->routeIs('servicios.*') ? 'active' : '' }}">
+                        <i class="bi bi-grid"></i>Servicios
+                    </a>
+                    @endif
+                    @if($ta('familias.index'))
+                    <a href="{{ route('familias.index') }}" class="vti-nav-link {{ request()->routeIs('familias.*') ? 'active' : '' }}">
+                        <i class="bi bi-collection"></i>Familias
+                    </a>
+                    @endif
+                    @if($ta('empresas.index'))
+                    <a href="{{ route('empresas.index') }}" class="vti-nav-link {{ request()->routeIs('empresas.*') ? 'active' : '' }}">
+                        <i class="bi bi-building"></i>Empresas
+                    </a>
+                    @endif
+                    @if($ta('companias.index'))
+                    <a href="{{ route('companias.index') }}" class="vti-nav-link {{ request()->routeIs('companias.*') ? 'active' : '' }}">
+                        <i class="bi bi-buildings"></i>Compañías
+                    </a>
+                    @endif
+                    @if($ta('cuentas_contables.index'))
+                    <a href="{{ route('cuentas_contables.index') }}" class="vti-nav-link {{ request()->routeIs('cuentas_contables.*') ? 'active' : '' }}">
+                        <i class="bi bi-journal-bookmark"></i>Cuentas Contables
+                    </a>
+                    @endif
                 </div>
-                
             </div>
+            @endif
+
+            {{-- ── Telefonía ── --}}
+            @if($ta('lineas_telefonicas.index') || $ta('emisores.index') || $ta('usuarios_telefonicos.index') || $ta('ubicaciones.index') || $ta('marcas.index') || $ta('aparatos.index') || $ta('centros_costo.index') || $ta('importaciones_movistar.index') || $ta('importaciones_entel.index') || $ta('importaciones_wom.index') || $ta('informes.telefonia') || $ta('actas_entrega_telefono.index'))
+            <div class="vti-nav-group" data-group="telefonia">
+                <button type="button" class="vti-nav-group-toggle">
+                    <i class="bi bi-phone"></i>Telefonía
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="vti-nav-group-items">
+                    @if($ta('lineas_telefonicas.index'))
+                    <a href="{{ route('lineas_telefonicas.index') }}" class="vti-nav-link {{ request()->routeIs('lineas_telefonicas.*') ? 'active' : '' }}">
+                        <i class="bi bi-telephone-fill"></i>Líneas Telefónicas
+                    </a>
+                    <div class="vti-nav-divider"></div>
+                    @endif
+                    @if($ta('emisores.index'))
+                    <a href="{{ route('emisores.index') }}" class="vti-nav-link {{ request()->routeIs('emisores.*') ? 'active' : '' }}">
+                        <i class="bi bi-broadcast"></i>Emisores
+                    </a>
+                    @endif
+                    @if($ta('usuarios_telefonicos.index'))
+                    <a href="{{ route('usuarios_telefonicos.index') }}" class="vti-nav-link {{ request()->routeIs('usuarios_telefonicos.*') ? 'active' : '' }}">
+                        <i class="bi bi-person-fill"></i>Usuarios
+                    </a>
+                    @endif
+                    @if($ta('ubicaciones.index'))
+                    <a href="{{ route('ubicaciones.index') }}" class="vti-nav-link {{ request()->routeIs('ubicaciones.*') ? 'active' : '' }}">
+                        <i class="bi bi-geo-alt-fill"></i>Ubicaciones
+                    </a>
+                    @endif
+                    @if($ta('marcas.index'))
+                    <a href="{{ route('marcas.index') }}" class="vti-nav-link {{ request()->routeIs('marcas.*') ? 'active' : '' }}">
+                        <i class="bi bi-tag-fill"></i>Marcas
+                    </a>
+                    @endif
+                    @if($ta('aparatos.index'))
+                    <a href="{{ route('aparatos.index') }}" class="vti-nav-link {{ request()->routeIs('aparatos.*') ? 'active' : '' }}">
+                        <i class="bi bi-phone-fill"></i>Aparatos
+                    </a>
+                    @endif
+                    @if($ta('centros_costo.index'))
+                    <a href="{{ route('centros_costo.index') }}" class="vti-nav-link {{ request()->routeIs('centros_costo.*') ? 'active' : '' }}">
+                        <i class="bi bi-diagram-2-fill"></i>Centros de Costo
+                    </a>
+                    @endif
+                    @if($ta('importaciones_movistar.index') || $ta('importaciones_entel.index') || $ta('importaciones_wom.index'))
+                    <div class="vti-nav-divider"></div>
+                    @endif
+                    @if($ta('importaciones_movistar.index'))
+                    <a href="{{ route('importaciones_movistar.index') }}" class="vti-nav-link {{ request()->routeIs('importaciones_movistar.*') ? 'active' : '' }}">
+                        <i class="bi bi-cloud-upload"></i>Imp. Movistar
+                    </a>
+                    @endif
+                    @if($ta('importaciones_entel.index'))
+                    <a href="{{ route('importaciones_entel.index') }}" class="vti-nav-link {{ request()->routeIs('importaciones_entel.*') ? 'active' : '' }}">
+                        <i class="bi bi-cloud-upload"></i>Imp. Entel
+                    </a>
+                    @endif
+                    @if($ta('importaciones_wom.index'))
+                    <a href="{{ route('importaciones_wom.index') }}" class="vti-nav-link {{ request()->routeIs('importaciones_wom.*') ? 'active' : '' }}">
+                        <i class="bi bi-cloud-upload" style="color:#a78bfa"></i>Imp. WOM
+                    </a>
+                    @endif
+                    @if($ta('informes.telefonia') || $ta('actas_entrega_telefono.index'))
+                    <div class="vti-nav-divider"></div>
+                    @endif
+                    @if($ta('informes.telefonia'))
+                    <a href="{{ route('informes.telefonia') }}" class="vti-nav-link {{ request()->routeIs('informes.telefonia') ? 'active' : '' }}">
+                        <i class="bi bi-bar-chart-fill"></i>Informe Telefonía
+                    </a>
+                    @endif
+                    @if($ta('actas_entrega_telefono.index'))
+                    <a href="{{ route('actas_entrega_telefono.index') }}" class="vti-nav-link {{ request()->routeIs('actas_entrega_telefono.*') ? 'active' : '' }}">
+                        <i class="bi bi-file-earmark-text-fill"></i>Actas de Entrega
+                    </a>
+                    @endif
+                </div>
+            </div>
+            @endif
+
+            {{-- ── Inventario TI ── --}}
+            @if($ta('inventario_ti.index'))
+            <div class="vti-nav-group" data-group="inventario">
+                <button type="button" class="vti-nav-group-toggle">
+                    <i class="bi bi-pc-display"></i>Inventario TI
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="vti-nav-group-items">
+                    <a href="{{ route('inventario_ti.dashboard') }}" class="vti-nav-link {{ request()->routeIs('inventario_ti.dashboard') ? 'active' : '' }}">
+                        <i class="bi bi-speedometer2"></i>Dashboard
+                    </a>
+                    <a href="{{ route('inventario_ti.index') }}" class="vti-nav-link {{ request()->routeIs('inventario_ti.index', 'inventario_ti.show') ? 'active' : '' }}">
+                        <i class="bi bi-display-fill"></i>Equipos
+                    </a>
+                    <a href="{{ route('inventario_ti.actas') }}" class="vti-nav-link {{ request()->routeIs('inventario_ti.actas*') ? 'active' : '' }}">
+                        <i class="bi bi-file-earmark-text-fill"></i>Actas de Entrega
+                    </a>
+                </div>
+            </div>
+            @endif
+
+            {{-- ── Active Directory ── --}}
+            @if(auth()->user()->can('acceso_ad') || auth()->user()->can('acceso_ad2'))
+            <div class="vti-nav-group" data-group="ad">
+                <button type="button" class="vti-nav-group-toggle">
+                    <i class="bi bi-diagram-3-fill"></i>Active Directory
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="vti-nav-group-items">
+                    @can('acceso_ad')
+                    <a href="{{ route('admin.active_directory.index') }}" class="vti-nav-link {{ request()->routeIs('admin.active_directory.*') ? 'active' : '' }}">
+                        <i class="bi bi-diagram-3"></i>AD Verfrut
+                    </a>
+                    @endcan
+                    @can('acceso_ad2')
+                    <a href="{{ route('admin.active_directory2.index') }}" class="vti-nav-link {{ request()->routeIs('admin.active_directory2.*') ? 'active' : '' }}">
+                        <i class="bi bi-diagram-3"></i>AD Grupo Verfrut (Perú)
+                    </a>
+                    @endcan
+                </div>
+            </div>
+            @endif
+
+            {{-- ── Admin ── --}}
+            @can('admin')
+            <div class="vti-nav-divider"></div>
+            <div class="vti-nav-group" data-group="admin">
+                <button type="button" class="vti-nav-group-toggle" style="color:#fca5a5">
+                    <i class="bi bi-shield-lock-fill"></i>Admin
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="vti-nav-group-items">
+                    <a href="{{ route('admin.usuarios.index') }}" class="vti-nav-link {{ request()->routeIs('admin.usuarios.*') ? 'active' : '' }}">
+                        <i class="bi bi-people-fill"></i>Usuarios
+                    </a>
+                    <a href="{{ route('admin.configuracion.index') }}" class="vti-nav-link {{ request()->routeIs('admin.configuracion.*') ? 'active' : '' }}">
+                        <i class="bi bi-gear-fill"></i>Configuración
+                    </a>
+                </div>
+            </div>
+            @endcan
+
+        </nav>
+    </aside>
+
+    {{-- ════════════════════════════ TOPBAR ════════════════════════════ --}}
+    @php
+        // ── Breadcrumb dinámico según ruta actual ──────────────────────
+        $rn = Route::currentRouteName() ?? '';
+
+        // [prefijo de ruta => [Grupo, Página]]
+        $mapaBread = [
+            'facturas.pendientes'         => ['Facturación', 'Facturas Pendientes'],
+            'facturas.resumen_servicios'  => ['Facturación', 'Resumen por Servicio'],
+            'facturas.resumen'            => ['Facturación', 'Resumen por Cuenta Contable'],
+            'facturas'                    => ['Facturación', 'Facturas'],
+            'entregas_facturas'           => ['Facturación', 'Entregas de Facturas'],
+            'servicios'                   => ['Facturación', 'Servicios'],
+            'familias'                    => ['Facturación', 'Familias'],
+            'empresas'                    => ['Facturación', 'Empresas'],
+            'companias'                   => ['Facturación', 'Compañías'],
+            'cuentas_contables'           => ['Facturación', 'Cuentas Contables'],
+            'lineas_telefonicas'          => ['Telefonía', 'Líneas Telefónicas'],
+            'emisores'                    => ['Telefonía', 'Emisores'],
+            'usuarios_telefonicos'        => ['Telefonía', 'Usuarios'],
+            'ubicaciones'                 => ['Telefonía', 'Ubicaciones'],
+            'marcas'                      => ['Telefonía', 'Marcas'],
+            'aparatos'                    => ['Telefonía', 'Aparatos'],
+            'centros_costo'               => ['Telefonía', 'Centros de Costo'],
+            'importaciones_movistar'      => ['Telefonía', 'Importaciones Movistar'],
+            'importaciones_entel'         => ['Telefonía', 'Importaciones Entel'],
+            'importaciones_wom.plantilla' => ['Telefonía', 'Plantilla WOM'],
+            'importaciones_wom'           => ['Telefonía', 'Importaciones WOM'],
+            'informes.telefonia'          => ['Telefonía', 'Informe Telefonía'],
+            'actas_entrega_telefono'      => ['Telefonía', 'Actas de Entrega'],
+            'inventario_ti.dashboard'     => ['Inventario TI', 'Dashboard'],
+            'inventario_ti.actas'         => ['Inventario TI', 'Actas de Entrega'],
+            'inventario_ti'               => ['Inventario TI', 'Equipos'],
+            'admin.active_directory2'     => ['Active Directory', 'AD Grupo Verfrut (Perú)'],
+            'admin.active_directory'      => ['Active Directory', 'AD Verfrut'],
+            'admin.usuarios'              => ['Admin', 'Usuarios'],
+            'admin.configuracion'         => ['Admin', 'Configuración'],
+            'home'                        => [null, 'Inicio'],
+        ];
+
+        $breadGrupo  = null;
+        $breadPagina = null;
+        foreach ($mapaBread as $prefijo => [$g, $p]) {
+            if ($rn === $prefijo || str_starts_with($rn, $prefijo . '.')) {
+                $breadGrupo  = $g;
+                $breadPagina = $p;
+                break;
+            }
+        }
+
+        // Sufijo de acción
+        $breadAccion = null;
+        if (str_ends_with($rn, '.create'))                 $breadAccion = 'Crear';
+        elseif (str_ends_with($rn, '.edit'))               $breadAccion = 'Editar';
+        elseif (str_ends_with($rn, '.show'))               $breadAccion = 'Detalle';
+        elseif (str_ends_with($rn, '.importar_correos') || str_ends_with($rn, '.procesar_importacion')) $breadAccion = 'Importar correos';
+
+        // URL del índice del módulo (para enlazar la página cuando hay acción)
+        $breadPaginaUrl = null;
+        if ($breadAccion) {
+            $indexRoute = \Illuminate\Support\Str::beforeLast($rn, '.') . '.index';
+            if (Route::has($indexRoute)) {
+                try { $breadPaginaUrl = route($indexRoute); } catch (\Throwable) {}
+            }
+        }
+    @endphp
+
+    <header class="vti-topbar">
+        <button type="button" class="vti-burger" id="sidebarToggle" aria-label="Abrir menú">
+            <i class="bi bi-list"></i>
+        </button>
+
+        <nav class="vti-breadcrumb" aria-label="breadcrumb">
+            <a href="{{ url('/home') }}"><i class="bi bi-house-door"></i>Inicio</a>
+            @if($breadGrupo)
+                <span class="sep crumb-mid"><i class="bi bi-chevron-right"></i></span>
+                <span class="crumb-mid">{{ $breadGrupo }}</span>
+            @endif
+            @if($breadPagina && $breadPagina !== 'Inicio')
+                <span class="sep"><i class="bi bi-chevron-right"></i></span>
+                @if($breadAccion)
+                    @if($breadPaginaUrl)
+                        <a href="{{ $breadPaginaUrl }}">{{ $breadPagina }}</a>
+                    @else
+                        <span>{{ $breadPagina }}</span>
+                    @endif
+                    <span class="sep"><i class="bi bi-chevron-right"></i></span>
+                    <span class="current">{{ $breadAccion }}</span>
+                @else
+                    <span class="current">{{ $breadPagina }}</span>
+                @endif
+            @endif
         </nav>
 
-        <main class="py-4">
-            <div class="container">
+        {{-- Usuario --}}
+        <div class="vti-user-menu" id="userMenu">
+            @php
+                $userIniciales = collect(explode(' ', Auth::user()->name))->take(2)->map(fn($p) => strtoupper(substr($p,0,1)))->join('');
+            @endphp
+            <button type="button" class="vti-user-btn" id="userMenuBtn">
+                <span class="vti-user-avatar">{{ $userIniciales }}</span>
+                <span class="vti-user-name">{{ Auth::user()->name }}</span>
+                <i class="bi bi-chevron-down" style="font-size:.65rem;color:#94a3b8"></i>
+            </button>
+            <div class="vti-user-dropdown" id="userDropdown">
+                @can('admin')
+                <a href="{{ route('admin.usuarios.index') }}">
+                    <i class="bi bi-people-fill"></i>{{ __('Gestión de Usuarios') }}
+                </a>
+                <hr>
+                @endcan
+                <a href="{{ route('logout') }}"
+                   onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                    <i class="bi bi-box-arrow-right"></i>{{ __('Cerrar Sesión') }}
+                </a>
+                <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                    @csrf
+                </form>
+            </div>
+        </div>
+    </header>
+    @endauth
+
+    {{-- ════════════════════════════ CONTENIDO ════════════════════════════ --}}
+    <div id="app" class="@auth vti-main @endauth">
+        <main class="@auth vti-main-inner @else py-4 @endauth">
+            <div class="@guest container @endguest">
                 @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         {{ session('success') }}
@@ -508,7 +881,7 @@
                 @if ($errors->any())
                     {{-- Alert fijo: no desplaza el contenido de la página --}}
                     <div id="globalErrorAlert"
-                         style="position:fixed;top:72px;right:1.25rem;z-index:1090;max-width:360px;animation:slideInRight .25s ease">
+                         style="position:fixed;top:64px;right:1.25rem;z-index:1090;max-width:360px;animation:slideInRight .25s ease">
                         <div class="alert alert-danger alert-dismissible shadow mb-0" role="alert">
                             <strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Corrige los siguientes campos:</strong>
                             <ul class="mb-0 mt-1 ps-3">
@@ -529,32 +902,72 @@
         </main>
 
         <script>
-            // ── Fallback navbar hamburger (por si Bootstrap JS no carga) ───
+            // ── Sidebar: toggle móvil + grupos colapsables ──────────────────
             (function () {
-                var toggler  = document.querySelector('.navbar-toggler');
-                var collapse = document.getElementById('navbarSupportedContent');
-                if (!toggler || !collapse) return;
+                const sidebar  = document.getElementById('vtiSidebar');
+                const backdrop = document.getElementById('sidebarBackdrop');
+                const toggle   = document.getElementById('sidebarToggle');
+                if (!sidebar) return;
 
-                toggler.addEventListener('click', function () {
-                    var open = collapse.classList.contains('show');
-                    collapse.classList.toggle('show', !open);
-                    toggler.setAttribute('aria-expanded', String(!open));
-                });
+                // Toggle móvil
+                function openSidebar()  { sidebar.classList.add('show');    backdrop.classList.add('show'); }
+                function closeSidebar() { sidebar.classList.remove('show'); backdrop.classList.remove('show'); }
 
-                // Cerrar al hacer clic fuera del navbar
-                document.addEventListener('click', function (e) {
-                    if (!toggler.contains(e.target) && !collapse.contains(e.target)) {
-                        collapse.classList.remove('show');
-                        toggler.setAttribute('aria-expanded', 'false');
-                    }
-                });
+                toggle?.addEventListener('click', openSidebar);
+                backdrop?.addEventListener('click', closeSidebar);
 
-                // Cerrar al hacer clic en un link del menú (navegación)
-                collapse.querySelectorAll('a.nav-link:not(.dropdown-toggle)').forEach(function (link) {
-                    link.addEventListener('click', function () {
-                        collapse.classList.remove('show');
-                        toggler.setAttribute('aria-expanded', 'false');
+                // Cerrar al navegar (móvil)
+                sidebar.querySelectorAll('a.vti-nav-link').forEach(link => {
+                    link.addEventListener('click', () => {
+                        if (window.innerWidth < 992) closeSidebar();
                     });
+                });
+
+                // Grupos colapsables — modo acordeón (solo uno abierto a la vez)
+                const KEY    = 'vti_sidebar_open_group';
+                const grupos = sidebar.querySelectorAll('.vti-nav-group');
+                let abierto  = null;
+                try { abierto = localStorage.getItem(KEY); } catch (e) {}
+
+                // Prioridad: grupo con link activo > último abierto por el usuario
+                let grupoInicial = null;
+                grupos.forEach(g => {
+                    if (g.querySelector('.vti-nav-link.active')) grupoInicial = g.dataset.group;
+                });
+                if (!grupoInicial) grupoInicial = abierto;
+
+                grupos.forEach(grupo => {
+                    const id        = grupo.dataset.group;
+                    const toggleBtn = grupo.querySelector('.vti-nav-group-toggle');
+
+                    if (id === grupoInicial) grupo.classList.add('open');
+
+                    toggleBtn.addEventListener('click', () => {
+                        const estabaAbierto = grupo.classList.contains('open');
+                        // Cerrar todos
+                        grupos.forEach(g => g.classList.remove('open'));
+                        // Abrir el clickeado (si estaba cerrado)
+                        if (!estabaAbierto) grupo.classList.add('open');
+                        try {
+                            if (estabaAbierto) localStorage.removeItem(KEY);
+                            else               localStorage.setItem(KEY, id);
+                        } catch (e) {}
+                    });
+                });
+            })();
+
+            // ── Dropdown usuario ────────────────────────────────────────────
+            (function () {
+                const btn  = document.getElementById('userMenuBtn');
+                const menu = document.getElementById('userDropdown');
+                if (!btn || !menu) return;
+
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    menu.classList.toggle('show');
+                });
+                document.addEventListener('click', (e) => {
+                    if (!menu.contains(e.target)) menu.classList.remove('show');
                 });
             })();
 
@@ -586,7 +999,6 @@
                 if (!modalEl || !btnOk || !lblNom) return;
 
                 function getModal() {
-                    // Instancia lazy para evitar fallo si Bootstrap aún no cargó
                     if (!modal) {
                         try { modal = new bootstrap.Modal(modalEl); }
                         catch (e) { return null; }
@@ -598,20 +1010,18 @@
                     const form = e.target;
                     if (!form.hasAttribute('data-confirm')) return;
                     const m = getModal();
-                    if (!m) return; // Bootstrap no disponible, dejar pasar el submit normal
+                    if (!m) return;
                     e.preventDefault();
                     pendingForm = form;
 
-                    // Texto del objeto a confirmar
                     lblNom.textContent = form.dataset.confirm || 'este registro';
 
-                    // Verbo y textos personalizables (por defecto: "eliminar")
                     const verb    = form.dataset.confirmVerb    || 'eliminar';
                     const title   = form.dataset.confirmTitle   || 'Confirmar eliminación';
                     const sub     = form.dataset.confirmSub     || 'Esta acción no se puede deshacer';
                     const btnLbl  = form.dataset.confirmBtn     || ('Sí, ' + verb);
                     const icon    = form.dataset.confirmIcon    || 'bi-trash3-fill';
-                    const color   = form.dataset.confirmColor   || 'danger'; // danger | warning | success
+                    const color   = form.dataset.confirmColor   || 'danger';
 
                     if (lblVerb)  lblVerb.textContent  = verb;
                     if (lblTitle) lblTitle.textContent = title;
@@ -619,7 +1029,6 @@
                     if (btnText)  btnText.textContent  = btnLbl;
                     if (btnIcon)  { btnIcon.className = ''; btnIcon.classList.add('bi', icon, 'me-1'); }
 
-                    // Adaptar colores al tipo de acción
                     const colors = { danger: ['#fff1f2','#fee2e2','#dc2626'], warning: ['#fffbeb','#fef3c7','#d97706'], success: ['#f0fdf4','#dcfce7','#16a34a'] };
                     const [bgHdr, bgIcon, clrIcon] = colors[color] || colors.danger;
                     if (hdr)      hdr.style.background      = bgHdr;
@@ -650,7 +1059,6 @@
                 const loader = document.getElementById('page-loader');
                 const bar    = document.getElementById('page-bar');
 
-                // Rutas que NO deben activar el loader (misma página, anclas, JS, logout)
                 const SKIP_SAME_PAGE = true;
 
                 let barTimer = null;
@@ -658,13 +1066,11 @@
                 function startLoader() {
                     loader.classList.add('active');
                     bar.style.width = '0%';
-                    // Simula avance progresivo de la barra
                     let pct = 0;
                     clearInterval(barTimer);
                     barTimer = setInterval(() => {
-                        // Avanza rápido al principio, luego más lento
                         pct += pct < 30 ? 8 : pct < 60 ? 4 : pct < 85 ? 1.5 : 0.3;
-                        if (pct > 92) pct = 92; // Nunca llega al 100 hasta que carga
+                        if (pct > 92) pct = 92;
                         bar.style.width = pct + '%';
                     }, 120);
                 }
@@ -683,16 +1089,12 @@
                 function shouldSkip(anchor) {
                     const attr = anchor.getAttribute('href') || '';
                     const full = anchor.href || '';
-                    // Anclas puras, javascript:, mailto:
                     if (!attr || attr.startsWith('#') || attr.startsWith('javascript') || attr.startsWith('mailto')) return true;
-                    // Toggles de Bootstrap (dropdown, collapse, modal…)
                     if (anchor.dataset.bsToggle || anchor.dataset.bsDismiss) return true;
-                    // Misma URL exacta
                     if (SKIP_SAME_PAGE && full === window.location.href) return true;
                     return false;
                 }
 
-                // Interceptar clics en <a> que naveguen a otra página
                 document.addEventListener('click', function (e) {
                     const anchor = e.target.closest('a[href]');
                     if (!anchor) return;
@@ -703,35 +1105,27 @@
                     startLoader();
                 });
 
-                // Interceptar submit solo en formularios con data-loader explícito
-                // (filtros de búsqueda, no formularios de datos donde puede haber validación)
                 document.addEventListener('submit', function (e) {
                     const form = e.target;
                     if (form.dataset.loader === undefined) return;
                     startLoader();
                 });
 
-                // Interceptar radios y checkboxes con onchange="this.form.submit()"
-                // .submit() programático NO dispara el evento submit, se captura aquí
-                // SOLO si el elemento tiene un onchange que llama a submit (no checkboxes normales de formulario)
                 document.addEventListener('change', function (e) {
                     const input = e.target;
                     if (input.type !== 'radio' && input.type !== 'checkbox') return;
                     if (!input.form) return;
                     if (input.form.dataset.noLoader !== undefined) return;
                     if (input.dataset.noLoader !== undefined) return;
-                    // Solo disparar si el input auto-envía el formulario
                     const onchange = input.getAttribute('onchange') || '';
                     if (!onchange.includes('submit')) return;
                     startLoader();
                 });
 
-                // Ocultar al volver (botón atrás del navegador)
                 window.addEventListener('pageshow', function (e) {
                     stopLoader();
                 });
 
-                // Por si la página ya terminó de cargar antes de que el script corra
                 if (document.readyState === 'complete') {
                     stopLoader();
                 } else {

@@ -100,13 +100,15 @@ class AppServiceProvider extends ServiceProvider
         // Gate para rutas de administración
         Gate::define('admin', fn($user) => $user->es_admin && $user->activo);
 
-        // Gate para Active Directory: admins + usuarios con el módulo asignado
+        // Gates para Active Directory: admins + usuarios con el módulo asignado
         Gate::define('acceso_ad', function ($user) {
             if (!$user->activo) return false;
-            if ($user->es_admin) return true;
-            return $user->modulos->contains(
-                fn($m) => $m->matchesRoute('admin.active_directory.')
-            );
+            return $user->tieneAcceso('admin.active_directory.index');
+        });
+
+        Gate::define('acceso_ad2', function ($user) {
+            if (!$user->activo) return false;
+            return $user->tieneAcceso('admin.active_directory2.index');
         });
 
         // Compartir configuraciones globales con todas las vistas

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Modulo extends Model
 {
-    protected $fillable = ['nombre', 'label', 'descripcion', 'route_prefixes', 'orden', 'activo'];
+    protected $fillable = ['nombre', 'label', 'grupo', 'descripcion', 'route_prefixes', 'orden', 'activo'];
 
     protected $casts = [
         'route_prefixes' => 'array',

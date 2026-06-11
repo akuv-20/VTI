@@ -123,7 +123,10 @@ Route::middleware(['auth', 'can:acceso_ad'])->prefix('admin')->name('admin.')->g
         Route::post('/{username}/reset-password', [AdminADController::class, 'resetPassword'])->name('reset-password');
     });
 
-    // Active Directory — Grupo Verfrut Perú (conexión secundaria)
+});
+
+// ── Active Directory Grupo Verfrut Perú (admins + usuarios con permiso AD2) ──
+Route::middleware(['auth', 'can:acceso_ad2'])->prefix('admin')->name('admin.')->group(function () {
     Route::prefix('active-directory-2')->name('active_directory2.')->group(function () {
         Route::get('/',                           [AdminAD2Controller::class, 'index'])->name('index');
         Route::get('/importar-correos',           [AdminAD2Controller::class, 'importarCorreos'])->name('importar_correos');
