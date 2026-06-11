@@ -39,6 +39,16 @@
                 </button>
             </li>
             <li class="nav-item">
+                <button class="nav-link fw-semibold" id="tab-glpi"
+                        data-bs-toggle="tab" data-bs-target="#pane-glpi"
+                        type="button" style="font-size:.88rem">
+                    <i class="bi bi-pc-display me-1"></i>BD GLPI
+                    @if($glpiCfg['username'])
+                        <span class="badge bg-success ms-1" style="font-size:.65rem">ON</span>
+                    @endif
+                </button>
+            </li>
+            <li class="nav-item">
                 <button class="nav-link fw-semibold" id="tab-azure"
                         data-bs-toggle="tab" data-bs-target="#pane-azure"
                         type="button" style="font-size:.88rem">
@@ -440,6 +450,68 @@
             {{-- ══════════════════════════════════════════════════════════
                  Tab: Microsoft 365
             ══════════════════════════════════════════════════════════ --}}
+            {{-- ══════════════════ GLPI ══════════════════════════════════ --}}
+            <div class="tab-pane fade" id="pane-glpi">
+
+                <form method="POST" action="{{ route('admin.configuracion.update') }}">
+                    @csrf
+                    <input type="hidden" name="seccion" value="glpi">
+
+                    <p class="text-muted mb-3" style="font-size:.83rem">
+                        Configura la conexión a la base de datos GLPI para el módulo Inventario TI.
+                        La contraseña solo se actualiza si ingresas una nueva.
+                    </p>
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">Host / IP del servidor</label>
+                            <input type="text" name="glpi_db_host" class="form-control form-control-sm"
+                                   value="{{ old('glpi_db_host', $glpiCfg['host']) }}"
+                                   placeholder="127.0.0.1 o nombre de host">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">Puerto</label>
+                            <input type="number" name="glpi_db_port" class="form-control form-control-sm"
+                                   value="{{ old('glpi_db_port', $glpiCfg['port']) }}"
+                                   min="1" max="65535">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">Base de datos</label>
+                            <input type="text" name="glpi_db_database" class="form-control form-control-sm"
+                                   value="{{ old('glpi_db_database', $glpiCfg['database']) }}"
+                                   placeholder="glpi">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">Usuario</label>
+                            <input type="text" name="glpi_db_username" class="form-control form-control-sm"
+                                   value="{{ old('glpi_db_username', $glpiCfg['username']) }}"
+                                   placeholder="vti_readonly" autocomplete="off">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">
+                                Contraseña <span class="text-muted fw-normal">(dejar en blanco para mantener la actual)</span>
+                            </label>
+                            <input type="password" name="glpi_db_password" class="form-control form-control-sm"
+                                   placeholder="••••••••" autocomplete="new-password">
+                        </div>
+                    </div>
+
+                    @error('glpi_db_host') <div class="text-danger mt-2" style="font-size:.8rem">{{ $message }}</div> @enderror
+
+                    <div class="mt-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-check-lg me-1"></i>Guardar configuración
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTestGlpi">
+                            <i class="bi bi-plug me-1"></i>Probar conexión
+                        </button>
+                    </div>
+
+                    <div id="glpiTestResult" class="mt-2" style="font-size:.83rem;display:none"></div>
+                </form>
+
+            </div>{{-- /pane-glpi --}}
+
             <div class="tab-pane fade" id="pane-azure">
 
                 <form action="{{ route('admin.configuracion.update') }}" method="POST" data-loader>
@@ -561,6 +633,44 @@ document.getElementById('btnTestLdap')?.addEventListener('click', function () {
     .catch(() => {
         result.textContent = '✗ Error al conectar con el servidor';
         result.className   = 'small ms-1 text-danger';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-plug me-1"></i>Probar conexión';
+    });
+});
+
+document.getElementById('btnTestGlpi')?.addEventListener('click', function () {
+    var btn    = this;
+    var result = document.getElementById('glpiTestResult');
+    var form   = btn.closest('form');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Probando…';
+    result.style.display = 'none';
+
+    var data = {
+        host:     form.querySelector('[name=glpi_db_host]').value,
+        port:     form.querySelector('[name=glpi_db_port]').value,
+        database: form.querySelector('[name=glpi_db_database]').value,
+        username: form.querySelector('[name=glpi_db_username]').value,
+        password: form.querySelector('[name=glpi_db_password]').value,
+    };
+
+    fetch('{{ route("admin.configuracion.test-glpi") }}', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    })
+    .then(r => r.json())
+    .then(d => {
+        result.textContent   = (d.ok ? '✓ ' : '✗ ') + d.message;
+        result.className     = 'mt-2 ' + (d.ok ? 'text-success' : 'text-danger');
+        result.style.display = 'block';
+    })
+    .catch(() => {
+        result.textContent   = '✗ Error al conectar con el servidor';
+        result.className     = 'mt-2 text-danger';
+        result.style.display = 'block';
     })
     .finally(() => {
         btn.disabled = false;

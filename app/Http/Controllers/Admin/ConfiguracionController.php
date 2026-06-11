@@ -39,7 +39,14 @@ class ConfiguracionController extends Controller
             'username' => Configuracion::get('ldap2_username',''),
         ];
 
-        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'favicon', 'azureCfg', 'ldapCfg', 'ldap2Cfg'));
+        $glpiCfg = [
+            'host'     => Configuracion::get('glpi_db_host',     env('GLPI_DB_HOST',     '127.0.0.1')),
+            'port'     => Configuracion::get('glpi_db_port',     env('GLPI_DB_PORT',     3306)),
+            'database' => Configuracion::get('glpi_db_database', env('GLPI_DB_DATABASE', 'glpi')),
+            'username' => Configuracion::get('glpi_db_username', env('GLPI_DB_USERNAME', '')),
+        ];
+
+        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'favicon', 'azureCfg', 'ldapCfg', 'ldap2Cfg', 'glpiCfg'));
     }
 
     public function update(Request $request)
@@ -197,6 +204,27 @@ class ConfiguracionController extends Controller
             return back()->with('success', 'Configuración de Active Directory guardada.');
         }
 
+        // ── GLPI Base de Datos ───────────────────────────────────────────────
+        if ($request->input('seccion') === 'glpi') {
+            $request->validate([
+                'glpi_db_host'     => 'required|string|max:255',
+                'glpi_db_port'     => 'required|integer|between:1,65535',
+                'glpi_db_database' => 'required|string|max:100',
+                'glpi_db_username' => 'required|string|max:100',
+            ]);
+
+            Configuracion::set('glpi_db_host',     trim($request->input('glpi_db_host')));
+            Configuracion::set('glpi_db_port',     $request->input('glpi_db_port'));
+            Configuracion::set('glpi_db_database', trim($request->input('glpi_db_database')));
+            Configuracion::set('glpi_db_username', trim($request->input('glpi_db_username')));
+
+            if ($request->filled('glpi_db_password')) {
+                Configuracion::set('glpi_db_password', $request->input('glpi_db_password'));
+            }
+
+            return back()->with('success', 'Configuración de BD GLPI guardada.');
+        }
+
         // ── Active Directory secundario (Grupo Verfrut Perú) ────────────────
         if ($request->input('seccion') === 'ldap2') {
             $request->validate([
@@ -219,6 +247,35 @@ class ConfiguracionController extends Controller
         }
 
         return back()->with('success', 'Configuración guardada.');
+    }
+
+    /** Test de conexión BD GLPI — responde JSON */
+    public function testGlpi(Request $request)
+    {
+        $host     = $request->input('host')     ?: Configuracion::get('glpi_db_host',     env('GLPI_DB_HOST', '127.0.0.1'));
+        $port     = $request->input('port')     ?: Configuracion::get('glpi_db_port',     env('GLPI_DB_PORT', 3306));
+        $database = $request->input('database') ?: Configuracion::get('glpi_db_database', env('GLPI_DB_DATABASE', 'glpi'));
+        $username = $request->input('username') ?: Configuracion::get('glpi_db_username', env('GLPI_DB_USERNAME', ''));
+        $password = $request->filled('password')
+            ? $request->input('password')
+            : Configuracion::get('glpi_db_password', env('GLPI_DB_PASSWORD', ''));
+
+        if (!$host || !$username || !$database) {
+            return response()->json(['ok' => false, 'message' => 'Completa los datos antes de probar.']);
+        }
+
+        try {
+            $pdo = new \PDO(
+                "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4",
+                $username,
+                $password,
+                [\PDO::ATTR_TIMEOUT => 5, \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]
+            );
+            $version = $pdo->query('SELECT VERSION()')->fetchColumn();
+            return response()->json(['ok' => true, 'message' => "Conexión exitosa a {$database}@{$host} — MySQL {$version}"]);
+        } catch (\Throwable $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()]);
+        }
     }
 
     /** Test de conexión LDAP secundaria — responde JSON */

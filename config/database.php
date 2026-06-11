@@ -62,19 +62,30 @@ return [
             ]) : [],
         ],
 
-        'glpi' => [
-            'driver'    => 'mysql',
-            'host'      => env('GLPI_DB_HOST', env('DB_HOST', '127.0.0.1')),
-            'port'      => env('GLPI_DB_PORT', env('DB_PORT', '3306')),
-            'database'  => env('GLPI_DB_DATABASE', 'glpi'),
-            'username'  => env('GLPI_DB_USERNAME', env('DB_USERNAME', 'root')),
-            'password'  => env('GLPI_DB_PASSWORD', ''),
-            'charset'   => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix'    => '',
-            'strict'    => false,
-            'engine'    => null,
-        ],
+        'glpi' => (function () {
+            // Lee desde configuraciones en BD si existen, si no cae al .env
+            $dbCfg = function (string $key, string $envKey, mixed $default = null): mixed {
+                try {
+                    $val = \App\Models\Configuracion::find($key)?->valor;
+                    return $val !== null ? $val : env($envKey, $default);
+                } catch (\Throwable) {
+                    return env($envKey, $default);
+                }
+            };
+            return [
+                'driver'    => 'mysql',
+                'host'      => $dbCfg('glpi_db_host',     'GLPI_DB_HOST',     '127.0.0.1'),
+                'port'      => $dbCfg('glpi_db_port',     'GLPI_DB_PORT',     3306),
+                'database'  => $dbCfg('glpi_db_database', 'GLPI_DB_DATABASE', 'glpi'),
+                'username'  => $dbCfg('glpi_db_username', 'GLPI_DB_USERNAME', 'root'),
+                'password'  => $dbCfg('glpi_db_password', 'GLPI_DB_PASSWORD', ''),
+                'charset'   => 'utf8mb4',
+                'collation' => 'utf8mb4_unicode_ci',
+                'prefix'    => '',
+                'strict'    => false,
+                'engine'    => null,
+            ];
+        })(),
 
         'mariadb' => [
             'driver' => 'mariadb',

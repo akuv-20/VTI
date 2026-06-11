@@ -109,6 +109,7 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::get('configuracion',            [AdminConfiguracionController::class, 'index'])->name('configuracion.index');
     Route::post('configuracion',           [AdminConfiguracionController::class, 'update'])->name('configuracion.update');
     Route::post('configuracion/test-ldap', [AdminConfiguracionController::class, 'testLdap'])->name('configuracion.test-ldap');
+    Route::post('configuracion/test-glpi', [AdminConfiguracionController::class, 'testGlpi'])->name('configuracion.test-glpi');
 });
 
 // ── Active Directory (admins + usuarios con permiso AD) ───────────────────────
