@@ -9,7 +9,7 @@
         </h4>
         <form method="GET" action="{{ route('inventario_ti.index') }}" class="vti-search">
             <input type="text" name="q" value="{{ $search }}"
-                   class="form-control" placeholder="Buscar equipo, serial, usuario…" style="width:260px">
+                   class="form-control" placeholder="Buscar equipo, serial, usuario o username…" style="width:260px">
             <button class="btn btn-primary btn-sm">
                 <i class="bi bi-search"></i>
             </button>

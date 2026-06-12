@@ -31,6 +31,9 @@
                                 'N° Serie'          => $equipo->numero_serie ?? null,
                                 'N° Inventario'     => $equipo->numero_inventario ?? null,
                                 'Sistema Operativo' => $equipo->sistema_operativo ?? null,
+                                'Procesador'        => $hardware['procesador'] ?? null,
+                                'Memoria RAM'       => $hardware['ram'] ?? null,
+                                'Disco Principal'   => $hardware['disco'] ?? null,
                                 'Ubicación'         => $equipo->ubicacion ?? null,
                             ];
                         @endphp
@@ -75,6 +78,27 @@
                     <i class="bi bi-file-earmark-plus-fill me-1 text-primary"></i> Generar Acta de Entrega
                 </div>
                 <div class="card-body">
+                    @php
+                        $faltantes = [];
+                        if (!trim($equipo->nombre_usuario ?? '')) $faltantes[] = 'Usuario asignado';
+                        if (!($equipo->ubicacion ?? null))        $faltantes[] = 'Ubicación';
+                    @endphp
+
+                    @if(count($faltantes))
+                        <div class="alert alert-warning no-autodismiss d-flex gap-2 mb-0" style="font-size:.85rem">
+                            <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+                            <div>
+                                <strong>No es posible generar el acta.</strong>
+                                Faltan los siguientes datos del equipo en GLPI:
+                                <ul class="mb-1 mt-1">
+                                    @foreach($faltantes as $f)
+                                        <li>{{ $f }}</li>
+                                    @endforeach
+                                </ul>
+                                Completa esta información en GLPI y vuelve a cargar esta página.
+                            </div>
+                        </div>
+                    @else
                     <form method="POST" action="{{ route('inventario_ti.acta.store', $equipo->id) }}">
                         @csrf
 
@@ -133,6 +157,7 @@
                             </button>
                         </div>
                     </form>
+                    @endif
                 </div>
             </div>
 

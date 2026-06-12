@@ -17,6 +17,52 @@ class InventarioTiController extends Controller
         $this->middleware('auth');
     }
 
+    /** Obtiene procesador, RAM total y disco principal de un equipo GLPI */
+    private function hardwareDe(int $computerId): array
+    {
+        $glpi = DB::connection('glpi');
+
+        $procesador = $glpi->table('glpi_items_deviceprocessors as ip')
+            ->join('glpi_deviceprocessors as dp', 'dp.id', '=', 'ip.deviceprocessors_id')
+            ->where('ip.itemtype', 'Computer')
+            ->where('ip.items_id', $computerId)
+            ->where('ip.is_deleted', 0)
+            ->value('dp.designation');
+
+        $ramMb = $glpi->table('glpi_items_devicememories')
+            ->where('itemtype', 'Computer')
+            ->where('items_id', $computerId)
+            ->where('is_deleted', 0)
+            ->sum('size');
+
+        $discoMb = $glpi->table('glpi_items_deviceharddrives')
+            ->where('itemtype', 'Computer')
+            ->where('items_id', $computerId)
+            ->where('is_deleted', 0)
+            ->max('capacity');
+
+        return [
+            'procesador' => $procesador,
+            'ram'        => $ramMb ? $this->formatoCapacidad((int) $ramMb) : null,
+            'disco'      => $discoMb ? $this->formatoCapacidad((int) $discoMb) : null,
+        ];
+    }
+
+    /** Convierte MB a GB o TB redondeado (ej: 32768 → "32 GB", 1000204 → "1 TB") */
+    private function formatoCapacidad(int $mb): string
+    {
+        // Discos comerciales usan base decimal: 1 TB ≈ 1.000.000 MB (≈976 GB binario)
+        if ($mb >= 950000) {
+            return round($mb / 1000000, $mb < 1500000 ? 0 : 1) . ' TB';
+        }
+        $gb = $mb / 1024;
+        if ($gb >= 1) {
+            // Redondear al valor comercial más cercano (120/128, 240/256, 480/500, 512…)
+            return round($gb) . ' GB';
+        }
+        return $mb . ' MB';
+    }
+
     // ── Listado de computadores desde GLPI ───────────────────────────────────
     public function index(Request $request)
     {
@@ -54,6 +100,7 @@ class InventarioTiController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('c.name', 'like', "%{$search}%")
                   ->orWhere('c.serial', 'like', "%{$search}%")
+                  ->orWhere('u.name', 'like', "%{$search}%")
                   ->orWhereRaw("CONCAT(IFNULL(u.firstname,''), ' ', IFNULL(u.realname,'')) like ?", ["%{$search}%"]);
             });
         }
@@ -102,11 +149,13 @@ class InventarioTiController extends Controller
 
         abort_if(!$equipo, 404);
 
+        $hardware = $this->hardwareDe((int) $equipo->id);
+
         $actas = ActaEntregaEquipo::where('glpi_computer_id', $id)
             ->latest()
             ->get();
 
-        return view('inventario_ti.show', compact('equipo', 'actas'));
+        return view('inventario_ti.show', compact('equipo', 'actas', 'hardware'));
     }
 
     // ── Guardar acta de entrega ──────────────────────────────────────────────
@@ -141,6 +190,16 @@ class InventarioTiController extends Controller
 
         abort_if(!$equipo, 404);
 
+        // No generar acta si faltan datos críticos del equipo en GLPI
+        $faltantes = [];
+        if (!trim($equipo->nombre_usuario ?? '')) $faltantes[] = 'usuario asignado';
+        if (!$equipo->ubicacion)                  $faltantes[] = 'ubicación';
+        if ($faltantes) {
+            return back()->withErrors([
+                'acta' => 'No es posible generar el acta: el equipo no tiene ' . implode(' ni ', $faltantes) . ' en GLPI.',
+            ]);
+        }
+
         $validated = $request->validate([
             'condicion'           => 'required|in:Nuevo,Usado',
             'accesorios.monitor'  => 'nullable|in:SI,NO',
@@ -149,6 +208,8 @@ class InventarioTiController extends Controller
             'accesorios.mochila'  => 'nullable|in:SI,NO',
             'observacion'         => 'nullable|string|max:500',
         ]);
+
+        $hardware = $this->hardwareDe($equipo->id);
 
         $acta = ActaEntregaEquipo::create([
             'glpi_computer_id'  => $equipo->id,
@@ -160,6 +221,9 @@ class InventarioTiController extends Controller
             'modelo'            => $equipo->modelo,
             'numero_serie'      => $equipo->numero_serie,
             'sistema_operativo' => $equipo->sistema_operativo,
+            'procesador'        => $hardware['procesador'],
+            'ram'               => $hardware['ram'],
+            'disco'             => $hardware['disco'],
             'condicion'         => $validated['condicion'],
             'accesorios'        => $validated['accesorios'] ?? [],
             'observacion'       => $validated['observacion'] ?? null,

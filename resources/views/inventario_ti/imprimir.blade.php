@@ -243,6 +243,18 @@
                 <div class="dato-label">Sistema Operativo</div>
                 <div class="dato-value">{{ $acta->sistema_operativo ?? '—' }}</div>
             </div>
+            <div class="dato-cell" style="border-bottom:none;border-right:1px solid #dee2e6">
+                <div class="dato-label">Procesador</div>
+                <div class="dato-value">{{ $acta->procesador ?? '—' }}</div>
+            </div>
+            <div class="dato-cell" style="border-bottom:none">
+                <div class="dato-label">Memoria RAM</div>
+                <div class="dato-value">{{ $acta->ram ?? '—' }}</div>
+            </div>
+            <div class="dato-cell" style="border-bottom:none;border-right:none">
+                <div class="dato-label">Disco Principal</div>
+                <div class="dato-value">{{ $acta->disco ?? '—' }}</div>
+            </div>
         </div>
 
         {{-- Condición --}}
