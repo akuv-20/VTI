@@ -105,6 +105,7 @@ Route::resource('importaciones_wom', ImportacionWomController::class)->only(['in
 
 // ── Administración (solo admins) ─────────────────────────────────────────────
 Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::post('usuarios/{usuario}/sincronizar-azure', [AdminUsuarioController::class, 'sincronizarAzure'])->name('usuarios.sincronizar_azure');
     Route::resource('usuarios', AdminUsuarioController::class);
     Route::get('configuracion',            [AdminConfiguracionController::class, 'index'])->name('configuracion.index');
     Route::post('configuracion',           [AdminConfiguracionController::class, 'update'])->name('configuracion.update');

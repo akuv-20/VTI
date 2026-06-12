@@ -12,21 +12,35 @@
     .col-ccosto { width: 110px; }
 
     @media print {
-        @page { size: A4 portrait; margin: 0.7cm 1cm; }
+        @page { size: A4 portrait; margin: 0.8cm 1cm; }
 
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
-        body, .container-fluid { padding: 0 !important; margin: 0 !important; }
-        .no-print, nav, footer { display: none !important; }
+        /* Ocultar chrome del layout */
+        .no-print,
+        .vti-sidebar,
+        header.vti-topbar { display: none !important; }
 
-        .print-header { display: block !important; margin-bottom: 5px; font-size: 0.8rem; }
+        /* El contenido principal ocupa todo el ancho sin margen del sidebar */
+        #app.vti-main {
+            margin-left: 0 !important;
+            padding: 0 !important;
+        }
+        main.vti-main-inner {
+            padding: 0 !important;
+        }
+        .container-fluid { padding: 0 !important; margin: 0 !important; }
+
+        .print-header { display: block !important; margin-bottom: 6px; font-size: 0.78rem; }
 
         .informe-table { font-size: 0.65rem !important; }
         .informe-table td, .informe-table th { padding: 1px 4px !important; line-height: 1.3; }
 
-        /* Evitar que un bloque CC se corte entre páginas */
-        .grupo-cc { page-break-inside: avoid; break-inside: avoid; }
-        .row-total { page-break-inside: avoid; break-inside: avoid; }
+        /* La fila de empresa no queda sola al final de página */
+        .row-empresa   { break-after: avoid; }
+        /* Cada bloque CC (cabecera + líneas) no se corta */
+        .grupo-cc      { break-inside: avoid; }
+        .row-total     { break-inside: avoid; }
     }
 </style>
 @endpush
@@ -128,8 +142,6 @@
                         <td colspan="4">{{ $empresa }}</td>
                     </tr>
                 </tbody>
-
-                {{-- Un tbody por CC para evitar corte de página --}}
                 @foreach($ccostos as $ccosto => $info)
                     <tbody class="grupo-cc">
                         <tr class="row-ccosto">
