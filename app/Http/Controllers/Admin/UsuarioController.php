@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Configuracion;
 use App\Models\Modulo;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rule;
 
 class UsuarioController extends Controller
@@ -93,6 +95,87 @@ class UsuarioController extends Controller
 
         return redirect()->route('admin.usuarios.index')
             ->with('success', 'Usuario «' . $usuario->name . '» actualizado correctamente.');
+    }
+
+    /** Sincroniza nombre y correo del usuario desde Entra ID (Microsoft Graph) */
+    public function sincronizarAzure(User $usuario)
+    {
+        $tenantId     = Configuracion::get('azure_tenant_id');
+        $clientId     = Configuracion::get('azure_client_id');
+        $clientSecret = Configuracion::get('azure_client_secret');
+
+        if (!$tenantId || !$clientId || !$clientSecret) {
+            return back()->withErrors(['error' => 'Faltan credenciales de Azure en Admin → Configuración → Microsoft 365.']);
+        }
+
+        try {
+            // 1. Token app-to-app (client_credentials)
+            $tokenResp = Http::asForm()->timeout(10)->post(
+                "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token",
+                [
+                    'grant_type'    => 'client_credentials',
+                    'client_id'     => $clientId,
+                    'client_secret' => $clientSecret,
+                    'scope'         => 'https://graph.microsoft.com/.default',
+                ]
+            );
+
+            if (!$tokenResp->ok()) {
+                return back()->withErrors(['error' => 'No se pudo obtener el token de Microsoft: ' . ($tokenResp->json('error_description') ?? $tokenResp->status())]);
+            }
+
+            $token = $tokenResp->json('access_token');
+
+            // 2. Buscar el usuario en Graph: por object id si existe, sino por email
+            $identificador = $usuario->provider_id ?: $usuario->email;
+            $graphResp = Http::withToken($token)->timeout(10)->get(
+                'https://graph.microsoft.com/v1.0/users/' . urlencode($identificador),
+                ['$select' => 'id,displayName,mail,userPrincipalName,accountEnabled']
+            );
+
+            if ($graphResp->status() === 404) {
+                return back()->withErrors(['error' => "No se encontró el usuario «{$identificador}» en Entra ID."]);
+            }
+            if (!$graphResp->ok()) {
+                $msg = $graphResp->json('error.message') ?? ('HTTP ' . $graphResp->status());
+                return back()->withErrors(['error' => 'Error de Microsoft Graph: ' . $msg . ' (verifica que la app tenga el permiso de aplicación User.Read.All)']);
+            }
+
+            $datos = $graphResp->json();
+
+            // 3. Aplicar cambios
+            $cambios = [];
+            $nuevoNombre = $datos['displayName'] ?? null;
+            $nuevoEmail  = $datos['mail'] ?? $datos['userPrincipalName'] ?? null;
+
+            if ($nuevoNombre && $nuevoNombre !== $usuario->name) {
+                $cambios[] = "nombre: «{$usuario->name}» → «{$nuevoNombre}»";
+                $usuario->name = $nuevoNombre;
+            }
+            if ($nuevoEmail && strcasecmp($nuevoEmail, $usuario->email) !== 0) {
+                // Evitar colisión con otro usuario local
+                if (User::where('email', $nuevoEmail)->where('id', '!=', $usuario->id)->exists()) {
+                    return back()->withErrors(['error' => "El correo «{$nuevoEmail}» de Entra ID ya está en uso por otro usuario del sistema."]);
+                }
+                $cambios[] = "correo: «{$usuario->email}» → «{$nuevoEmail}»";
+                $usuario->email = $nuevoEmail;
+            }
+            if (!$usuario->provider_id && !empty($datos['id'])) {
+                $usuario->provider    = 'azure';
+                $usuario->provider_id = $datos['id'];
+                $cambios[] = 'vinculado a Entra ID';
+            }
+
+            if (!$cambios) {
+                return back()->with('success', 'El usuario ya está sincronizado con Entra ID, sin cambios.');
+            }
+
+            $usuario->save();
+            return back()->with('success', 'Sincronizado desde Entra ID — ' . implode(' · ', $cambios) . '.');
+
+        } catch (\Throwable $e) {
+            return back()->withErrors(['error' => 'Error al conectar con Microsoft: ' . $e->getMessage()]);
+        }
     }
 
     public function destroy(User $usuario)
