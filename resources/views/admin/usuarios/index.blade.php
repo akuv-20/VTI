@@ -15,7 +15,7 @@
                     @endif
                 </div>
             </form>
-            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalImportarEntra">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="btnAbrirImportarEntra">
                 <i class="bi bi-microsoft me-1"></i>Importar desde Entra ID
             </button>
             <a href="{{ route('admin.usuarios.create') }}" class="btn btn-success btn-sm">
@@ -156,7 +156,45 @@
     const spinner    = document.getElementById('spinnerEntra');
     const resultados = document.getElementById('resultadosEntra');
     const chkActivo  = document.getElementById('importarActivo');
+    const modalEl    = document.getElementById('modalImportarEntra');
+    const btnAbrir   = document.getElementById('btnAbrirImportarEntra');
     let debounce;
+    let fallbackBackdrop = null;
+
+    // ── Abrir modal: Bootstrap si está disponible, fallback manual si no ──
+    function abrirModal() {
+        try {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        } catch (e) {
+            // Fallback sin Bootstrap JS (producción)
+            modalEl.classList.add('show');
+            modalEl.style.display = 'block';
+            modalEl.removeAttribute('aria-hidden');
+            document.body.classList.add('modal-open');
+            fallbackBackdrop = document.createElement('div');
+            fallbackBackdrop.className = 'modal-backdrop fade show';
+            document.body.appendChild(fallbackBackdrop);
+        }
+        setTimeout(() => input.focus(), 200);
+    }
+
+    function cerrarModalFallback() {
+        modalEl.classList.remove('show');
+        modalEl.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        fallbackBackdrop?.remove();
+        fallbackBackdrop = null;
+    }
+
+    btnAbrir?.addEventListener('click', abrirModal);
+
+    // Cierre en modo fallback: botón X y clic fuera del diálogo
+    modalEl?.addEventListener('click', function (e) {
+        if (!fallbackBackdrop) return; // Bootstrap maneja su propio cierre
+        if (e.target.closest('[data-bs-dismiss="modal"]') || e.target === modalEl) {
+            cerrarModalFallback();
+        }
+    });
 
     input?.addEventListener('input', function () {
         clearTimeout(debounce);
@@ -164,9 +202,6 @@
         if (q.length < 3) { resultados.innerHTML = ''; return; }
         debounce = setTimeout(() => buscar(q), 380);
     });
-
-    // Enfocar al abrir el modal
-    document.getElementById('modalImportarEntra')?.addEventListener('shown.bs.modal', () => input.focus());
 
     async function buscar(q) {
         spinner.hidden = false;
