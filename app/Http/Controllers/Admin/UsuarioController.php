@@ -97,36 +97,41 @@ class UsuarioController extends Controller
             ->with('success', 'Usuario «' . $usuario->name . '» actualizado correctamente.');
     }
 
-    /** Sincroniza nombre y correo del usuario desde Entra ID (Microsoft Graph) */
-    public function sincronizarAzure(User $usuario)
+    /** Obtiene un token app-to-app de Microsoft Graph. Lanza excepción con mensaje legible. */
+    private function graphToken(): string
     {
         $tenantId     = Configuracion::get('azure_tenant_id');
         $clientId     = Configuracion::get('azure_client_id');
         $clientSecret = Configuracion::get('azure_client_secret');
 
         if (!$tenantId || !$clientId || !$clientSecret) {
-            return back()->withErrors(['error' => 'Faltan credenciales de Azure en Admin → Configuración → Microsoft 365.']);
+            throw new \RuntimeException('Faltan credenciales de Azure en Admin → Configuración → Microsoft 365.');
         }
 
+        $tokenResp = Http::asForm()->timeout(10)->post(
+            "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token",
+            [
+                'grant_type'    => 'client_credentials',
+                'client_id'     => $clientId,
+                'client_secret' => $clientSecret,
+                'scope'         => 'https://graph.microsoft.com/.default',
+            ]
+        );
+
+        if (!$tokenResp->ok()) {
+            throw new \RuntimeException('No se pudo obtener el token de Microsoft: ' . ($tokenResp->json('error_description') ?? $tokenResp->status()));
+        }
+
+        return $tokenResp->json('access_token');
+    }
+
+    /** Sincroniza nombre y correo del usuario desde Entra ID (Microsoft Graph) */
+    public function sincronizarAzure(User $usuario)
+    {
         try {
-            // 1. Token app-to-app (client_credentials)
-            $tokenResp = Http::asForm()->timeout(10)->post(
-                "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token",
-                [
-                    'grant_type'    => 'client_credentials',
-                    'client_id'     => $clientId,
-                    'client_secret' => $clientSecret,
-                    'scope'         => 'https://graph.microsoft.com/.default',
-                ]
-            );
+            $token = $this->graphToken();
 
-            if (!$tokenResp->ok()) {
-                return back()->withErrors(['error' => 'No se pudo obtener el token de Microsoft: ' . ($tokenResp->json('error_description') ?? $tokenResp->status())]);
-            }
-
-            $token = $tokenResp->json('access_token');
-
-            // 2. Buscar el usuario en Graph: por object id si existe, sino por email
+            // Buscar el usuario en Graph: por object id si existe, sino por email
             $identificador = $usuario->provider_id ?: $usuario->email;
             $graphResp = Http::withToken($token)->timeout(10)->get(
                 'https://graph.microsoft.com/v1.0/users/' . urlencode($identificador),
@@ -175,6 +180,118 @@ class UsuarioController extends Controller
 
         } catch (\Throwable $e) {
             return back()->withErrors(['error' => 'Error al conectar con Microsoft: ' . $e->getMessage()]);
+        }
+    }
+
+    /** AJAX: busca usuarios en Entra ID por nombre o correo */
+    public function buscarEntra(Request $request)
+    {
+        $q = trim($request->input('q', ''));
+        if (strlen($q) < 3) {
+            return response()->json(['ok' => true, 'usuarios' => []]);
+        }
+
+        try {
+            $token = $this->graphToken();
+
+            $safe = str_replace("'", "''", $q);
+            $graphResp = Http::withToken($token)->timeout(10)->get(
+                'https://graph.microsoft.com/v1.0/users',
+                [
+                    '$filter' => "startswith(displayName,'{$safe}') or startswith(mail,'{$safe}') or startswith(userPrincipalName,'{$safe}')",
+                    '$select' => 'id,displayName,mail,userPrincipalName,accountEnabled,department,jobTitle',
+                    '$top'    => 15,
+                ]
+            );
+
+            if (!$graphResp->ok()) {
+                $msg = $graphResp->json('error.message') ?? ('HTTP ' . $graphResp->status());
+                return response()->json(['ok' => false, 'message' => 'Microsoft Graph: ' . $msg]);
+            }
+
+            $resultados = collect($graphResp->json('value', []));
+
+            // Marcar los que ya existen localmente (por email o provider_id)
+            $emails      = $resultados->map(fn($u) => strtolower($u['mail'] ?? $u['userPrincipalName'] ?? ''))->filter();
+            $ids         = $resultados->pluck('id');
+            $existentes  = User::whereIn('provider_id', $ids)
+                ->orWhereIn(\Illuminate\Support\Facades\DB::raw('LOWER(email)'), $emails)
+                ->get(['email', 'provider_id']);
+
+            $usuarios = $resultados->map(function ($u) use ($existentes) {
+                $email  = $u['mail'] ?? $u['userPrincipalName'] ?? null;
+                $existe = $existentes->contains(fn($e) =>
+                    $e->provider_id === $u['id'] ||
+                    ($email && strcasecmp($e->email, $email) === 0)
+                );
+                return [
+                    'id'          => $u['id'],
+                    'nombre'      => $u['displayName'] ?? '—',
+                    'email'       => $email,
+                    'departamento'=> $u['department'] ?? null,
+                    'cargo'       => $u['jobTitle'] ?? null,
+                    'habilitado'  => $u['accountEnabled'] ?? true,
+                    'existe'      => $existe,
+                ];
+            })->values();
+
+            return response()->json(['ok' => true, 'usuarios' => $usuarios]);
+
+        } catch (\Throwable $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /** Importa un usuario desde Entra ID como usuario local */
+    public function importarEntra(Request $request)
+    {
+        $request->validate([
+            'entra_id' => 'required|string',
+            'activo'   => 'boolean',
+        ]);
+
+        try {
+            $token = $this->graphToken();
+
+            $graphResp = Http::withToken($token)->timeout(10)->get(
+                'https://graph.microsoft.com/v1.0/users/' . urlencode($request->input('entra_id')),
+                ['$select' => 'id,displayName,mail,userPrincipalName']
+            );
+
+            if (!$graphResp->ok()) {
+                return back()->withErrors(['error' => 'No se pudo obtener el usuario desde Entra ID.']);
+            }
+
+            $datos = $graphResp->json();
+            $email = $datos['mail'] ?? $datos['userPrincipalName'] ?? null;
+
+            if (!$email) {
+                return back()->withErrors(['error' => 'El usuario de Entra ID no tiene correo.']);
+            }
+
+            // Evitar duplicados
+            $yaExiste = User::where('provider_id', $datos['id'])
+                ->orWhereRaw('LOWER(email) = ?', [strtolower($email)])
+                ->first();
+            if ($yaExiste) {
+                return back()->withErrors(['error' => "Ya existe un usuario con ese correo: «{$yaExiste->name}»."]);
+            }
+
+            $usuario = User::create([
+                'name'        => $datos['displayName'] ?? $email,
+                'email'       => $email,
+                'provider'    => 'azure',
+                'provider_id' => $datos['id'],
+                'password'    => null,
+                'es_admin'    => false,
+                'activo'      => $request->boolean('activo', true),
+            ]);
+
+            return redirect()->route('admin.usuarios.edit', $usuario)
+                ->with('success', 'Usuario «' . $usuario->name . '» importado desde Entra ID. Asigna sus módulos.');
+
+        } catch (\Throwable $e) {
+            return back()->withErrors(['error' => 'Error al importar: ' . $e->getMessage()]);
         }
     }
 
