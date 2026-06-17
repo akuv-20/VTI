@@ -74,4 +74,16 @@ class LineaTelefonica extends Model
     {
         return $this->hasMany(LineaImeiHistorial::class, 'id_linea_telefonica')->latest();
     }
+
+    /** Historial de cambios de aparato. */
+    public function historialAparato()
+    {
+        return $this->hasMany(LineaAparatoHistorial::class, 'id_linea_telefonica')->latest();
+    }
+
+    /** Historial de cambios de ubicación. */
+    public function historialUbicacion()
+    {
+        return $this->hasMany(LineaUbicacionHistorial::class, 'id_linea_telefonica')->latest();
+    }
 }

@@ -14,7 +14,7 @@
             @endif
         </h4>
         <div class="d-flex gap-2">
-            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalActaEntrega">
+            <button type="button" class="btn btn-success btn-sm" id="btnAbrirActaEntrega">
                 <i class="bi bi-file-earmark-text-fill me-1"></i>Imprimir Acta de Entrega
             </button>
             <a href="{{ route('lineas_telefonicas.edit', $lineas_telefonica->id) }}"
@@ -273,6 +273,140 @@
             </div>
         </div>
 
+        {{-- ── Historial de Aparatos ────────────────────────────────────── --}}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header fw-bold border-0 d-flex align-items-center justify-content-between"
+                     style="background:#f8fafc">
+                    <span><i class="bi bi-phone me-2 text-primary"></i>Historial de Aparatos</span>
+                    @if($lineas_telefonica->historialAparato->count() > 0)
+                        <span class="badge rounded-pill bg-primary" style="font-size:.72rem">
+                            {{ $lineas_telefonica->historialAparato->count() }}
+                            {{ $lineas_telefonica->historialAparato->count() === 1 ? 'cambio' : 'cambios' }}
+                        </span>
+                    @endif
+                </div>
+                <div class="card-body p-0">
+                    @if($lineas_telefonica->historialAparato->isEmpty())
+                        <div class="text-center py-4 text-muted" style="font-size:.88rem">
+                            <i class="bi bi-clock me-1"></i>Sin historial de cambios aún.
+                        </div>
+                    @else
+                        <div class="vti-table-wrapper m-0 shadow-none rounded-0">
+                            <table class="vti-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:180px">Fecha del cambio</th>
+                                        <th>Aparato anterior</th>
+                                        <th style="width:40px;text-align:center"><i class="bi bi-arrow-right"></i></th>
+                                        <th>Aparato nuevo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($lineas_telefonica->historialAparato as $h)
+                                    <tr>
+                                        <td>
+                                            <span class="fw-semibold">{{ $h->created_at->format('d/m/Y') }}</span>
+                                            <span class="text-muted ms-1" style="font-size:.78rem">{{ $h->created_at->format('H:i') }}</span>
+                                        </td>
+                                        <td>
+                                            @if($h->aparatoAnterior)
+                                                <span class="badge rounded-pill"
+                                                      style="background:#fef3c7;color:#92400e;font-weight:600;font-size:.78rem">
+                                                    {{ $h->aparatoAnterior->marca->nombre ?? '' }} {{ $h->aparatoAnterior->modelo }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted fst-italic" style="font-size:.82rem">Sin asignar</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-center text-muted"><i class="bi bi-arrow-right"></i></td>
+                                        <td>
+                                            @if($h->aparatoNuevo)
+                                                <span class="badge rounded-pill"
+                                                      style="background:#dcfce7;color:#166534;font-weight:600;font-size:.78rem">
+                                                    {{ $h->aparatoNuevo->marca->nombre ?? '' }} {{ $h->aparatoNuevo->modelo }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted fst-italic" style="font-size:.82rem">Sin asignar</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- ── Historial de Ubicaciones ──────────────────────────────────── --}}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header fw-bold border-0 d-flex align-items-center justify-content-between"
+                     style="background:#f8fafc">
+                    <span><i class="bi bi-geo-alt me-2 text-warning"></i>Historial de Ubicaciones</span>
+                    @if($lineas_telefonica->historialUbicacion->count() > 0)
+                        <span class="badge rounded-pill bg-warning text-dark" style="font-size:.72rem">
+                            {{ $lineas_telefonica->historialUbicacion->count() }}
+                            {{ $lineas_telefonica->historialUbicacion->count() === 1 ? 'cambio' : 'cambios' }}
+                        </span>
+                    @endif
+                </div>
+                <div class="card-body p-0">
+                    @if($lineas_telefonica->historialUbicacion->isEmpty())
+                        <div class="text-center py-4 text-muted" style="font-size:.88rem">
+                            <i class="bi bi-clock me-1"></i>Sin historial de cambios aún.
+                        </div>
+                    @else
+                        <div class="vti-table-wrapper m-0 shadow-none rounded-0">
+                            <table class="vti-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:180px">Fecha del cambio</th>
+                                        <th>Ubicación anterior</th>
+                                        <th style="width:40px;text-align:center"><i class="bi bi-arrow-right"></i></th>
+                                        <th>Ubicación nueva</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($lineas_telefonica->historialUbicacion as $h)
+                                    <tr>
+                                        <td>
+                                            <span class="fw-semibold">{{ $h->created_at->format('d/m/Y') }}</span>
+                                            <span class="text-muted ms-1" style="font-size:.78rem">{{ $h->created_at->format('H:i') }}</span>
+                                        </td>
+                                        <td>
+                                            @if($h->ubicacionAnterior)
+                                                <span class="badge rounded-pill"
+                                                      style="background:#fef3c7;color:#92400e;font-weight:600;font-size:.78rem">
+                                                    {{ $h->ubicacionAnterior->nombre }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted fst-italic" style="font-size:.82rem">Sin asignar</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-center text-muted"><i class="bi bi-arrow-right"></i></td>
+                                        <td>
+                                            @if($h->ubicacionNueva)
+                                                <span class="badge rounded-pill"
+                                                      style="background:#dcfce7;color:#166534;font-weight:600;font-size:.78rem">
+                                                    {{ $h->ubicacionNueva->nombre }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted fst-italic" style="font-size:.82rem">Sin asignar</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -424,3 +558,47 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    const modalEl  = document.getElementById('modalActaEntrega');
+    const btnAbrir = document.getElementById('btnAbrirActaEntrega');
+    let fallbackBackdrop = null;
+
+    // ── Abrir modal: Bootstrap si está disponible, fallback manual si no ──
+    function abrirModal() {
+        try {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        } catch (e) {
+            // Fallback sin Bootstrap JS (producción)
+            modalEl.classList.add('show');
+            modalEl.style.display = 'block';
+            modalEl.removeAttribute('aria-hidden');
+            document.body.classList.add('modal-open');
+            fallbackBackdrop = document.createElement('div');
+            fallbackBackdrop.className = 'modal-backdrop fade show';
+            document.body.appendChild(fallbackBackdrop);
+        }
+    }
+
+    function cerrarModalFallback() {
+        modalEl.classList.remove('show');
+        modalEl.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        fallbackBackdrop?.remove();
+        fallbackBackdrop = null;
+    }
+
+    btnAbrir?.addEventListener('click', abrirModal);
+
+    // Cierre en modo fallback: botón X, Cancelar y clic fuera del diálogo
+    modalEl?.addEventListener('click', function (e) {
+        if (!fallbackBackdrop) return; // Bootstrap maneja su propio cierre
+        if (e.target.closest('[data-bs-dismiss="modal"]') || e.target === modalEl) {
+            cerrarModalFallback();
+        }
+    });
+})();
+</script>
+@endpush

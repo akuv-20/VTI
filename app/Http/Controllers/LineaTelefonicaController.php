@@ -14,6 +14,8 @@ use App\Models\ImportacionEntel;
 use App\Models\ImportacionWom;
 use App\Models\LineaUsuarioHistorial;
 use App\Models\LineaImeiHistorial;
+use App\Models\LineaAparatoHistorial;
+use App\Models\LineaUbicacionHistorial;
 use Illuminate\Http\Request;
 
 class LineaTelefonicaController extends Controller
@@ -212,6 +214,24 @@ class LineaTelefonicaController extends Controller
             ]);
         }
 
+        // Registrar aparato inicial
+        if (!empty($validated['id_aparato'])) {
+            LineaAparatoHistorial::create([
+                'id_linea_telefonica' => $linea->id,
+                'id_aparato_anterior' => null,
+                'id_aparato_nuevo'    => $validated['id_aparato'],
+            ]);
+        }
+
+        // Registrar ubicación inicial
+        if (!empty($validated['id_ubicacion'])) {
+            LineaUbicacionHistorial::create([
+                'id_linea_telefonica'  => $linea->id,
+                'id_ubicacion_anterior' => null,
+                'id_ubicacion_nueva'    => $validated['id_ubicacion'],
+            ]);
+        }
+
         // Registrar IMEI iniciales
         foreach (['imei_equipo', 'imei_sim'] as $campo) {
             if (!empty($validated[$campo])) {
@@ -235,6 +255,10 @@ class LineaTelefonicaController extends Controller
             'historialUsuarios.usuarioAnterior',
             'historialUsuarios.usuarioNuevo',
             'historialImei',
+            'historialAparato.aparatoAnterior.marca',
+            'historialAparato.aparatoNuevo.marca',
+            'historialUbicacion.ubicacionAnterior',
+            'historialUbicacion.ubicacionNueva',
         ]);
         return view('lineas_telefonicas.show', compact('lineas_telefonica'));
     }
@@ -267,8 +291,12 @@ class LineaTelefonicaController extends Controller
             'observacion'            => 'nullable|string',
         ]);
 
-        $usuarioAnterior = $lineas_telefonica->id_usuario;
-        $usuarioNuevo    = $validated['id_usuario'] ?? null;
+        $usuarioAnterior  = $lineas_telefonica->id_usuario;
+        $usuarioNuevo     = $validated['id_usuario'] ?? null;
+        $aparatoAnterior  = $lineas_telefonica->id_aparato;
+        $aparatoNuevo     = $validated['id_aparato'] ?? null;
+        $ubicacionAnterior = $lineas_telefonica->id_ubicacion;
+        $ubicacionNueva    = $validated['id_ubicacion'] ?? null;
 
         // Capturar IMEI actuales antes de actualizar
         $imeiAntes = [
@@ -278,12 +306,30 @@ class LineaTelefonicaController extends Controller
 
         $lineas_telefonica->update($validated);
 
-        // Registrar cambio de usuario solo si realmente cambió
+        // Registrar cambio de usuario
         if ($usuarioAnterior != $usuarioNuevo) {
             LineaUsuarioHistorial::create([
                 'id_linea_telefonica' => $lineas_telefonica->id,
                 'id_usuario_anterior' => $usuarioAnterior,
                 'id_usuario_nuevo'    => $usuarioNuevo,
+            ]);
+        }
+
+        // Registrar cambio de aparato
+        if ($aparatoAnterior != $aparatoNuevo) {
+            LineaAparatoHistorial::create([
+                'id_linea_telefonica' => $lineas_telefonica->id,
+                'id_aparato_anterior' => $aparatoAnterior,
+                'id_aparato_nuevo'    => $aparatoNuevo,
+            ]);
+        }
+
+        // Registrar cambio de ubicación
+        if ($ubicacionAnterior != $ubicacionNueva) {
+            LineaUbicacionHistorial::create([
+                'id_linea_telefonica'  => $lineas_telefonica->id,
+                'id_ubicacion_anterior' => $ubicacionAnterior,
+                'id_ubicacion_nueva'    => $ubicacionNueva,
             ]);
         }
 
