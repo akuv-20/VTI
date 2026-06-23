@@ -9,12 +9,6 @@
         </a>
     </div>
 
-    @if($errors->any())
-        <div class="alert alert-danger py-2">
-            <ul class="mb-0 ps-3">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
-        </div>
-    @endif
-
     <form method="POST" action="{{ route('importaciones_wom.store') }}" id="formWom">
     @csrf
 

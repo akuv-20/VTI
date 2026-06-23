@@ -17,6 +17,9 @@
             <button type="button" class="btn btn-success btn-sm" id="btnAbrirActaEntrega">
                 <i class="bi bi-file-earmark-text-fill me-1"></i>Imprimir Acta de Entrega
             </button>
+            <button type="button" class="btn btn-warning btn-sm" id="btnAbrirActaDevolucion">
+                <i class="bi bi-box-arrow-in-left me-1"></i>Imprimir Acta de Devolución
+            </button>
             <a href="{{ route('lineas_telefonicas.edit', $lineas_telefonica->id) }}"
                class="btn btn-warning btn-sm">
                 <i class="bi bi-pencil-fill me-1"></i>Editar
@@ -557,21 +560,168 @@
         </div>
     </div>
 </div>
+
+{{-- ── Modal Acta de Devolución ────────────────────────────────────────────── --}}
+<div class="modal fade" id="modalActaDevolucion" tabindex="-1" aria-labelledby="modalActaDevLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST"
+                  action="{{ route('actas_devolucion_telefono.store', $lineas_telefonica) }}"
+                  target="_blank">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalActaDevLabel">
+                        <i class="bi bi-box-arrow-in-left me-2 text-warning"></i>
+                        Acta de Devolución — Línea {{ $lineas_telefonica->linea }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+
+                    {{-- Resumen --}}
+                    <div class="alert alert-light border mb-4" style="font-size:.85rem">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <span class="text-muted">Empleado:</span>
+                                <strong>{{ $lineas_telefonica->usuario->nombre ?? '(sin asignar)' }}</strong>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted">Zona:</span>
+                                <strong>
+                                    {{ $lineas_telefonica->empresa->nombre ?? '' }}
+                                    @if($lineas_telefonica->empresa && $lineas_telefonica->ubicacion) — @endif
+                                    {{ $lineas_telefonica->ubicacion->nombre ?? '' }}
+                                </strong>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted">Equipo:</span>
+                                <strong>
+                                    {{ $lineas_telefonica->aparato?->marca?->nombre }}
+                                    {{ $lineas_telefonica->aparato?->modelo ?? '—' }}
+                                </strong>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted">Compañía:</span>
+                                <strong>{{ $lineas_telefonica->emisor->nombre ?? '—' }}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Condición --}}
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Condición del equipo devuelto</label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="condicion" id="devCondNuevo"
+                                       value="Nuevo">
+                                <label class="form-check-label" for="devCondNuevo">Nuevo</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="condicion" id="devCondUsado"
+                                       value="Usado" checked>
+                                <label class="form-check-label" for="devCondUsado">Usado</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Accesorios --}}
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Accesorios devueltos</label>
+                        <table class="table table-sm table-bordered" style="font-size:.88rem">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Accesorio</th>
+                                    <th class="text-center" style="width:90px">SI</th>
+                                    <th class="text-center" style="width:90px">NO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach([
+                                    'cargador_usb'   => 'Cargador (Cable USB C)',
+                                    'cargador_auto'  => 'Cargador de automóvil',
+                                    'manos_libres'   => 'Manos libres (auricular)',
+                                    'cd_informacion' => 'Cd de información',
+                                ] as $key => $label)
+                                <tr>
+                                    <td>{{ $label }}</td>
+                                    <td class="text-center">
+                                        <input type="radio" name="accesorios[{{ $key }}]"
+                                               value="SI" class="form-check-input">
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="radio" name="accesorios[{{ $key }}]"
+                                               value="NO" class="form-check-input" checked>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{-- Documentación --}}
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Documentación</label>
+                        <table class="table table-sm table-bordered" style="font-size:.88rem">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Documento</th>
+                                    <th class="text-center" style="width:90px">SI</th>
+                                    <th class="text-center" style="width:90px">NO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach([
+                                    'manual_propietario' => 'Manual del Propietario',
+                                    'procedimiento_uso'  => 'Procedimiento uso de teléfono móvil',
+                                ] as $key => $label)
+                                <tr>
+                                    <td>{{ $label }}</td>
+                                    <td class="text-center">
+                                        <input type="radio" name="documentacion[{{ $key }}]"
+                                               value="SI" class="form-check-input">
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="radio" name="documentacion[{{ $key }}]"
+                                               value="NO" class="form-check-input" checked>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{-- Observación --}}
+                    <div>
+                        <label for="observacionActaDev" class="form-label fw-semibold">Observación</label>
+                        <textarea class="form-control" id="observacionActaDev" name="observacion"
+                                  rows="2" maxlength="500" placeholder="(opcional)"></textarea>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-printer-fill me-1"></i>Generar e Imprimir Acta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
 <script>
-(function () {
-    const modalEl  = document.getElementById('modalActaEntrega');
-    const btnAbrir = document.getElementById('btnAbrirActaEntrega');
+// Abre un modal Bootstrap; si Bootstrap JS no cargó (producción), usa fallback manual.
+function vtiModalConFallback(modalId, btnId) {
+    const modalEl  = document.getElementById(modalId);
+    const btnAbrir = document.getElementById(btnId);
     let fallbackBackdrop = null;
 
-    // ── Abrir modal: Bootstrap si está disponible, fallback manual si no ──
     function abrirModal() {
         try {
             bootstrap.Modal.getOrCreateInstance(modalEl).show();
         } catch (e) {
-            // Fallback sin Bootstrap JS (producción)
             modalEl.classList.add('show');
             modalEl.style.display = 'block';
             modalEl.removeAttribute('aria-hidden');
@@ -592,13 +742,15 @@
 
     btnAbrir?.addEventListener('click', abrirModal);
 
-    // Cierre en modo fallback: botón X, Cancelar y clic fuera del diálogo
     modalEl?.addEventListener('click', function (e) {
         if (!fallbackBackdrop) return; // Bootstrap maneja su propio cierre
         if (e.target.closest('[data-bs-dismiss="modal"]') || e.target === modalEl) {
             cerrarModalFallback();
         }
     });
-})();
+}
+
+vtiModalConFallback('modalActaEntrega',    'btnAbrirActaEntrega');
+vtiModalConFallback('modalActaDevolucion', 'btnAbrirActaDevolucion');
 </script>
 @endpush

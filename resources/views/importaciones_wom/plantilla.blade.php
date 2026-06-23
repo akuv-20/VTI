@@ -15,13 +15,6 @@
         al crear una nueva importación y podrás ajustarlo si varía ese mes.
     </p>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show py-2">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     <div class="row g-4">
 
         {{-- ── Líneas en plantilla ───────────────────────────────────────────── --}}

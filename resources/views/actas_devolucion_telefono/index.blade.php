@@ -5,10 +5,10 @@
 
     <div class="vti-page-header">
         <h4>
-            <i class="bi bi-file-earmark-text-fill me-2"></i>Actas de Entrega — Teléfonos
+            <i class="bi bi-box-arrow-in-left me-2"></i>Actas de Devolución — Teléfonos
         </h4>
-        <button type="button" class="btn btn-success btn-sm" id="btnGenerarActa">
-            <i class="bi bi-plus-circle-fill me-1"></i>Generar Acta de Entrega
+        <button type="button" class="btn btn-warning btn-sm" id="btnGenerarActa">
+            <i class="bi bi-plus-circle-fill me-1"></i>Generar Acta de Devolución
         </button>
     </div>
 
@@ -25,13 +25,13 @@
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Fecha Emisión</th>
+                                <th>Fecha Devolución</th>
                                 <th>N° Teléfono</th>
-                                <th>Receptor</th>
+                                <th>Empleado</th>
                                 <th>Zona</th>
                                 <th>Compañía</th>
                                 <th>Equipo</th>
-                                <th>Impreso por</th>
+                                <th>Recibido por</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -54,13 +54,13 @@
                                 <td style="font-size:.82rem">{{ $acta->impreso_por ?? '—' }}</td>
                                 <td class="text-end">
                                     <div class="d-flex gap-1 justify-content-end">
-                                        <a href="{{ route('actas_entrega_telefono.imprimir', $acta) }}"
+                                        <a href="{{ route('actas_devolucion_telefono.imprimir', $acta) }}"
                                            class="btn btn-outline-primary btn-sm" target="_blank">
                                             <i class="bi bi-printer-fill"></i>
                                         </a>
                                         @can('admin')
                                         <form method="POST"
-                                              action="{{ route('actas_entrega_telefono.destroy', $acta) }}"
+                                              action="{{ route('actas_devolucion_telefono.destroy', $acta) }}"
                                               onsubmit="return confirm('¿Eliminar esta acta?')">
                                             @csrf @method('DELETE')
                                             <button class="btn btn-outline-danger btn-sm">
@@ -84,14 +84,14 @@
 </div>
 
 @include('actas_entrega_telefono._modal_generar', [
-    'tipo'        => 'entrega',
-    'titulo'      => 'Generar Acta de Entrega',
-    'buscarUrl'   => route('actas_entrega_telefono.buscar_lineas'),
-    'storeBase'   => route('actas_entrega_telefono.store', ['linea' => '__ID__']),
-    'btnClass'    => 'btn-success',
-    'textClass'   => 'text-success',
-    'icono'       => 'bi bi-file-earmark-text-fill',
-    'condDefault' => 'Nuevo',
-    'accLabel'    => 'Accesorios',
+    'tipo'        => 'devolucion',
+    'titulo'      => 'Generar Acta de Devolución',
+    'buscarUrl'   => route('actas_devolucion_telefono.buscar_lineas'),
+    'storeBase'   => route('actas_devolucion_telefono.store', ['linea' => '__ID__']),
+    'btnClass'    => 'btn-warning',
+    'textClass'   => 'text-warning',
+    'icono'       => 'bi bi-box-arrow-in-left',
+    'condDefault' => 'Usado',
+    'accLabel'    => 'Accesorios devueltos',
 ])
 @endsection

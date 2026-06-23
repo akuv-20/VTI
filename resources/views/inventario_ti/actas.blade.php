@@ -9,13 +9,6 @@
         </h4>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-body p-0">
             @if($actas->isEmpty())

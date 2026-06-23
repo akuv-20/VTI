@@ -387,7 +387,9 @@
             background: #fff;
             border-radius: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 20px rgba(0,0,0,.05);
-            overflow: hidden;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
             margin-bottom: .75rem;
         }
 
@@ -656,7 +658,7 @@
             @endif
 
             {{-- ── Telefonía ── --}}
-            @if($ta('lineas_telefonicas.index') || $ta('emisores.index') || $ta('usuarios_telefonicos.index') || $ta('ubicaciones.index') || $ta('marcas.index') || $ta('aparatos.index') || $ta('centros_costo.index') || $ta('importaciones_movistar.index') || $ta('importaciones_entel.index') || $ta('importaciones_wom.index') || $ta('informes.telefonia') || $ta('actas_entrega_telefono.index'))
+            @if($ta('lineas_telefonicas.index') || $ta('emisores.index') || $ta('usuarios_telefonicos.index') || $ta('ubicaciones.index') || $ta('marcas.index') || $ta('aparatos.index') || $ta('centros_costo.index') || $ta('importaciones_movistar.index') || $ta('importaciones_entel.index') || $ta('importaciones_wom.index') || $ta('informes.telefonia') || $ta('actas_entrega_telefono.index') || $ta('actas_devolucion_telefono.index'))
             <div class="vti-nav-group" data-group="telefonia">
                 <button type="button" class="vti-nav-group-toggle">
                     <i class="bi bi-phone"></i><span class="sb-text">Telefonía</span>
@@ -717,7 +719,7 @@
                         <i class="bi bi-cloud-upload" style="color:#a78bfa"></i>Imp. WOM
                     </a>
                     @endif
-                    @if($ta('informes.telefonia') || $ta('actas_entrega_telefono.index'))
+                    @if($ta('informes.telefonia') || $ta('actas_entrega_telefono.index') || $ta('actas_devolucion_telefono.index'))
                     <div class="vti-nav-divider"></div>
                     @endif
                     @if($ta('informes.telefonia'))
@@ -728,6 +730,11 @@
                     @if($ta('actas_entrega_telefono.index'))
                     <a href="{{ route('actas_entrega_telefono.index') }}" class="vti-nav-link {{ request()->routeIs('actas_entrega_telefono.*') ? 'active' : '' }}">
                         <i class="bi bi-file-earmark-text-fill"></i>Actas de Entrega
+                    </a>
+                    @endif
+                    @if($ta('actas_devolucion_telefono.index'))
+                    <a href="{{ route('actas_devolucion_telefono.index') }}" class="vti-nav-link {{ request()->routeIs('actas_devolucion_telefono.*') ? 'active' : '' }}">
+                        <i class="bi bi-box-arrow-in-left"></i>Actas de Devolución
                     </a>
                     @endif
                 </div>
@@ -833,6 +840,7 @@
             'importaciones_wom'           => ['Telefonía', 'Importaciones WOM'],
             'informes.telefonia'          => ['Telefonía', 'Informe Telefonía'],
             'actas_entrega_telefono'      => ['Telefonía', 'Actas de Entrega'],
+            'actas_devolucion_telefono'   => ['Telefonía', 'Actas de Devolución'],
             'inventario_ti.dashboard'     => ['Inventario TI', 'Dashboard'],
             'inventario_ti.actas'         => ['Inventario TI', 'Actas de Entrega'],
             'inventario_ti'               => ['Inventario TI', 'Equipos'],

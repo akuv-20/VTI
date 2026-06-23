@@ -128,6 +128,7 @@
                     <th>Cód. Servicio</th>
                     <th>Cuenta Contable</th>
                     <th>Fecha Esperada</th>
+                    <th class="text-end">Neto</th>
                     <th>Estado</th>
                 </tr>
             </thead>
@@ -141,6 +142,13 @@
                     <td class="font-monospace fw-bold" style="font-size:.92rem">{{ $data['servicio']->codigo_servicio ?? '—' }}</td>
                     <td>{{ $data['servicio']->cuentacontable->numero_cuenta ?? '—' }}</td>
                     <td>{{ $data['fecha_esperada_factura'] }}</td>
+                    <td class="text-end fw-semibold">
+                        @if(!$data['factura_pendiente'])
+                            $ {{ number_format($data['factura']->valor_neto, 0, ',', '.') }}
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
                     <td>
                         @if($data['factura_pendiente'])
                             <div class="d-flex align-items-center gap-2">
@@ -163,7 +171,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr class="vti-empty"><td colspan="8">No hay servicios periódicos registrados.</td></tr>
+                <tr class="vti-empty"><td colspan="9">No hay servicios periódicos registrados.</td></tr>
                 @endforelse
             </tbody>
         </table>

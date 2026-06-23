@@ -20,6 +20,7 @@ use App\Http\Controllers\ImportacionMovistarController;
 use App\Http\Controllers\ImportacionWomController;
 use App\Http\Controllers\EntregaFacturaController;
 use App\Http\Controllers\ActaEntregaTelefonoController;
+use App\Http\Controllers\ActaDevolucionTelefonoController;
 use App\Http\Controllers\InventarioTiController;
 use App\Http\Controllers\InventarioDashboardController;
 use App\Http\Controllers\Admin\UsuarioController as AdminUsuarioController;
@@ -76,10 +77,18 @@ Route::resource('lineas_telefonicas', LineaTelefonicaController::class);
 Route::get('informes/telefonia', [InformeController::class, 'telefonia'])->name('informes.telefonia');
 
 // ── Actas de Entrega Teléfono ────────────────────────────────────────────────
+Route::get('actas_entrega_telefono/buscar-lineas', [ActaEntregaTelefonoController::class, 'buscarLineas'])->name('actas_entrega_telefono.buscar_lineas');
 Route::get('actas_entrega_telefono/{acta}/imprimir', [ActaEntregaTelefonoController::class, 'imprimir'])->name('actas_entrega_telefono.imprimir');
 Route::post('actas_entrega_telefono/linea/{linea}', [ActaEntregaTelefonoController::class, 'store'])->name('actas_entrega_telefono.store');
 Route::delete('actas_entrega_telefono/{acta}', [ActaEntregaTelefonoController::class, 'destroy'])->name('actas_entrega_telefono.destroy');
 Route::get('actas_entrega_telefono', [ActaEntregaTelefonoController::class, 'index'])->name('actas_entrega_telefono.index');
+
+// ── Actas de Devolución Teléfono ─────────────────────────────────────────────
+Route::get('actas_devolucion_telefono/buscar-lineas', [ActaDevolucionTelefonoController::class, 'buscarLineas'])->name('actas_devolucion_telefono.buscar_lineas');
+Route::get('actas_devolucion_telefono/{acta}/imprimir', [ActaDevolucionTelefonoController::class, 'imprimir'])->name('actas_devolucion_telefono.imprimir');
+Route::post('actas_devolucion_telefono/linea/{linea}', [ActaDevolucionTelefonoController::class, 'store'])->name('actas_devolucion_telefono.store');
+Route::delete('actas_devolucion_telefono/{acta}', [ActaDevolucionTelefonoController::class, 'destroy'])->name('actas_devolucion_telefono.destroy');
+Route::get('actas_devolucion_telefono', [ActaDevolucionTelefonoController::class, 'index'])->name('actas_devolucion_telefono.index');
 
 // ── Inventario TI ────────────────────────────────────────────────────────────
 Route::get('inventario_ti/dashboard',                          [InventarioDashboardController::class, 'index'])->name('inventario_ti.dashboard');

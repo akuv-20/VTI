@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ActaEntregaTelefono;
+use App\Models\ActaDevolucionTelefono;
 use App\Models\LineaTelefonica;
 use App\Models\Configuracion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
-class ActaEntregaTelefonoController extends Controller
+class ActaDevolucionTelefonoController extends Controller
 {
     public function __construct()
     {
@@ -17,11 +17,11 @@ class ActaEntregaTelefonoController extends Controller
 
     public function index()
     {
-        $actas = ActaEntregaTelefono::with('lineaTelefonica')
+        $actas = ActaDevolucionTelefono::with('lineaTelefonica')
             ->latest()
             ->paginate(25);
 
-        return view('actas_entrega_telefono.index', compact('actas'));
+        return view('actas_devolucion_telefono.index', compact('actas'));
     }
 
     /** Búsqueda de líneas por número o nombre de usuario (autocomplete del modal). */
@@ -72,7 +72,7 @@ class ActaEntregaTelefonoController extends Controller
             ($linea->empresa->nombre ?? '') . ' - ' . ($linea->ubicacion->nombre ?? '')
         , ' -');
 
-        $acta = ActaEntregaTelefono::create([
+        $acta = ActaDevolucionTelefono::create([
             'id_linea_telefonica' => $linea->id,
             'fecha_emision'       => now()->toDateString(),
             'numero_telefono'     => $linea->linea,
@@ -90,20 +90,20 @@ class ActaEntregaTelefonoController extends Controller
             'impreso_por'         => auth()->user()->name,
         ]);
 
-        return redirect()->route('actas_entrega_telefono.imprimir', $acta);
+        return redirect()->route('actas_devolucion_telefono.imprimir', $acta);
     }
 
-    public function imprimir(ActaEntregaTelefono $acta)
+    public function imprimir(ActaDevolucionTelefono $acta)
     {
         $acta->load('lineaTelefonica');
 
         $logoPath = Configuracion::get('app_logo');
         $appLogo  = $logoPath ? Storage::url($logoPath) : null;
 
-        return view('actas_entrega_telefono.imprimir', compact('acta', 'appLogo'));
+        return view('actas_devolucion_telefono.imprimir', compact('acta', 'appLogo'));
     }
 
-    public function destroy(ActaEntregaTelefono $acta)
+    public function destroy(ActaDevolucionTelefono $acta)
     {
         $this->authorize('admin');
         $acta->delete();

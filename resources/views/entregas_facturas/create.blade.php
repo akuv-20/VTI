@@ -44,14 +44,6 @@
         </a>
     </div>
 
-    @if($errors->any())
-    <div class="alert alert-danger alert-dismissible py-2 px-3 mb-3" style="font-size:.88rem">
-        <i class="bi bi-exclamation-triangle-fill me-1"></i>
-        {{ $errors->first() }}
-        <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
-    </div>
-    @endif
-
     <div class="row g-4" style="max-width:1100px">
 
         {{-- ── Formulario principal ──────────────────────────────── --}}
