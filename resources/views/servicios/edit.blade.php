@@ -75,7 +75,7 @@
               </div>
             <select class="form-select" name="id_cuenta_contable" id="id_cuenta_contable" required>
                 @foreach ($cuentasContables as $cuentaContable)
-                    <option value="{{ $cuentaContable->id }}" {{ $servicio->numero_cuenta == $cuentaContable->id ? 'selected' : '' }}>
+                    <option value="{{ $cuentaContable->id }}" {{ $servicio->id_cuenta_contable == $cuentaContable->id ? 'selected' : '' }}>
                         {{ $cuentaContable->nombre_cuenta }}
                     </option>
                 @endforeach

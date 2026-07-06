@@ -35,7 +35,12 @@
                     <td>{{ $servicio->familia->nombre }}</td>
                     <td><span class="small">{{ $servicio->fecha_facturacion }}</span></td>
                     <td>{{ $servicio->concepto }}</td>
-                    <td>{{ $servicio->cuentaContable->numero_cuenta }}</td>
+                    <td>
+                        <span class="fw-semibold">{{ $servicio->cuentaContable->numero_cuenta ?? '—' }}</span>
+                        @if($servicio->cuentaContable?->nombre_cuenta)
+                            <span class="text-muted small d-block">{{ $servicio->cuentaContable->nombre_cuenta }}</span>
+                        @endif
+                    </td>
                     <td>
                         @if($servicio->es_periodico)
                             <span class="badge bg-success">Sí</span>
