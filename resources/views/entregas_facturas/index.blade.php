@@ -61,7 +61,11 @@
                                class="vti-btn-view" title="Ver detalle">
                                 <i class="bi bi-eye-fill"></i>
                             </a>
-                            <button type="button" class="vti-btn-edit" title="Imprimir"
+                            <a href="{{ route('entregas_facturas.edit', $entrega) }}"
+                               class="vti-btn-edit" title="Editar">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+                            <button type="button" class="vti-btn-view" title="Imprimir"
                                     style="background:#6f42c1;border-color:#6f42c1;color:#fff"
                                     onclick="window.open('{{ route('entregas_facturas.imprimir', $entrega) }}','_blank','width=1100,height=700,scrollbars=yes,resizable=yes')">
                                 <i class="bi bi-printer-fill"></i>

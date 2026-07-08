@@ -78,6 +78,13 @@
                     <i class="bi bi-file-earmark-plus-fill me-1 text-primary"></i> Generar Acta de Entrega
                 </div>
                 <div class="card-body">
+                    @error('acta')
+                        <div class="alert alert-danger no-autodismiss d-flex gap-2" style="font-size:.85rem">
+                            <i class="bi bi-x-circle-fill flex-shrink-0 mt-1"></i>
+                            <div>{{ $message }}</div>
+                        </div>
+                    @enderror
+
                     @php
                         $faltantes = [];
                         if (!trim($equipo->nombre_usuario ?? '')) $faltantes[] = 'Usuario asignado';

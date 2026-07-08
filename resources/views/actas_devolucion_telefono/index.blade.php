@@ -55,9 +55,20 @@
                                 <td class="text-end">
                                     <div class="d-flex gap-1 justify-content-end">
                                         <a href="{{ route('actas_devolucion_telefono.imprimir', $acta) }}"
-                                           class="btn btn-outline-primary btn-sm" target="_blank">
+                                           class="btn btn-outline-primary btn-sm" target="_blank" title="Reimprimir">
                                             <i class="bi bi-printer-fill"></i>
                                         </a>
+                                        @if($acta->bloqueadaParaEdicion())
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled
+                                                title="Bloqueada: emitida hace más de 2 días">
+                                            <i class="bi bi-lock-fill"></i>
+                                        </button>
+                                        @else
+                                        <a href="{{ route('actas_devolucion_telefono.edit', $acta) }}"
+                                           class="btn btn-outline-warning btn-sm" title="Editar">
+                                            <i class="bi bi-pencil-fill"></i>
+                                        </a>
+                                        @endif
                                         @can('admin')
                                         <form method="POST"
                                               action="{{ route('actas_devolucion_telefono.destroy', $acta) }}"

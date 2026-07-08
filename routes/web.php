@@ -52,7 +52,7 @@ Route::resource('facturas', FacturaController::class);
 Route::get('entregas_facturas/buscar', [EntregaFacturaController::class, 'buscarFacturas'])->name('entregas_facturas.buscar');
 Route::get('entregas_facturas/{entrega}/imprimir', [EntregaFacturaController::class, 'imprimir'])->name('entregas_facturas.imprimir');
 Route::resource('entregas_facturas', EntregaFacturaController::class)
-    ->only(['index', 'create', 'store', 'show', 'destroy'])
+    ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy'])
     ->parameters(['entregas_facturas' => 'entrega']);
 
 Route::resource('servicios', ServicioController::class);
@@ -79,6 +79,8 @@ Route::get('informes/telefonia', [InformeController::class, 'telefonia'])->name(
 // ── Actas de Entrega Teléfono ────────────────────────────────────────────────
 Route::get('actas_entrega_telefono/buscar-lineas', [ActaEntregaTelefonoController::class, 'buscarLineas'])->name('actas_entrega_telefono.buscar_lineas');
 Route::get('actas_entrega_telefono/{acta}/imprimir', [ActaEntregaTelefonoController::class, 'imprimir'])->name('actas_entrega_telefono.imprimir');
+Route::get('actas_entrega_telefono/{acta}/editar', [ActaEntregaTelefonoController::class, 'edit'])->name('actas_entrega_telefono.edit');
+Route::put('actas_entrega_telefono/{acta}', [ActaEntregaTelefonoController::class, 'update'])->name('actas_entrega_telefono.update');
 Route::post('actas_entrega_telefono/linea/{linea}', [ActaEntregaTelefonoController::class, 'store'])->name('actas_entrega_telefono.store');
 Route::delete('actas_entrega_telefono/{acta}', [ActaEntregaTelefonoController::class, 'destroy'])->name('actas_entrega_telefono.destroy');
 Route::get('actas_entrega_telefono', [ActaEntregaTelefonoController::class, 'index'])->name('actas_entrega_telefono.index');
@@ -86,6 +88,8 @@ Route::get('actas_entrega_telefono', [ActaEntregaTelefonoController::class, 'ind
 // ── Actas de Devolución Teléfono ─────────────────────────────────────────────
 Route::get('actas_devolucion_telefono/buscar-lineas', [ActaDevolucionTelefonoController::class, 'buscarLineas'])->name('actas_devolucion_telefono.buscar_lineas');
 Route::get('actas_devolucion_telefono/{acta}/imprimir', [ActaDevolucionTelefonoController::class, 'imprimir'])->name('actas_devolucion_telefono.imprimir');
+Route::get('actas_devolucion_telefono/{acta}/editar', [ActaDevolucionTelefonoController::class, 'edit'])->name('actas_devolucion_telefono.edit');
+Route::put('actas_devolucion_telefono/{acta}', [ActaDevolucionTelefonoController::class, 'update'])->name('actas_devolucion_telefono.update');
 Route::post('actas_devolucion_telefono/linea/{linea}', [ActaDevolucionTelefonoController::class, 'store'])->name('actas_devolucion_telefono.store');
 Route::delete('actas_devolucion_telefono/{acta}', [ActaDevolucionTelefonoController::class, 'destroy'])->name('actas_devolucion_telefono.destroy');
 Route::get('actas_devolucion_telefono', [ActaDevolucionTelefonoController::class, 'index'])->name('actas_devolucion_telefono.index');
@@ -95,6 +99,8 @@ Route::get('inventario_ti/dashboard',                          [InventarioDashbo
 Route::get('inventario_ti',                                    [InventarioTiController::class, 'index'])->name('inventario_ti.index');
 Route::get('inventario_ti/actas',                              [InventarioTiController::class, 'actas'])->name('inventario_ti.actas');
 Route::get('inventario_ti/actas/{acta}/imprimir',              [InventarioTiController::class, 'imprimirActa'])->name('inventario_ti.actas.imprimir');
+Route::get('inventario_ti/actas/{acta}/editar',                [InventarioTiController::class, 'editActa'])->name('inventario_ti.actas.edit');
+Route::put('inventario_ti/actas/{acta}',                       [InventarioTiController::class, 'updateActa'])->name('inventario_ti.actas.update');
 Route::delete('inventario_ti/actas/{acta}',                    [InventarioTiController::class, 'destroyActa'])->name('inventario_ti.actas.destroy');
 Route::get('inventario_ti/{id}',                               [InventarioTiController::class, 'show'])->name('inventario_ti.show');
 Route::post('inventario_ti/{id}/acta',                         [InventarioTiController::class, 'storeActa'])->name('inventario_ti.acta.store');

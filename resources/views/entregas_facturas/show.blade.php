@@ -12,6 +12,9 @@
             </span>
         </h4>
         <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ route('entregas_facturas.edit', $entrega) }}" class="btn btn-sm btn-warning">
+                <i class="bi bi-pencil-fill me-1"></i>Editar
+            </a>
             <button type="button" class="btn btn-sm btn-outline-secondary"
                     onclick="window.open('{{ route('entregas_facturas.imprimir', $entrega) }}','_blank','width=1100,height=700,scrollbars=yes,resizable=yes')">
                 <i class="bi bi-printer-fill me-1"></i>Imprimir

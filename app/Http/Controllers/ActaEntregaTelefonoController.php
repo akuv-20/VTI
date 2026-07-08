@@ -57,6 +57,20 @@ class ActaEntregaTelefonoController extends Controller
     {
         $linea->load(['emisor', 'usuario', 'empresa', 'ubicacion', 'aparato.marca']);
 
+        // Bloqueo: no permitir un acta para el mismo usuario el mismo día
+        $receptor = $linea->usuario->nombre ?? null;
+        if ($receptor) {
+            $existe = ActaEntregaTelefono::where('nombre_receptor', $receptor)
+                ->whereDate('fecha_emision', now()->toDateString())
+                ->exists();
+            if ($existe) {
+                return back()->withErrors([
+                    'acta' => "Ya existe un acta de entrega generada hoy para {$receptor}. " .
+                              "Edita la existente o genérala el día siguiente.",
+                ]);
+            }
+        }
+
         $validated = $request->validate([
             'condicion'                       => 'required|in:Nuevo,Usado',
             'accesorios.cargador_usb'         => 'nullable|in:SI,NO',
@@ -101,6 +115,62 @@ class ActaEntregaTelefonoController extends Controller
         $appLogo  = $logoPath ? Storage::url($logoPath) : null;
 
         return view('actas_entrega_telefono.imprimir', compact('acta', 'appLogo'));
+    }
+
+    public function edit(ActaEntregaTelefono $acta)
+    {
+        if ($acta->bloqueadaParaEdicion()) {
+            return redirect()->route('actas_entrega_telefono.index')
+                ->with('error', 'El acta no puede editarse: fue emitida hace más de 2 días.');
+        }
+        return view('actas_entrega_telefono.edit', compact('acta'));
+    }
+
+    public function update(Request $request, ActaEntregaTelefono $acta)
+    {
+        if ($acta->bloqueadaParaEdicion()) {
+            return redirect()->route('actas_entrega_telefono.index')
+                ->with('error', 'El acta no puede editarse: fue emitida hace más de 2 días.');
+        }
+
+        $validated = $request->validate([
+            'fecha_emision'                   => 'required|date',
+            'numero_telefono'                 => 'required|string|max:50',
+            'nombre_receptor'                 => 'nullable|string|max:150',
+            'zona'                            => 'nullable|string|max:150',
+            'marca'                           => 'nullable|string|max:100',
+            'modelo'                          => 'nullable|string|max:100',
+            'compania'                        => 'nullable|string|max:100',
+            'imei_equipo'                     => 'nullable|string|max:100',
+            'imei_sim'                        => 'nullable|string|max:100',
+            'condicion'                       => 'required|in:Nuevo,Usado',
+            'accesorios.cargador_usb'         => 'nullable|in:SI,NO',
+            'accesorios.cargador_auto'        => 'nullable|in:SI,NO',
+            'accesorios.manos_libres'         => 'nullable|in:SI,NO',
+            'accesorios.cd_informacion'       => 'nullable|in:SI,NO',
+            'documentacion.manual_propietario'=> 'nullable|in:SI,NO',
+            'documentacion.procedimiento_uso' => 'nullable|in:SI,NO',
+            'observacion'                     => 'nullable|string|max:500',
+        ]);
+
+        $acta->update([
+            'fecha_emision'   => $validated['fecha_emision'],
+            'numero_telefono' => $validated['numero_telefono'],
+            'nombre_receptor' => $validated['nombre_receptor'] ?? null,
+            'zona'            => $validated['zona'] ?? null,
+            'marca'           => $validated['marca'] ?? null,
+            'modelo'          => $validated['modelo'] ?? null,
+            'compania'        => $validated['compania'] ?? null,
+            'imei_equipo'     => $validated['imei_equipo'] ?? null,
+            'imei_sim'        => $validated['imei_sim'] ?? null,
+            'condicion'       => $validated['condicion'],
+            'accesorios'      => $validated['accesorios'] ?? [],
+            'documentacion'   => $validated['documentacion'] ?? [],
+            'observacion'     => $validated['observacion'] ?? null,
+        ]);
+
+        return redirect()->route('actas_entrega_telefono.index')
+            ->with('success', 'Acta actualizada correctamente.');
     }
 
     public function destroy(ActaEntregaTelefono $acta)

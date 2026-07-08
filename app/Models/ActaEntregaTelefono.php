@@ -36,4 +36,10 @@ class ActaEntregaTelefono extends Model
     {
         return $this->belongsTo(LineaTelefonica::class, 'id_linea_telefonica');
     }
+
+    /** El acta queda bloqueada para edición si fue emitida hace más de 2 días. */
+    public function bloqueadaParaEdicion(): bool
+    {
+        return $this->created_at && $this->created_at->lt(now()->subDays(2));
+    }
 }

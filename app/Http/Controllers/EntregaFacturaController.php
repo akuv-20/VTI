@@ -7,6 +7,7 @@ use App\Models\EntregaFacturaItem;
 use App\Models\Factura;
 use App\Models\Compania;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class EntregaFacturaController extends Controller
 {
@@ -82,6 +83,101 @@ class EntregaFacturaController extends Controller
             ->with('success', 'Entrega registrada exitosamente.');
     }
 
+    public function edit(EntregaFactura $entrega)
+    {
+        $entrega->load([
+            'items.factura.servicio.compania',
+            'items.factura.servicio.cuentaContable',
+            'items.factura.cuentaContable',
+        ]);
+
+        $companiasPorNombre = Compania::all()->keyBy('nombre');
+
+        // Facturas ya incluidas, en el mismo formato que devuelve buscarFacturas()
+        $seleccionadas = $entrega->items->map(function ($item) use ($companiasPorNombre) {
+            $f = $item->factura;
+            if (!$f) return null;
+
+            $tieneServicio = $f->id_servicio && $f->servicio;
+            $cc            = $f->cuentaContableEfectiva;
+
+            if ($tieneServicio) {
+                $nombreProv = $f->servicio->compania->nombre ?? '—';
+                $rutProv    = $f->servicio->compania->rut ?? null;
+            } else {
+                $nombreProv = $f->proveedor ?? '—';
+                $rutProv    = $f->proveedor
+                    ? ($companiasPorNombre->get($f->proveedor)?->rut ?? null)
+                    : null;
+            }
+
+            return [
+                'id'               => $f->id,
+                'factura'          => $f->factura,
+                'proveedor_rut'    => $rutProv,
+                'proveedor_nombre' => $nombreProv,
+                'descripcion'      => $tieneServicio
+                    ? ($f->descripcion ?? $f->servicio->concepto ?? $f->servicio->servicio ?? '—')
+                    : ($f->descripcion ?? '—'),
+                'cuenta_contable'  => $cc
+                    ? $cc->numero_cuenta . ' ' . $cc->nombre_cuenta
+                    : '—',
+                'valor_neto'       => $f->valor_neto,
+                'total'            => $f->total,
+                'oc'               => $f->oc,
+                'fecha_emision'    => $f->fecha_emision?->format('d/m/Y'),
+            ];
+        })->filter()->values();
+
+        return view('entregas_facturas.edit', compact('entrega', 'seleccionadas'));
+    }
+
+    public function update(Request $request, EntregaFactura $entrega)
+    {
+        $request->validate([
+            'facturas'    => 'required|array|min:1',
+            'facturas.*' => 'integer|exists:facturas,id',
+            'observacion' => 'nullable|string|max:500',
+        ], [
+            'facturas.required' => 'Debe haber al menos una factura en la entrega.',
+            'facturas.min'      => 'Debe haber al menos una factura en la entrega.',
+        ]);
+
+        // Facturas que ya están en OTRA entrega distinta a ésta
+        $yaEntregadas = EntregaFacturaItem::whereIn('id_factura', $request->facturas)
+            ->where('id_entrega', '!=', $entrega->id)
+            ->with('factura')
+            ->get();
+
+        if ($yaEntregadas->isNotEmpty()) {
+            $nums = $yaEntregadas->map(fn($i) => $i->factura->factura ?? $i->id_factura)->implode(', ');
+            return back()
+                ->withInput()
+                ->withErrors(['facturas' => "Las siguientes facturas ya están incluidas en otra entrega: {$nums}"]);
+        }
+
+        DB::transaction(function () use ($request, $entrega) {
+            $entrega->update(['observacion' => $request->observacion]);
+
+            // Reemplazar el detalle: borra y reinserta la lista actual
+            $entrega->items()->delete();
+
+            $now   = now();
+            $items = array_map(fn($id) => [
+                'id_entrega' => $entrega->id,
+                'id_factura' => $id,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ], $request->facturas);
+
+            EntregaFacturaItem::insert($items);
+        });
+
+        return redirect()
+            ->route('entregas_facturas.show', $entrega)
+            ->with('success', 'Entrega actualizada exitosamente.');
+    }
+
     public function show(EntregaFactura $entrega)
     {
         $entrega->load([
@@ -125,8 +221,18 @@ class EntregaFacturaController extends Controller
     {
         $q = trim($request->input('q', ''));
 
-        $query = Factura::with(['servicio.compania', 'cuentaContable', 'servicio.cuentaContable'])
-            ->doesntHave('entregaItem');
+        $query = Factura::with(['servicio.compania', 'cuentaContable', 'servicio.cuentaContable']);
+
+        // Disponibles = sin entrega asignada. Al editar, también las de la entrega actual.
+        $idEntrega = $request->input('entrega');
+        if ($idEntrega) {
+            $query->where(function ($sub) use ($idEntrega) {
+                $sub->doesntHave('entregaItem')
+                    ->orWhereHas('entregaItem', fn($e) => $e->where('id_entrega', $idEntrega));
+            });
+        } else {
+            $query->doesntHave('entregaItem');
+        }
 
         if (strlen($q) >= 2) {
             $query->where(function ($sub) use ($q) {

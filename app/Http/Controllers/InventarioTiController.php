@@ -200,6 +200,18 @@ class InventarioTiController extends Controller
             ]);
         }
 
+        // Bloqueo: no permitir un acta para el mismo usuario el mismo día
+        $receptor = trim($equipo->nombre_usuario);
+        $existe = ActaEntregaEquipo::where('nombre_receptor', $receptor)
+            ->whereDate('fecha_emision', now()->toDateString())
+            ->exists();
+        if ($existe) {
+            return back()->withErrors([
+                'acta' => "Ya existe un acta de entrega generada hoy para {$receptor}. " .
+                          "Edita la existente o genérala el día siguiente.",
+            ]);
+        }
+
         $validated = $request->validate([
             'condicion'           => 'required|in:Nuevo,Usado',
             'accesorios.monitor'  => 'nullable|in:SI,NO',
@@ -248,6 +260,64 @@ class InventarioTiController extends Controller
         $actas = ActaEntregaEquipo::latest()->paginate(25);
 
         return view('inventario_ti.actas', compact('actas'));
+    }
+
+    // ── Editar acta ───────────────────────────────────────────────────────────
+    public function editActa(ActaEntregaEquipo $acta)
+    {
+        if ($acta->bloqueadaParaEdicion()) {
+            return redirect()->route('inventario_ti.actas')
+                ->with('error', 'El acta no puede editarse: fue emitida hace más de 2 días.');
+        }
+        return view('inventario_ti.editar', compact('acta'));
+    }
+
+    public function updateActa(Request $request, ActaEntregaEquipo $acta)
+    {
+        if ($acta->bloqueadaParaEdicion()) {
+            return redirect()->route('inventario_ti.actas')
+                ->with('error', 'El acta no puede editarse: fue emitida hace más de 2 días.');
+        }
+
+        $validated = $request->validate([
+            'fecha_emision'       => 'required|date',
+            'nombre_equipo'       => 'required|string|max:150',
+            'nombre_receptor'     => 'nullable|string|max:150',
+            'ubicacion'           => 'nullable|string|max:200',
+            'marca'               => 'nullable|string|max:100',
+            'modelo'              => 'nullable|string|max:100',
+            'numero_serie'        => 'nullable|string|max:100',
+            'sistema_operativo'   => 'nullable|string|max:150',
+            'procesador'          => 'nullable|string|max:150',
+            'ram'                 => 'nullable|string|max:50',
+            'disco'               => 'nullable|string|max:50',
+            'condicion'           => 'required|in:Nuevo,Usado',
+            'accesorios.monitor'  => 'nullable|in:SI,NO',
+            'accesorios.mouse'    => 'nullable|in:SI,NO',
+            'accesorios.teclado'  => 'nullable|in:SI,NO',
+            'accesorios.mochila'  => 'nullable|in:SI,NO',
+            'observacion'         => 'nullable|string|max:500',
+        ]);
+
+        $acta->update([
+            'fecha_emision'     => $validated['fecha_emision'],
+            'nombre_equipo'     => $validated['nombre_equipo'],
+            'nombre_receptor'   => $validated['nombre_receptor'] ?? null,
+            'ubicacion'         => $validated['ubicacion'] ?? null,
+            'marca'             => $validated['marca'] ?? null,
+            'modelo'            => $validated['modelo'] ?? null,
+            'numero_serie'      => $validated['numero_serie'] ?? null,
+            'sistema_operativo' => $validated['sistema_operativo'] ?? null,
+            'procesador'        => $validated['procesador'] ?? null,
+            'ram'               => $validated['ram'] ?? null,
+            'disco'             => $validated['disco'] ?? null,
+            'condicion'         => $validated['condicion'],
+            'accesorios'        => $validated['accesorios'] ?? [],
+            'observacion'       => $validated['observacion'] ?? null,
+        ]);
+
+        return redirect()->route('inventario_ti.actas')
+            ->with('success', 'Acta actualizada correctamente.');
     }
 
     // ── Eliminar acta (solo admin) ───────────────────────────────────────────
