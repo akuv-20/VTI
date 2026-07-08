@@ -158,6 +158,12 @@
                                 <td class="col-monto">{{ number_format($monto, 0, ',', '.') }}</td>
                             </tr>
                         @endforeach
+                        <tr class="row-subtotal">
+                            <td colspan="3" class="text-end pe-3">
+                                Subtotal {{ $ccosto }}{{ $info['ubicacion'] ? ' — '.$info['ubicacion'] : '' }}
+                            </td>
+                            <td class="col-monto">{{ number_format($info['subtotal'] ?? collect($info['lineas'])->sum(), 0, ',', '.') }}</td>
+                        </tr>
                     </tbody>
                 @endforeach
             @endforeach
