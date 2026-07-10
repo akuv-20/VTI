@@ -10,6 +10,7 @@ class ActaDevolucionTelefono extends Model
 
     protected $fillable = [
         'id_linea_telefonica',
+        'tipo_acta',
         'fecha_emision',
         'numero_telefono',
         'nombre_receptor',

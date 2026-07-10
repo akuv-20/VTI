@@ -70,6 +70,29 @@
                             </div>
                         </div>
 
+                        {{-- Tipo de acta: Equipo+SIM o Solo SIM --}}
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Tipo de acta</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="tipo_acta" id="tipoEquipoSim"
+                                       value="equipo_sim" checked>
+                                <label class="btn btn-outline-primary" for="tipoEquipoSim">
+                                    <i class="bi bi-phone me-1"></i>Equipo + SIM
+                                </label>
+                                <input type="radio" class="btn-check" name="tipo_acta" id="tipoSoloSim"
+                                       value="solo_sim">
+                                <label class="btn btn-outline-primary" for="tipoSoloSim">
+                                    <i class="bi bi-sim me-1"></i>Solo SIM
+                                </label>
+                            </div>
+                            <div class="form-text" id="tipoActaHint">
+                                Incluye equipo físico, condición, accesorios y documentación.
+                            </div>
+                        </div>
+
+                        {{-- Bloque de equipo físico (oculto en modo Solo SIM) --}}
+                        <div id="bloqueEquipo">
+
                         {{-- Condición --}}
                         <div class="mb-4">
                             <label class="form-label fw-semibold">Condición del equipo</label>
@@ -152,6 +175,8 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        </div>{{-- /#bloqueEquipo --}}
 
                         {{-- Observación --}}
                         <div>
@@ -308,6 +333,25 @@
         btnSubmit.disabled = true;
         setTimeout(() => input.focus(), 100);
     });
+
+    // ── Tipo de acta: Equipo+SIM / Solo SIM ──
+    const bloqueEquipo = document.getElementById('bloqueEquipo');
+    const hint         = document.getElementById('tipoActaHint');
+    const filaEquipo   = document.getElementById('resEquipo')?.closest('.col-6');
+
+    function aplicarTipoActa() {
+        const soloSim = document.getElementById('tipoSoloSim')?.checked;
+        if (bloqueEquipo) bloqueEquipo.style.display = soloSim ? 'none' : 'block';
+        if (filaEquipo)   filaEquipo.style.display   = soloSim ? 'none' : '';
+        if (hint) {
+            hint.textContent = soloSim
+                ? 'Solo la SIM: número, empleado, compañía y serial de la SIM. Sin equipo físico.'
+                : 'Incluye equipo físico, condición, accesorios y documentación.';
+        }
+    }
+    document.querySelectorAll('input[name="tipo_acta"]').forEach(r =>
+        r.addEventListener('change', aplicarTipoActa));
+    aplicarTipoActa();
 
     function escapeHtml(str) {
         return String(str ?? '').replace(/[&<>"']/g, m => ({

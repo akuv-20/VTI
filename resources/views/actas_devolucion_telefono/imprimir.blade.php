@@ -325,6 +325,8 @@
     <div class="acta-band"></div>
     <div class="acta">
 
+        @php $soloSim = ($acta->tipo_acta ?? 'equipo_sim') === 'solo_sim'; @endphp
+
         {{-- Header --}}
         <div class="acta-header">
             @if(!empty($appLogo))
@@ -333,7 +335,7 @@
                 <div class="acta-logo-fallback">VTI</div>
             @endif
             <div class="acta-title-block">
-                <div class="acta-title">Acta de Devolución<br>Teléfono Móvil / Banda Ancha</div>
+                <div class="acta-title">Acta de Devolución{{ $soloSim ? ' de SIM' : '' }}<br>Teléfono Móvil / Banda Ancha</div>
                 <div class="acta-num">N° {{ str_pad($acta->id, 6, '0', STR_PAD_LEFT) }} &nbsp;·&nbsp; Emitida el {{ $acta->fecha_emision->format('d/m/Y') }}</div>
             </div>
         </div>
@@ -352,6 +354,7 @@
                 <div class="dato-label">Zona</div>
                 <div class="dato-value">{{ $acta->zona ?? '—' }}</div>
             </div>
+            @unless($soloSim)
             <div class="dato-cell">
                 <div class="dato-label">Marca</div>
                 <div class="dato-value">{{ $acta->marca ?? '—' }}</div>
@@ -360,6 +363,7 @@
                 <div class="dato-label">Modelo</div>
                 <div class="dato-value">{{ $acta->modelo ?? '—' }}</div>
             </div>
+            @endunless
             <div class="dato-cell">
                 <div class="dato-label">Compañía</div>
                 <div class="dato-value">{{ $acta->compania ?? '—' }}</div>
@@ -382,6 +386,7 @@
             @endif
         </div>
 
+        @unless($soloSim)
         {{-- Condición --}}
         <div class="section-title">Condición del Equipo Devuelto</div>
         <div class="condicion-row">
@@ -450,6 +455,7 @@
                 @endforeach
             </tbody>
         </table>
+        @endunless
 
         {{-- Observación --}}
         <div class="section-title">Observación</div>
@@ -457,11 +463,18 @@
 
         {{-- Importante --}}
         <div class="importante">
-            <strong>Importante:</strong> Con la firma de la presente acta, el empleado hace entrega formal
-            del equipo y sus accesorios, quedando liberado de la responsabilidad de custodia a partir de la
-            fecha de devolución indicada. El área de TI deja constancia de haber recibido el equipo en la
-            condición señalada. Cualquier daño, falta de accesorios o anomalía detectada queda registrada
-            en el campo de observación de este documento.
+            @if($soloSim)
+                <strong>Importante:</strong> Con la firma de la presente acta, el empleado hace entrega
+                formal de la tarjeta SIM asociada al número indicado, quedando liberado de su custodia a
+                partir de la fecha de devolución. El área de TI deja constancia de haber recibido la SIM.
+                Cualquier anomalía queda registrada en el campo de observación de este documento.
+            @else
+                <strong>Importante:</strong> Con la firma de la presente acta, el empleado hace entrega formal
+                del equipo y sus accesorios, quedando liberado de la responsabilidad de custodia a partir de la
+                fecha de devolución indicada. El área de TI deja constancia de haber recibido el equipo en la
+                condición señalada. Cualquier daño, falta de accesorios o anomalía detectada queda registrada
+                en el campo de observación de este documento.
+            @endif
         </div>
 
         {{-- Firmas --}}

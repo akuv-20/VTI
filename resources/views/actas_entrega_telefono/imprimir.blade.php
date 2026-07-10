@@ -325,6 +325,8 @@
     <div class="acta-band"></div>
     <div class="acta">
 
+        @php $soloSim = ($acta->tipo_acta ?? 'equipo_sim') === 'solo_sim'; @endphp
+
         {{-- Header --}}
         <div class="acta-header">
             @if(!empty($appLogo))
@@ -333,7 +335,7 @@
                 <div class="acta-logo-fallback">VTI</div>
             @endif
             <div class="acta-title-block">
-                <div class="acta-title">Acta de Entrega<br>Teléfono Móvil / Banda Ancha</div>
+                <div class="acta-title">Acta de Entrega{{ $soloSim ? ' de SIM' : '' }}<br>Teléfono Móvil / Banda Ancha</div>
                 <div class="acta-num">N° {{ str_pad($acta->id, 6, '0', STR_PAD_LEFT) }} &nbsp;·&nbsp; Emitida el {{ $acta->fecha_emision->format('d/m/Y') }}</div>
             </div>
         </div>
@@ -352,6 +354,7 @@
                 <div class="dato-label">Zona</div>
                 <div class="dato-value">{{ $acta->zona ?? '—' }}</div>
             </div>
+            @unless($soloSim)
             <div class="dato-cell">
                 <div class="dato-label">Marca</div>
                 <div class="dato-value">{{ $acta->marca ?? '—' }}</div>
@@ -360,6 +363,7 @@
                 <div class="dato-label">Modelo</div>
                 <div class="dato-value">{{ $acta->modelo ?? '—' }}</div>
             </div>
+            @endunless
             <div class="dato-cell">
                 <div class="dato-label">Compañía</div>
                 <div class="dato-value">{{ $acta->compania ?? '—' }}</div>
@@ -382,6 +386,7 @@
             @endif
         </div>
 
+        @unless($soloSim)
         {{-- Condición --}}
         <div class="section-title">Condición del Equipo</div>
         <div class="condicion-row">
@@ -450,6 +455,7 @@
                 @endforeach
             </tbody>
         </table>
+        @endunless
 
         {{-- Observación --}}
         <div class="section-title">Observación</div>
@@ -457,11 +463,18 @@
 
         {{-- Importante --}}
         <div class="importante">
-            <strong>Importante:</strong> El equipo entregado es de uso exclusivo laboral y debe ser
-            tratado con cuidado. Evite exponerlo a golpes, humedad o temperaturas extremas. No instale
-            aplicaciones no autorizadas ni lo use para fines personales fuera de la política de la empresa.
-            En caso de pérdida, robo o daño, informe de inmediato al área de TI. El empleado es responsable
-            del buen estado y custodia del equipo durante toda su vigencia de uso.
+            @if($soloSim)
+                <strong>Importante:</strong> Se hace entrega de la tarjeta SIM asociada al número indicado,
+                de uso exclusivo laboral. El empleado es responsable de su resguardo y del uso adecuado del
+                plan asociado. En caso de pérdida o robo de la SIM, informe de inmediato al área de TI para
+                el bloqueo correspondiente.
+            @else
+                <strong>Importante:</strong> El equipo entregado es de uso exclusivo laboral y debe ser
+                tratado con cuidado. Evite exponerlo a golpes, humedad o temperaturas extremas. No instale
+                aplicaciones no autorizadas ni lo use para fines personales fuera de la política de la empresa.
+                En caso de pérdida, robo o daño, informe de inmediato al área de TI. El empleado es responsable
+                del buen estado y custodia del equipo durante toda su vigencia de uso.
+            @endif
         </div>
 
         {{-- Firmas --}}

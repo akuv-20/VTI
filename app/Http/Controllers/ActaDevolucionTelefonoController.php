@@ -72,7 +72,8 @@ class ActaDevolucionTelefonoController extends Controller
         }
 
         $validated = $request->validate([
-            'condicion'                       => 'required|in:Nuevo,Usado',
+            'tipo_acta'                       => 'required|in:equipo_sim,solo_sim',
+            'condicion'                       => 'nullable|in:Nuevo,Usado',
             'accesorios.cargador_usb'         => 'nullable|in:SI,NO',
             'accesorios.cargador_auto'        => 'nullable|in:SI,NO',
             'accesorios.manos_libres'         => 'nullable|in:SI,NO',
@@ -82,24 +83,27 @@ class ActaDevolucionTelefonoController extends Controller
             'observacion'                     => 'nullable|string|max:500',
         ]);
 
+        $soloSim = $validated['tipo_acta'] === 'solo_sim';
+
         $zona = trim(
             ($linea->empresa->nombre ?? '') . ' - ' . ($linea->ubicacion->nombre ?? '')
         , ' -');
 
         $acta = ActaDevolucionTelefono::create([
             'id_linea_telefonica' => $linea->id,
+            'tipo_acta'           => $validated['tipo_acta'],
             'fecha_emision'       => now()->toDateString(),
             'numero_telefono'     => $linea->linea,
             'nombre_receptor'     => $linea->usuario->nombre ?? null,
             'zona'                => $zona ?: null,
-            'marca'               => $linea->aparato?->marca?->nombre,
-            'modelo'              => $linea->aparato?->modelo,
+            'marca'               => $soloSim ? null : $linea->aparato?->marca?->nombre,
+            'modelo'              => $soloSim ? null : $linea->aparato?->modelo,
             'compania'            => $linea->emisor?->nombre,
-            'imei_equipo'         => $linea->imei_equipo,
+            'imei_equipo'         => $soloSim ? null : $linea->imei_equipo,
             'imei_sim'            => $linea->imei_sim,
-            'condicion'           => $validated['condicion'],
-            'accesorios'          => $validated['accesorios'] ?? [],
-            'documentacion'       => $validated['documentacion'] ?? [],
+            'condicion'           => $soloSim ? null : ($validated['condicion'] ?? null),
+            'accesorios'          => $soloSim ? [] : ($validated['accesorios'] ?? []),
+            'documentacion'       => $soloSim ? [] : ($validated['documentacion'] ?? []),
             'observacion'         => $validated['observacion'] ?? null,
             'impreso_por'         => auth()->user()->name,
         ]);
