@@ -459,6 +459,19 @@
                         </div>
                     </div>
 
+                    {{-- Tipo de acta --}}
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Tipo de acta</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="tipo_acta" id="tipoEqEnt" value="equipo_sim" checked>
+                            <label class="btn btn-outline-success" for="tipoEqEnt"><i class="bi bi-phone me-1"></i>Equipo + SIM</label>
+                            <input type="radio" class="btn-check" name="tipo_acta" id="tipoSimEnt" value="solo_sim">
+                            <label class="btn btn-outline-success" for="tipoSimEnt"><i class="bi bi-sim me-1"></i>Solo SIM</label>
+                        </div>
+                        <div class="form-text" id="hintEnt">Incluye equipo físico, condición, accesorios y documentación.</div>
+                    </div>
+
+                    <div id="bloqueEquipoEnt">
                     {{-- Condición --}}
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Condición del equipo</label>
@@ -542,6 +555,8 @@
                         </table>
                     </div>
 
+                    </div>{{-- /#bloqueEquipoEnt --}}
+
                     {{-- Observación --}}
                     <div>
                         <label for="observacionActa" class="form-label fw-semibold">Observación</label>
@@ -607,6 +622,19 @@
                         </div>
                     </div>
 
+                    {{-- Tipo de acta --}}
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Tipo de acta</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="tipo_acta" id="tipoEqDev" value="equipo_sim" checked>
+                            <label class="btn btn-outline-warning" for="tipoEqDev"><i class="bi bi-phone me-1"></i>Equipo + SIM</label>
+                            <input type="radio" class="btn-check" name="tipo_acta" id="tipoSimDev" value="solo_sim">
+                            <label class="btn btn-outline-warning" for="tipoSimDev"><i class="bi bi-sim me-1"></i>Solo SIM</label>
+                        </div>
+                        <div class="form-text" id="hintDev">Incluye equipo físico, condición, accesorios y documentación.</div>
+                    </div>
+
+                    <div id="bloqueEquipoDev">
                     {{-- Condición --}}
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Condición del equipo devuelto</label>
@@ -690,6 +718,8 @@
                         </table>
                     </div>
 
+                    </div>{{-- /#bloqueEquipoDev --}}
+
                     {{-- Observación --}}
                     <div>
                         <label for="observacionActaDev" class="form-label fw-semibold">Observación</label>
@@ -752,5 +782,24 @@ function vtiModalConFallback(modalId, btnId) {
 
 vtiModalConFallback('modalActaEntrega',    'btnAbrirActaEntrega');
 vtiModalConFallback('modalActaDevolucion', 'btnAbrirActaDevolucion');
+
+// ── Switch Tipo de acta (Equipo+SIM / Solo SIM) en cada modal ──
+function vtiToggleTipoActa(radioSoloSimId, bloqueId, hintId) {
+    const bloque = document.getElementById(bloqueId);
+    const hint   = document.getElementById(hintId);
+    function aplicar() {
+        const soloSim = document.getElementById(radioSoloSimId)?.checked;
+        if (bloque) bloque.style.display = soloSim ? 'none' : 'block';
+        if (hint) hint.textContent = soloSim
+            ? 'Solo la SIM: número, empleado, compañía y serial de la SIM. Sin equipo físico.'
+            : 'Incluye equipo físico, condición, accesorios y documentación.';
+    }
+    // Escucha ambos radios del grupo que comparte el "Solo SIM"
+    document.getElementById(radioSoloSimId)?.closest('.btn-group')
+        ?.querySelectorAll('input[type="radio"]').forEach(r => r.addEventListener('change', aplicar));
+    aplicar();
+}
+vtiToggleTipoActa('tipoSimEnt', 'bloqueEquipoEnt', 'hintEnt');
+vtiToggleTipoActa('tipoSimDev', 'bloqueEquipoDev', 'hintDev');
 </script>
 @endpush

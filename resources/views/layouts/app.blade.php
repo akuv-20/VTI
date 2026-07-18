@@ -658,7 +658,7 @@
             @endif
 
             {{-- ── Telefonía ── --}}
-            @if($ta('lineas_telefonicas.index') || $ta('emisores.index') || $ta('usuarios_telefonicos.index') || $ta('ubicaciones.index') || $ta('marcas.index') || $ta('aparatos.index') || $ta('centros_costo.index') || $ta('importaciones_movistar.index') || $ta('importaciones_entel.index') || $ta('importaciones_wom.index') || $ta('informes.telefonia') || $ta('actas_entrega_telefono.index') || $ta('actas_devolucion_telefono.index'))
+            @if($ta('lineas_telefonicas.index') || $ta('roamings.index') || $ta('emisores.index') || $ta('usuarios_telefonicos.index') || $ta('ubicaciones.index') || $ta('marcas.index') || $ta('aparatos.index') || $ta('centros_costo.index') || $ta('importaciones_movistar.index') || $ta('importaciones_entel.index') || $ta('importaciones_wom.index') || $ta('informes.telefonia') || $ta('actas_entrega_telefono.index') || $ta('actas_devolucion_telefono.index'))
             <div class="vti-nav-group" data-group="telefonia">
                 <button type="button" class="vti-nav-group-toggle">
                     <i class="bi bi-phone"></i><span class="sb-text">Telefonía</span>
@@ -669,6 +669,13 @@
                     <a href="{{ route('lineas_telefonicas.index') }}" class="vti-nav-link {{ request()->routeIs('lineas_telefonicas.*') ? 'active' : '' }}">
                         <i class="bi bi-telephone-fill"></i>Líneas Telefónicas
                     </a>
+                    @endif
+                    @if($ta('roamings.index'))
+                    <a href="{{ route('roamings.index') }}" class="vti-nav-link {{ request()->routeIs('roamings.*') ? 'active' : '' }}">
+                        <i class="bi bi-globe-americas"></i>Roamings
+                    </a>
+                    @endif
+                    @if($ta('lineas_telefonicas.index') || $ta('roamings.index'))
                     <div class="vti-nav-divider"></div>
                     @endif
                     @if($ta('emisores.index'))
@@ -763,10 +770,10 @@
             @endif
 
             {{-- ── Active Directory ── --}}
-            @if(auth()->user()->can('acceso_ad') || auth()->user()->can('acceso_ad2'))
+            @if(auth()->user()->can('acceso_ad') || auth()->user()->can('acceso_ad2') || auth()->user()->can('acceso_entra'))
             <div class="vti-nav-group" data-group="ad">
                 <button type="button" class="vti-nav-group-toggle">
-                    <i class="bi bi-diagram-3-fill"></i><span class="sb-text">Active Directory</span>
+                    <i class="bi bi-diagram-3-fill"></i><span class="sb-text">AD | EntraID</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="vti-nav-group-items">
@@ -778,6 +785,11 @@
                     @can('acceso_ad2')
                     <a href="{{ route('admin.active_directory2.index') }}" class="vti-nav-link {{ request()->routeIs('admin.active_directory2.*') ? 'active' : '' }}">
                         <i class="bi bi-diagram-3"></i>AD Grupo Verfrut (Perú)
+                    </a>
+                    @endcan
+                    @can('acceso_entra')
+                    <a href="{{ route('admin.entra_id.index') }}" class="vti-nav-link {{ request()->routeIs('admin.entra_id.*') ? 'active' : '' }}">
+                        <i class="bi bi-microsoft"></i>Entra ID
                     </a>
                     @endcan
                 </div>
@@ -839,6 +851,7 @@
             'importaciones_wom.plantilla' => ['Telefonía', 'Plantilla WOM'],
             'importaciones_wom'           => ['Telefonía', 'Importaciones WOM'],
             'informes.telefonia'          => ['Telefonía', 'Informe Telefonía'],
+            'roamings'                    => ['Telefonía', 'Roamings'],
             'actas_entrega_telefono'      => ['Telefonía', 'Actas de Entrega'],
             'actas_devolucion_telefono'   => ['Telefonía', 'Actas de Devolución'],
             'inventario_ti.dashboard'     => ['Inventario TI', 'Dashboard'],
@@ -846,6 +859,7 @@
             'inventario_ti'               => ['Inventario TI', 'Equipos'],
             'admin.active_directory2'     => ['Active Directory', 'AD Grupo Verfrut (Perú)'],
             'admin.active_directory'      => ['Active Directory', 'AD Verfrut'],
+            'admin.entra_id'              => ['Active Directory', 'Entra ID'],
             'admin.usuarios'              => ['Admin', 'Usuarios'],
             'admin.configuracion'         => ['Admin', 'Configuración'],
             'home'                        => [null, 'Inicio'],

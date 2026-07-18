@@ -111,6 +111,11 @@ class AppServiceProvider extends ServiceProvider
             return $user->tieneAcceso('admin.active_directory2.index');
         });
 
+        Gate::define('acceso_entra', function ($user) {
+            if (!$user->activo) return false;
+            return $user->tieneAcceso('admin.entra_id.index');
+        });
+
         // Compartir configuraciones globales con todas las vistas
         View::composer('*', function ($view) {
             try {

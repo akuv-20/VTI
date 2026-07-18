@@ -21,12 +21,14 @@ use App\Http\Controllers\ImportacionWomController;
 use App\Http\Controllers\EntregaFacturaController;
 use App\Http\Controllers\ActaEntregaTelefonoController;
 use App\Http\Controllers\ActaDevolucionTelefonoController;
+use App\Http\Controllers\RoamingController;
 use App\Http\Controllers\InventarioTiController;
 use App\Http\Controllers\InventarioDashboardController;
 use App\Http\Controllers\Admin\UsuarioController as AdminUsuarioController;
 use App\Http\Controllers\Admin\ConfiguracionController as AdminConfiguracionController;
 use App\Http\Controllers\Admin\ActiveDirectoryController as AdminADController;
 use App\Http\Controllers\Admin\ActiveDirectory2Controller as AdminAD2Controller;
+use App\Http\Controllers\Admin\EntraIDController as AdminEntraIDController;
 use App\Http\Controllers\Auth\AzureController;
 
 // Route::get('/', function () {
@@ -75,6 +77,14 @@ Route::resource('centros_costo', CentroCostoController::class);
 Route::post('lineas_telefonicas/reprocesar_ccosto', [LineaTelefonicaController::class, 'reprocesarCentroCosto'])->name('lineas_telefonicas.reprocesar_ccosto');
 Route::resource('lineas_telefonicas', LineaTelefonicaController::class);
 Route::get('informes/telefonia', [InformeController::class, 'telefonia'])->name('informes.telefonia');
+
+// ── Roamings ─────────────────────────────────────────────────────────────────
+Route::get('roamings/buscar-lineas',        [RoamingController::class, 'buscarLineas'])->name('roamings.buscar_lineas');
+Route::get('roamings',                      [RoamingController::class, 'index'])->name('roamings.index');
+Route::post('roamings/linea/{linea}',       [RoamingController::class, 'store'])->name('roamings.store');
+Route::patch('roamings/{roaming}/cerrar',   [RoamingController::class, 'cerrar'])->name('roamings.cerrar');
+Route::patch('roamings/{roaming}/archivar', [RoamingController::class, 'archivar'])->name('roamings.archivar');
+Route::delete('roamings/{roaming}',         [RoamingController::class, 'destroy'])->name('roamings.destroy');
 
 // ── Actas de Entrega Teléfono ────────────────────────────────────────────────
 Route::get('actas_entrega_telefono/buscar-lineas', [ActaEntregaTelefonoController::class, 'buscarLineas'])->name('actas_entrega_telefono.buscar_lineas');
@@ -142,6 +152,15 @@ Route::middleware(['auth', 'can:acceso_ad'])->prefix('admin')->name('admin.')->g
         Route::post('/{username}/reset-password', [AdminADController::class, 'resetPassword'])->name('reset-password');
     });
 
+});
+
+// ── Entra ID / Microsoft 365 ──────────────────────────────────────────────────
+Route::middleware(['auth', 'can:acceso_entra'])->prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('entra-id')->name('entra_id.')->group(function () {
+        Route::get('/',                          [AdminEntraIDController::class, 'index'])->name('index');
+        Route::get('/inspector',                 [AdminEntraIDController::class, 'inspector'])->name('inspector');
+        Route::get('/inspector/{campo}',         [AdminEntraIDController::class, 'inspectorDetalle'])->name('inspector.detalle');
+    });
 });
 
 // ── Active Directory Grupo Verfrut Perú (admins + usuarios con permiso AD2) ──
