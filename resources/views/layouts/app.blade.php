@@ -788,13 +788,58 @@
                     </a>
                     @endcan
                     @can('acceso_entra')
-                    <a href="{{ route('admin.entra_id.index') }}" class="vti-nav-link {{ request()->routeIs('admin.entra_id.*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.entra_id.index') }}" class="vti-nav-link {{ request()->routeIs('admin.entra_id.index') ? 'active' : '' }}">
                         <i class="bi bi-microsoft"></i>Entra ID
+                    </a>
+                    <a href="{{ route('admin.entra_id.dashboard') }}" class="vti-nav-link {{ request()->routeIs('admin.entra_id.dashboard') ? 'active' : '' }}">
+                        <i class="bi bi-heart-pulse"></i>Salud de datos
+                    </a>
+                    <a href="{{ route('admin.entra_id.inspector') }}" class="vti-nav-link {{ request()->routeIs('admin.entra_id.inspector*') ? 'active' : '' }}">
+                        <i class="bi bi-clipboard2-data"></i>Value Inspector
                     </a>
                     @endcan
                 </div>
             </div>
             @endif
+
+            {{-- ── Monitoreo ── --}}
+            @can('acceso_monitoreo')
+            <div class="vti-nav-group" data-group="monitoreo">
+                <button type="button" class="vti-nav-group-toggle">
+                    <i class="bi bi-broadcast-pin"></i><span class="sb-text">Monitoreo</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="vti-nav-group-items">
+                    <a href="{{ route('admin.monitoreo.mapas.index') }}" class="vti-nav-link {{ request()->routeIs('admin.monitoreo.mapas.*') ? 'active' : '' }}">
+                        <i class="bi bi-diagram-2"></i>Mapa de red
+                    </a>
+                </div>
+            </div>
+            @endcan
+
+            {{-- ── KPIs ── --}}
+            @can('acceso_kpi')
+            <div class="vti-nav-group" data-group="kpi">
+                <button type="button" class="vti-nav-group-toggle">
+                    <i class="bi bi-graph-up-arrow"></i><span class="sb-text">KPIs</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="vti-nav-group-items">
+                    <a href="{{ route('admin.kpi.disponibilidad.dashboard') }}" class="vti-nav-link {{ request()->routeIs('admin.kpi.disponibilidad.dashboard') ? 'active' : '' }}">
+                        <i class="bi bi-activity"></i>Disponibilidad
+                    </a>
+                    <a href="{{ route('admin.kpi.disponibilidad.servicios') }}" class="vti-nav-link {{ request()->routeIs('admin.kpi.disponibilidad.servicios') ? 'active' : '' }}">
+                        <i class="bi bi-hdd-stack"></i>Servicios críticos
+                    </a>
+                    <a href="{{ route('admin.kpi.disponibilidad.excepciones') }}" class="vti-nav-link {{ request()->routeIs('admin.kpi.disponibilidad.excepciones') ? 'active' : '' }}">
+                        <i class="bi bi-shield-check"></i>Excepciones
+                    </a>
+                    <a href="{{ route('admin.kpi.disponibilidad.informe') }}" class="vti-nav-link {{ request()->routeIs('admin.kpi.disponibilidad.informe') ? 'active' : '' }}">
+                        <i class="bi bi-file-earmark-bar-graph"></i>Informe anual
+                    </a>
+                </div>
+            </div>
+            @endcan
 
             {{-- ── Admin ── --}}
             @can('admin')
@@ -859,7 +904,10 @@
             'inventario_ti'               => ['Inventario TI', 'Equipos'],
             'admin.active_directory2'     => ['Active Directory', 'AD Grupo Verfrut (Perú)'],
             'admin.active_directory'      => ['Active Directory', 'AD Verfrut'],
-            'admin.entra_id'              => ['Active Directory', 'Entra ID'],
+            'admin.entra_id.dashboard'    => ['AD | EntraID', 'Salud de datos'],
+            'admin.entra_id.inspector'    => ['AD | EntraID', 'Value Inspector'],
+            'admin.entra_id'              => ['AD | EntraID', 'Entra ID'],
+            'admin.monitoreo.mapas'       => ['Monitoreo', 'Mapa de red'],
             'admin.usuarios'              => ['Admin', 'Usuarios'],
             'admin.configuracion'         => ['Admin', 'Configuración'],
             'home'                        => [null, 'Inicio'],

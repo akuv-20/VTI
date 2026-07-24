@@ -116,6 +116,16 @@ class AppServiceProvider extends ServiceProvider
             return $user->tieneAcceso('admin.entra_id.index');
         });
 
+        Gate::define('acceso_kpi', function ($user) {
+            if (!$user->activo) return false;
+            return $user->tieneAcceso('admin.kpi.disponibilidad.dashboard');
+        });
+
+        Gate::define('acceso_monitoreo', function ($user) {
+            if (!$user->activo) return false;
+            return $user->tieneAcceso('admin.monitoreo.mapas.index');
+        });
+
         // Compartir configuraciones globales con todas las vistas
         View::composer('*', function ($view) {
             try {

@@ -29,6 +29,8 @@ use App\Http\Controllers\Admin\ConfiguracionController as AdminConfiguracionCont
 use App\Http\Controllers\Admin\ActiveDirectoryController as AdminADController;
 use App\Http\Controllers\Admin\ActiveDirectory2Controller as AdminAD2Controller;
 use App\Http\Controllers\Admin\EntraIDController as AdminEntraIDController;
+use App\Http\Controllers\Admin\KpiDisponibilidadController as AdminKpiDisponibilidadController;
+use App\Http\Controllers\Admin\MonitoreoMapaController as AdminMonitoreoMapaController;
 use App\Http\Controllers\Auth\AzureController;
 
 // Route::get('/', function () {
@@ -138,6 +140,7 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::post('configuracion',           [AdminConfiguracionController::class, 'update'])->name('configuracion.update');
     Route::post('configuracion/test-ldap', [AdminConfiguracionController::class, 'testLdap'])->name('configuracion.test-ldap');
     Route::post('configuracion/test-glpi', [AdminConfiguracionController::class, 'testGlpi'])->name('configuracion.test-glpi');
+    Route::post('configuracion/test-checkmk', [AdminConfiguracionController::class, 'testCheckmk'])->name('configuracion.test-checkmk');
 });
 
 // ── Active Directory (admins + usuarios con permiso AD) ───────────────────────
@@ -158,10 +161,66 @@ Route::middleware(['auth', 'can:acceso_ad'])->prefix('admin')->name('admin.')->g
 Route::middleware(['auth', 'can:acceso_entra'])->prefix('admin')->name('admin.')->group(function () {
     Route::prefix('entra-id')->name('entra_id.')->group(function () {
         Route::get('/',                          [AdminEntraIDController::class, 'index'])->name('index');
+        Route::get('/datos',                     [AdminEntraIDController::class, 'datos'])->name('datos');
+        Route::get('/dashboard',                 [AdminEntraIDController::class, 'dashboard'])->name('dashboard');
+        Route::get('/hallazgos/{regla}',         [AdminEntraIDController::class, 'hallazgos'])->name('hallazgos');
+        Route::get('/reglas',                    [AdminEntraIDController::class, 'reglas'])->name('reglas');
+        Route::post('/reglas',                   [AdminEntraIDController::class, 'reglaStore'])->name('reglas.store');
+        Route::put('/reglas/{regla}',            [AdminEntraIDController::class, 'reglaUpdate'])->name('reglas.update');
+        Route::post('/reglas/{regla}/toggle',    [AdminEntraIDController::class, 'reglaToggle'])->name('reglas.toggle');
+        Route::delete('/reglas/{regla}',         [AdminEntraIDController::class, 'reglaDestroy'])->name('reglas.destroy');
         Route::get('/inspector',                 [AdminEntraIDController::class, 'inspector'])->name('inspector');
         Route::get('/inspector/{campo}',         [AdminEntraIDController::class, 'inspectorDetalle'])->name('inspector.detalle');
     });
 });
+
+// ── KPI Disponibilidad (CheckMK) ─────────────────────────────────────────────
+Route::middleware(['auth', 'can:acceso_kpi'])->prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('kpi/disponibilidad')->name('kpi.disponibilidad.')->group(function () {
+        Route::get('/',                              [AdminKpiDisponibilidadController::class, 'dashboard'])->name('dashboard');
+        Route::get('/servicios',                     [AdminKpiDisponibilidadController::class, 'servicios'])->name('servicios');
+        Route::post('/servicios',                    [AdminKpiDisponibilidadController::class, 'servicioStore'])->name('servicios.store');
+        Route::put('/servicios/{servicio}',          [AdminKpiDisponibilidadController::class, 'servicioUpdate'])->name('servicios.update');
+        Route::post('/servicios/{servicio}/toggle',  [AdminKpiDisponibilidadController::class, 'servicioToggle'])->name('servicios.toggle');
+        Route::delete('/servicios/{servicio}',       [AdminKpiDisponibilidadController::class, 'servicioDestroy'])->name('servicios.destroy');
+        Route::get('/explorar',                      [AdminKpiDisponibilidadController::class, 'explorar'])->name('explorar');
+        Route::get('/excepciones',                   [AdminKpiDisponibilidadController::class, 'excepciones'])->name('excepciones');
+        Route::post('/excepciones',                  [AdminKpiDisponibilidadController::class, 'excepcionStore'])->name('excepciones.store');
+        Route::put('/excepciones/{excepcion}',       [AdminKpiDisponibilidadController::class, 'excepcionUpdate'])->name('excepciones.update');
+        Route::post('/excepciones/{excepcion}/toggle', [AdminKpiDisponibilidadController::class, 'excepcionToggle'])->name('excepciones.toggle');
+        Route::delete('/excepciones/{excepcion}',    [AdminKpiDisponibilidadController::class, 'excepcionDestroy'])->name('excepciones.destroy');
+        Route::post('/capturar',                     [AdminKpiDisponibilidadController::class, 'capturar'])->name('capturar');
+        Route::put('/snapshot/{snapshot}',           [AdminKpiDisponibilidadController::class, 'snapshotUpdate'])->name('snapshot.update');
+        Route::get('/informe',                       [AdminKpiDisponibilidadController::class, 'informe'])->name('informe');
+    });
+});
+
+// ── Monitoreo: mapa de red en vivo (CheckMK) ─────────────────────────────────
+Route::middleware(['auth', 'can:acceso_monitoreo'])->prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('monitoreo')->name('monitoreo.')->group(function () {
+        Route::get('mapas',                     [AdminMonitoreoMapaController::class, 'index'])->name('mapas.index');
+        Route::post('mapas',                    [AdminMonitoreoMapaController::class, 'store'])->name('mapas.store');
+        Route::get('mapas/hosts',               [AdminMonitoreoMapaController::class, 'hosts'])->name('mapas.hosts');
+        Route::post('mapas/tv-token',           [AdminMonitoreoMapaController::class, 'tvTokenRegenerar'])->name('mapas.tv_token');
+        Route::get('mapas/{mapa}',              [AdminMonitoreoMapaController::class, 'show'])->name('mapas.show');
+        Route::post('mapas/{mapa}/tecnicos',    [AdminMonitoreoMapaController::class, 'tecnicos'])->name('mapas.tecnicos');
+        Route::post('mapas/{mapa}/tv-token',    [AdminMonitoreoMapaController::class, 'tvTokenMapa'])->name('mapas.tv_token_mapa');
+        Route::put('mapas/{mapa}',              [AdminMonitoreoMapaController::class, 'update'])->name('mapas.update');
+        Route::delete('mapas/{mapa}',           [AdminMonitoreoMapaController::class, 'destroy'])->name('mapas.destroy');
+        Route::get('mapas/{mapa}/estado',       [AdminMonitoreoMapaController::class, 'estado'])->name('mapas.estado');
+        Route::get('mapas/{mapa}/preview',      [AdminMonitoreoMapaController::class, 'preview'])->name('mapas.preview');
+        Route::post('mapas/{mapa}/nodos',       [AdminMonitoreoMapaController::class, 'nodoStore'])->name('mapas.nodos.store');
+        Route::put('nodos/{nodo}',              [AdminMonitoreoMapaController::class, 'nodoUpdate'])->name('mapas.nodos.update');
+        Route::delete('nodos/{nodo}',           [AdminMonitoreoMapaController::class, 'nodoDestroy'])->name('mapas.nodos.destroy');
+        Route::post('mapas/{mapa}/enlaces',     [AdminMonitoreoMapaController::class, 'enlaceStore'])->name('mapas.enlaces.store');
+        Route::put('enlaces/{enlace}',          [AdminMonitoreoMapaController::class, 'enlaceUpdate'])->name('mapas.enlaces.update');
+        Route::delete('enlaces/{enlace}',       [AdminMonitoreoMapaController::class, 'enlaceDestroy'])->name('mapas.enlaces.destroy');
+    });
+});
+
+// Modo TV público (sin login; autenticado por token largo regenerable)
+Route::get('monitoreo/tv/{token}',               [AdminMonitoreoMapaController::class, 'tv'])->name('monitoreo.tv');
+Route::get('monitoreo/tv/{token}/estado/{mapa}', [AdminMonitoreoMapaController::class, 'tvEstado'])->name('monitoreo.tv.estado');
 
 // ── Active Directory Grupo Verfrut Perú (admins + usuarios con permiso AD2) ──
 Route::middleware(['auth', 'can:acceso_ad2'])->prefix('admin')->name('admin.')->group(function () {

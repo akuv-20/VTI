@@ -46,7 +46,13 @@ class ConfiguracionController extends Controller
             'username' => Configuracion::get('glpi_db_username', env('GLPI_DB_USERNAME', '')),
         ];
 
-        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'favicon', 'azureCfg', 'ldapCfg', 'ldap2Cfg', 'glpiCfg'));
+        $checkmkCfg = [
+            'url'  => Configuracion::get('checkmk_url',  env('CHECKMK_URL',  '')),
+            'site' => Configuracion::get('checkmk_site', env('CHECKMK_SITE', '')),
+            'user' => Configuracion::get('checkmk_user', env('CHECKMK_USER', '')),
+        ];
+
+        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'favicon', 'azureCfg', 'ldapCfg', 'ldap2Cfg', 'glpiCfg', 'checkmkCfg'));
     }
 
     public function update(Request $request)
@@ -246,7 +252,34 @@ class ConfiguracionController extends Controller
             return back()->with('success', 'Configuración de Active Directory (Grupo Verfrut Perú) guardada.');
         }
 
+        // ── CheckMK (KPI de disponibilidad) ──────────────────────────────────
+        if ($request->input('seccion') === 'checkmk') {
+            $request->validate([
+                'checkmk_url'  => 'required|string|max:255',
+                'checkmk_site' => 'required|string|max:100',
+                'checkmk_user' => 'required|string|max:100',
+            ]);
+
+            Configuracion::set('checkmk_url',  rtrim(trim($request->input('checkmk_url')), '/'));
+            Configuracion::set('checkmk_site', trim($request->input('checkmk_site')));
+            Configuracion::set('checkmk_user', trim($request->input('checkmk_user')));
+
+            if ($request->filled('checkmk_secret')) {
+                Configuracion::set('checkmk_secret', trim($request->input('checkmk_secret')));
+            }
+
+            return back()->with('success', 'Configuración de CheckMK guardada.');
+        }
+
         return back()->with('success', 'Configuración guardada.');
+    }
+
+    /** Test de conexión CheckMK — responde JSON (usa la config guardada) */
+    public function testCheckmk(Request $request)
+    {
+        $resultado = (new \App\Services\CheckMkClient())->probarConexion();
+
+        return response()->json($resultado);
     }
 
     /** Test de conexión BD GLPI — responde JSON */

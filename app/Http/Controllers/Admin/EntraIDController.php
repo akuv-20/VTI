@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Configuracion;
+use App\Models\EntraRegla;
+use App\Services\EntraAuditor;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Http;
@@ -47,6 +49,18 @@ class EntraIDController extends Controller
     }
 
     // ── Listado de usuarios ───────────────────────────────────────────────────
+
+    public function datos(Request $request)
+    {
+        try {
+            $token  = $this->getAccessToken();
+            $todos  = Cache::remember(self::CACHE_USERS_KEY, self::CACHE_USERS_TTL, fn() => $this->fetchFromGraph($token));
+            return response()->json($todos->values());
+        } catch (\Throwable $e) {
+            Cache::forget('entra_id_token');
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 
     public function index(Request $request)
     {
@@ -123,38 +137,211 @@ class EntraIDController extends Controller
         'userType' => ['Member', 'Guest'],
     ];
 
+    private function computeResumen(\Illuminate\Support\Collection $todos): array
+    {
+        $resumen = [];
+        foreach ($this->camposInspector as $campo => $etiqueta) {
+            $esperados = $this->valoresEsperados[$campo] ?? null;
+
+            $grupos = $todos
+                ->groupBy(fn($u) => $u[$campo] ?? '')
+                ->map(fn($grupo, $valor) => [
+                    'valor'         => $valor,
+                    'count'         => $grupo->count(),
+                    'inconsistente' => $esperados !== null && $valor !== '' && !in_array($valor, $esperados),
+                    'vacio'         => $valor === '',
+                ])
+                ->sortByDesc('count')
+                ->values();
+
+            $resumen[$campo] = [
+                'etiqueta'    => $etiqueta,
+                'valores'     => $grupos,
+                'tiene_regla' => $esperados !== null,
+                'total_ok'    => $grupos->filter(fn($g) => !$g['vacio'] && !$g['inconsistente'])->sum('count'),
+                'total_vacio' => $grupos->filter(fn($g) => $g['vacio'])->sum('count'),
+                'total_inc'   => $grupos->filter(fn($g) => $g['inconsistente'])->sum('count'),
+            ];
+        }
+        return $resumen;
+    }
+
+    public function dashboard(Request $request)
+    {
+        try {
+            $token = $this->getAccessToken();
+            [$todos, $tieneSignIn] = $this->fetchUsuariosConActividad($token);
+
+            $total          = $todos->count();
+            $habilitados    = $todos->filter(fn($u) => ($u['accountEnabled'] ?? true) !== false)->count();
+            $deshabilitados = $total - $habilitados;
+
+            $reglas    = EntraRegla::activas()->ordenadas()->get();
+            $auditor   = new EntraAuditor($todos, $tieneSignIn);
+            $resultados = collect($auditor->evaluar($reglas));
+
+            // Puntuación global: promedio de las reglas que sí se pudieron evaluar
+            $evaluables  = $resultados->filter(fn($r) => $r['disponible']);
+            $scoreGlobal = $evaluables->isEmpty() ? 100.0 : round($evaluables->avg('score'), 1);
+
+            $totalHallazgos = $evaluables->sum('fallos');
+
+            return view('admin.entra_id.dashboard', [
+                'resultados'     => $resultados,
+                'total'          => $total,
+                'habilitados'    => $habilitados,
+                'deshabilitados' => $deshabilitados,
+                'scoreGlobal'    => $scoreGlobal,
+                'totalHallazgos' => $totalHallazgos,
+                'tieneSignIn'    => $tieneSignIn,
+            ]);
+
+        } catch (\Throwable $e) {
+            Cache::forget('entra_id_token');
+            return view('admin.entra_id.dashboard', [
+                'resultados'     => collect(),
+                'total'          => 0,
+                'habilitados'    => 0,
+                'deshabilitados' => 0,
+                'scoreGlobal'    => 0,
+                'totalHallazgos' => 0,
+                'tieneSignIn'    => false,
+                'graphError'     => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /** Detalle de las cuentas que incumplen una regla. */
+    public function hallazgos(Request $request, EntraRegla $regla)
+    {
+        try {
+            $token = $this->getAccessToken();
+            [$todos, $tieneSignIn] = $this->fetchUsuariosConActividad($token);
+
+            $auditor   = new EntraAuditor($todos, $tieneSignIn);
+            $resultado = $auditor->evaluarRegla($regla);
+
+            return view('admin.entra_id.hallazgos', [
+                'regla'     => $regla,
+                'resultado' => $resultado,
+            ]);
+
+        } catch (\Throwable $e) {
+            Cache::forget('entra_id_token');
+            return back()->withErrors([$e->getMessage()]);
+        }
+    }
+
+    // ── CRUD de reglas ───────────────────────────────────────────────────────
+
+    public function reglas()
+    {
+        return view('admin.entra_id.reglas', [
+            'reglas' => EntraRegla::ordenadas()->get(),
+        ]);
+    }
+
+    public function reglaStore(Request $request)
+    {
+        $data = $this->validarRegla($request);
+        EntraRegla::create($data);
+
+        return redirect()->route('admin.entra_id.reglas')
+            ->with('success', 'Regla creada.');
+    }
+
+    public function reglaUpdate(Request $request, EntraRegla $regla)
+    {
+        $data = $this->validarRegla($request);
+        $regla->update($data);
+
+        return redirect()->route('admin.entra_id.reglas')
+            ->with('success', 'Regla actualizada.');
+    }
+
+    public function reglaToggle(EntraRegla $regla)
+    {
+        $regla->update(['activa' => !$regla->activa]);
+
+        return back()->with('success', $regla->activa ? 'Regla activada.' : 'Regla desactivada.');
+    }
+
+    public function reglaDestroy(EntraRegla $regla)
+    {
+        $regla->delete();
+
+        return redirect()->route('admin.entra_id.reglas')
+            ->with('success', 'Regla eliminada.');
+    }
+
+    private function validarRegla(Request $request): array
+    {
+        $validated = $request->validate([
+            'tipo'             => ['required', 'in:' . implode(',', array_keys(EntraRegla::TIPOS))],
+            'campo'            => ['nullable', 'in:' . implode(',', array_keys(EntraRegla::CAMPOS))],
+            'etiqueta'         => ['required', 'string', 'max:150'],
+            'descripcion'      => ['nullable', 'string', 'max:500'],
+            'severidad'        => ['required', 'in:error,advertencia'],
+            'solo_habilitados' => ['nullable', 'boolean'],
+            'orden'            => ['nullable', 'integer', 'min:0', 'max:9999'],
+            // Config según tipo
+            'valores'          => ['nullable', 'string'],   // separados por coma o salto de línea
+            'campos_dup'       => ['nullable', 'array'],
+            'campos_dup.*'     => ['in:' . implode(',', array_keys(EntraRegla::CAMPOS))],
+            'dias'             => ['nullable', 'integer', 'min:1', 'max:3650'],
+        ]);
+
+        $tipo = $validated['tipo'];
+
+        // El campo es obligatorio solo para los tipos que lo requieren
+        if (EntraRegla::TIPOS[$tipo]['requiere_campo'] && empty($validated['campo'])) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'campo' => 'Este tipo de regla necesita un campo.',
+            ]);
+        }
+
+        $config = match ($tipo) {
+            'valores_permitidos' => [
+                'valores' => collect(preg_split('/[\r\n,;]+/', $validated['valores'] ?? ''))
+                    ->map(fn($v) => trim($v))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all(),
+            ],
+            'sin_duplicados' => [
+                'campos' => $validated['campos_dup'] ?? ['displayName'],
+            ],
+            'actividad_reciente' => [
+                'dias' => $validated['dias'] ?? 90,
+            ],
+            default => null,
+        };
+
+        if ($tipo === 'valores_permitidos' && empty($config['valores'])) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'valores' => 'Indica al menos un valor permitido.',
+            ]);
+        }
+
+        return [
+            'tipo'             => $tipo,
+            'campo'            => EntraRegla::TIPOS[$tipo]['requiere_campo'] ? $validated['campo'] : null,
+            'etiqueta'         => $validated['etiqueta'],
+            'descripcion'      => $validated['descripcion'] ?? null,
+            'config'           => $config,
+            'severidad'        => $validated['severidad'],
+            'solo_habilitados' => $request->boolean('solo_habilitados'),
+            'orden'            => $validated['orden'] ?? 0,
+        ];
+    }
+
     public function inspector(Request $request)
     {
         try {
             $token   = $this->getAccessToken();
-            $campos  = array_keys($this->camposInspector);
-            $fields  = 'id,displayName,userPrincipalName,accountEnabled,' . implode(',', $campos);
-            $todos   = $this->fetchAllUsers($token, '', $fields);
-
-            $resumen = [];
-
-            foreach ($this->camposInspector as $campo => $etiqueta) {
-                $esperados = $this->valoresEsperados[$campo] ?? null;
-
-                $grupos = $todos
-                    ->groupBy(fn($u) => $u[$campo] ?? '')
-                    ->map(fn($grupo, $valor) => [
-                        'valor'         => $valor,
-                        'count'         => $grupo->count(),
-                        'inconsistente' => $esperados !== null && $valor !== '' && !in_array($valor, $esperados),
-                        'vacio'         => $valor === '',
-                    ])
-                    ->sortByDesc('count')
-                    ->values();
-
-                $resumen[$campo] = [
-                    'etiqueta'    => $etiqueta,
-                    'valores'     => $grupos,
-                    'total_ok'    => $grupos->filter(fn($g) => !$g['vacio'] && !$g['inconsistente'])->sum('count'),
-                    'total_vacio' => $grupos->filter(fn($g) => $g['vacio'])->sum('count'),
-                    'total_inc'   => $grupos->filter(fn($g) => $g['inconsistente'])->sum('count'),
-                ];
-            }
+            $todos   = $this->fetchAllUsers($token);
+            $resumen = $this->computeResumen($todos);
 
             return view('admin.entra_id.inspector', [
                 'resumen'   => $resumen,
@@ -178,9 +365,7 @@ class EntraIDController extends Controller
         try {
             $valor   = $request->input('valor', '');  // '' = vacíos
             $token   = $this->getAccessToken();
-            $campos  = array_keys($this->camposInspector);
-            $fields  = 'id,displayName,userPrincipalName,mail,accountEnabled,' . implode(',', $campos);
-            $todos   = $this->fetchAllUsers($token, '', $fields);
+            $todos   = $this->fetchAllUsers($token);
 
             $filtrados = $todos->filter(function ($u) use ($campo, $valor) {
                 $v = $u[$campo] ?? '';
@@ -200,44 +385,109 @@ class EntraIDController extends Controller
         }
     }
 
-    // ── Traer todos los usuarios desde Graph (con paginación interna) ─────────
+    // ── Traer todos los usuarios (con caché de 5 min) ────────────────────────
 
-    private function fetchAllUsers(string $token, string $buscar, string $fields = ''): \Illuminate\Support\Collection
+    private const CACHE_USERS_KEY = 'entra_id_users_all';
+    private const CACHE_USERS_TTL = 300; // segundos
+
+    private function fetchAllUsers(string $token, string $buscar = '', string $fields = ''): \Illuminate\Support\Collection
     {
-        if ($fields === '') {
-            $fields = 'id,displayName,givenName,surname,userPrincipalName,mail,jobTitle,department,officeLocation,mobilePhone,businessPhones,accountEnabled,createdDateTime,userType,country,companyName';
-        }
-        $perCall = 999; // máximo permitido por Graph
-
-        $url = $this->graphBase . "/users?\$top={$perCall}&\$select={$fields}&\$orderby=displayName";
+        $todos = Cache::remember(self::CACHE_USERS_KEY, self::CACHE_USERS_TTL, function () use ($token) {
+            return $this->fetchFromGraph($token);
+        });
 
         if ($buscar !== '') {
-            // Graph search requiere el header ConsistencyLevel: eventual
-            $url .= '&$search="displayName:' . addslashes($buscar) . '" OR "mail:' . addslashes($buscar) . '" OR "userPrincipalName:' . addslashes($buscar) . '" OR "department:' . addslashes($buscar) . '" OR "jobTitle:' . addslashes($buscar) . '"';
+            $q = mb_strtolower($buscar);
+            $todos = $todos->filter(function ($u) use ($q) {
+                return str_contains(mb_strtolower($u['displayName']        ?? ''), $q)
+                    || str_contains(mb_strtolower($u['userPrincipalName']  ?? ''), $q)
+                    || str_contains(mb_strtolower($u['mail']               ?? ''), $q)
+                    || str_contains(mb_strtolower($u['department']         ?? ''), $q)
+                    || str_contains(mb_strtolower($u['jobTitle']           ?? ''), $q);
+            });
         }
 
+        return $todos;
+    }
+
+    private function fetchFromGraph(string $token): \Illuminate\Support\Collection
+    {
+        $fields = 'id,displayName,givenName,surname,userPrincipalName,mail,jobTitle,department,city,state,country,usageLocation,officeLocation,mobilePhone,businessPhones,accountEnabled,createdDateTime,userType,companyName';
+
+        $url   = $this->graphBase . "/users?\$top=999&\$select={$fields}&\$orderby=displayName";
         $todos = collect();
 
         do {
-            $headers = ['Authorization' => 'Bearer ' . $token];
-            if ($buscar !== '') {
-                $headers['ConsistencyLevel'] = 'eventual';
-            }
-
-            $resp = Http::withHeaders($headers)->get($url);
+            $resp = Http::withHeaders(['Authorization' => 'Bearer ' . $token])->get($url);
 
             if (!$resp->successful()) {
                 throw new \RuntimeException('Error Graph API: ' . ($resp->json('error.message') ?? $resp->body()));
             }
 
             $data  = $resp->json();
-            $items = collect($data['value'] ?? []);
-            $todos = $todos->concat($items);
+            $todos = $todos->concat($data['value'] ?? []);
+            $url   = $data['@odata.nextLink'] ?? null;
 
-            $url = $data['@odata.nextLink'] ?? null;
-
-        } while ($url && $todos->count() < 5000); // límite de seguridad
+        } while ($url && $todos->count() < 5000);
 
         return $todos;
+    }
+
+    // ── Actividad de inicio de sesión ────────────────────────────────────────
+    //
+    // signInActivity vive en otra consulta: exige el permiso AuditLog.Read.All
+    // y Graph no lo admite junto con $orderby. Si el permiso no está otorgado
+    // devolvemos null y las reglas que dependen de él quedan "no disponibles".
+
+    private const CACHE_SIGNIN_KEY = 'entra_id_signin_activity';
+
+    private function fetchSignInActivity(string $token): ?array
+    {
+        return Cache::remember(self::CACHE_SIGNIN_KEY, self::CACHE_USERS_TTL, function () use ($token) {
+            $url   = $this->graphBase . '/users?$top=999&$select=id,signInActivity';
+            $mapa  = [];
+            $leidos = 0;
+
+            do {
+                $resp = Http::withHeaders(['Authorization' => 'Bearer ' . $token])->get($url);
+
+                if (!$resp->successful()) {
+                    return null; // sin permiso u otro error → degradamos
+                }
+
+                $data = $resp->json();
+                foreach ($data['value'] ?? [] as $fila) {
+                    if (!empty($fila['id'])) {
+                        $mapa[$fila['id']] = $fila['signInActivity'] ?? null;
+                    }
+                }
+                $leidos += count($data['value'] ?? []);
+                $url = $data['@odata.nextLink'] ?? null;
+
+            } while ($url && $leidos < 5000);
+
+            return $mapa;
+        });
+    }
+
+    /**
+     * Usuarios con signInActivity incorporado.
+     * Devuelve [colección, bool $tieneSignIn].
+     */
+    private function fetchUsuariosConActividad(string $token): array
+    {
+        $usuarios = $this->fetchAllUsers($token);
+        $mapa     = $this->fetchSignInActivity($token);
+
+        if ($mapa === null) {
+            return [$usuarios, false];
+        }
+
+        $usuarios = $usuarios->map(function ($u) use ($mapa) {
+            $u['signInActivity'] = $mapa[$u['id'] ?? ''] ?? null;
+            return $u;
+        });
+
+        return [$usuarios, true];
     }
 }

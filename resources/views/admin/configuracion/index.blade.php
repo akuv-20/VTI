@@ -63,6 +63,16 @@
                     @endif
                 </button>
             </li>
+            <li class="nav-item">
+                <button class="nav-link fw-semibold" id="tab-checkmk"
+                        data-bs-toggle="tab" data-bs-target="#pane-checkmk"
+                        type="button" style="font-size:.88rem">
+                    <i class="bi bi-activity me-1"></i>CheckMK
+                    @if($checkmkCfg['url'] && $checkmkCfg['site'])
+                        <span class="badge bg-success ms-1" style="font-size:.65rem">ON</span>
+                    @endif
+                </button>
+            </li>
         </ul>
 
         <div class="tab-content bg-white border border-top-0 rounded-bottom-3 shadow-sm p-4"
@@ -581,6 +591,75 @@
 
             </div>{{-- /pane-azure --}}
 
+            {{-- ══════════════════ CheckMK ═══════════════════════════════ --}}
+            <div class="tab-pane fade" id="pane-checkmk">
+
+                <form method="POST" action="{{ route('admin.configuracion.update') }}">
+                    @csrf
+                    <input type="hidden" name="seccion" value="checkmk">
+
+                    <p class="text-muted mb-3" style="font-size:.83rem">
+                        Conexión a la API REST de CheckMK (2.3+) para el KPI de disponibilidad.
+                        Usa un <strong>usuario de automatización</strong> y su <em>secret</em>.
+                        El secret solo se actualiza si ingresas uno nuevo.
+                    </p>
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">URL del servidor</label>
+                            <input type="text" name="checkmk_url" class="form-control form-control-sm"
+                                   value="{{ old('checkmk_url', $checkmkCfg['url']) }}"
+                                   placeholder="https://checkmk.verfrut.cl">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">Site</label>
+                            <input type="text" name="checkmk_site" class="form-control form-control-sm"
+                                   value="{{ old('checkmk_site', $checkmkCfg['site']) }}"
+                                   placeholder="cmk">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">Usuario de automatización</label>
+                            <input type="text" name="checkmk_user" class="form-control form-control-sm"
+                                   value="{{ old('checkmk_user', $checkmkCfg['user']) }}"
+                                   placeholder="automation" autocomplete="off">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">
+                                Secret <span class="text-muted fw-normal">(dejar en blanco para mantener el actual)</span>
+                            </label>
+                            <input type="password" name="checkmk_secret" class="form-control form-control-sm"
+                                   placeholder="••••••••" autocomplete="new-password">
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded-2 mt-3 d-flex align-items-start gap-2"
+                         style="background:#f0f9ff;border:1px solid #bae6fd;font-size:.8rem">
+                        <i class="bi bi-info-circle-fill flex-shrink-0 mt-1" style="color:#0284c7"></i>
+                        <span>
+                            La API se consulta en
+                            <code>{URL}/{site}/check_mk/api/1.0</code>.
+                            Guarda antes de probar la conexión.
+                        </span>
+                    </div>
+
+                    @error('checkmk_url')  <div class="text-danger mt-2" style="font-size:.8rem">{{ $message }}</div> @enderror
+                    @error('checkmk_site') <div class="text-danger mt-2" style="font-size:.8rem">{{ $message }}</div> @enderror
+                    @error('checkmk_user') <div class="text-danger mt-2" style="font-size:.8rem">{{ $message }}</div> @enderror
+
+                    <div class="mt-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-check-lg me-1"></i>Guardar configuración
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTestCheckmk">
+                            <i class="bi bi-plug me-1"></i>Probar conexión
+                        </button>
+                    </div>
+
+                    <div id="checkmkTestResult" class="mt-2" style="font-size:.83rem;display:none"></div>
+                </form>
+
+            </div>{{-- /pane-checkmk --}}
+
         </div>{{-- /tab-content --}}
     </div>
 
@@ -698,6 +777,34 @@ document.getElementById('btnTestLdap2')?.addEventListener('click', function () {
     .catch(() => {
         result.textContent = '✗ Error al conectar con el servidor';
         result.className   = 'small ms-1 text-danger';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-plug me-1"></i>Probar conexión';
+    });
+});
+
+document.getElementById('btnTestCheckmk')?.addEventListener('click', function () {
+    var btn    = this;
+    var result = document.getElementById('checkmkTestResult');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Probando…';
+    result.style.display = 'none';
+
+    fetch('{{ route("admin.configuracion.test-checkmk") }}', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(d => {
+        result.textContent   = (d.ok ? '✓ ' : '✗ ') + d.message;
+        result.className     = 'mt-2 ' + (d.ok ? 'text-success' : 'text-danger');
+        result.style.display = 'block';
+    })
+    .catch(() => {
+        result.textContent   = '✗ Error al conectar con el servidor';
+        result.className     = 'mt-2 text-danger';
+        result.style.display = 'block';
     })
     .finally(() => {
         btn.disabled = false;

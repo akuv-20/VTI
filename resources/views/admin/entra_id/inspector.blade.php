@@ -8,9 +8,14 @@
             <span class="text-muted fw-normal mx-1">/</span>
             <i class="bi bi-clipboard2-data me-1"></i>Value Inspector
         </h4>
-        <a href="{{ route('admin.entra_id.index') }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-1"></i>Volver al listado
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('admin.entra_id.dashboard') }}" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-heart-pulse me-1"></i>Salud de datos
+            </a>
+            <a href="{{ route('admin.entra_id.index') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Volver al listado
+            </a>
+        </div>
     </div>
 
     @if(isset($graphError))
