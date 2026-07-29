@@ -9,13 +9,18 @@ class MapaEnlace extends Model
 {
     protected $table = 'mapa_enlaces';
 
-    protected $fillable = ['mapa_id', 'nodo_a_id', 'nodo_b_id', 'tipo', 'etiqueta'];
+    protected $fillable = ['mapa_id', 'nodo_a_id', 'nodo_b_id', 'tipo', 'etiqueta', 'etiqueta_px', 'etiqueta_color', 'puntos'];
+
+    protected $casts = [
+        'puntos' => 'array',
+    ];
 
     /** Tipos de enlace y su representación visual. */
     public const TIPOS = [
         'fibra'       => 'Fibra óptica',
         'cable'       => 'Cable / UTP',
         'inalambrico' => 'Inalámbrico / PtP',
+        'starlink'    => 'Starlink (S2S)',
     ];
 
     public function mapa(): BelongsTo

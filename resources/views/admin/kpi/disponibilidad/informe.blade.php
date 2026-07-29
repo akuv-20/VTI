@@ -66,7 +66,7 @@
 
         <div class="head">
             <div>
-                <h1>KPI 1 — Disponibilidad de servicios críticos@if($sectorLabel) · {{ $sectorLabel }}@endif</h1>
+                <h1>KPI 1 — Disponibilidad de servicios críticos{{ $sectorLabel ? ' · '.$sectorLabel : '' }}</h1>
                 <div class="sub">Infraestructura · Unifrutti LATAM · Período enero–diciembre {{ $anio }}@if($sectorLabel) · Sector: {{ $sectorLabel }}@endif</div>
             </div>
             <div class="meta">

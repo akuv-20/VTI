@@ -204,11 +204,14 @@ class MonitoreoMapaController extends Controller
     private static function enlaceArray(MapaEnlace $e): array
     {
         return [
-            'id'        => $e->id,
-            'nodo_a_id' => $e->nodo_a_id,
-            'nodo_b_id' => $e->nodo_b_id,
-            'tipo'      => $e->tipo,
-            'etiqueta'  => $e->etiqueta,
+            'id'             => $e->id,
+            'nodo_a_id'      => $e->nodo_a_id,
+            'nodo_b_id'      => $e->nodo_b_id,
+            'tipo'           => $e->tipo,
+            'etiqueta'       => $e->etiqueta,
+            'etiqueta_px'    => $e->etiqueta_px,
+            'etiqueta_color' => $e->etiqueta_color,
+            'puntos'         => $e->puntos ?: [],
         ];
     }
 
@@ -379,11 +382,15 @@ class MonitoreoMapaController extends Controller
         abort_unless($mapa->puedeEditar($request->user()), 403);
 
         $data = $request->validate([
-            'nodo_a_id' => ['required', 'integer', 'exists:mapa_nodos,id'],
-            'nodo_b_id' => ['required', 'integer', 'different:nodo_a_id', 'exists:mapa_nodos,id'],
-            'tipo'      => ['required', 'in:' . implode(',', array_keys(MapaEnlace::TIPOS))],
-            'etiqueta'  => ['nullable', 'string', 'max:255'],
+            'nodo_a_id'      => ['required', 'integer', 'exists:mapa_nodos,id'],
+            'nodo_b_id'      => ['required', 'integer', 'different:nodo_a_id', 'exists:mapa_nodos,id'],
+            'tipo'           => ['required', 'in:' . implode(',', array_keys(MapaEnlace::TIPOS))],
+            'etiqueta'       => ['nullable', 'string', 'max:255'],
+            'etiqueta_px'    => ['nullable', 'integer', 'min:8', 'max:40'],
+            'etiqueta_color' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
         ]);
+        $data['etiqueta_px']    = $data['etiqueta_px'] ?? 12;
+        $data['etiqueta_color'] = $data['etiqueta_color'] ?? '#334155';
 
         // Evitar enlaces duplicados (en cualquier dirección).
         $existe = $mapa->enlaces()
@@ -408,9 +415,23 @@ class MonitoreoMapaController extends Controller
         abort_unless($enlace->mapa->puedeEditar($request->user()), 403);
 
         $data = $request->validate([
-            'tipo'     => ['required', 'in:' . implode(',', array_keys(MapaEnlace::TIPOS))],
-            'etiqueta' => ['nullable', 'string', 'max:255'],
+            'tipo'           => ['sometimes', 'required', 'in:' . implode(',', array_keys(MapaEnlace::TIPOS))],
+            'etiqueta'       => ['sometimes', 'nullable', 'string', 'max:255'],
+            'etiqueta_px'    => ['sometimes', 'nullable', 'integer', 'min:8', 'max:40'],
+            'etiqueta_color' => ['sometimes', 'nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'puntos'         => ['sometimes', 'nullable', 'array', 'max:20'],
+            'puntos.*.x'     => ['required_with:puntos', 'numeric', 'min:0', 'max:1600'],
+            'puntos.*.y'     => ['required_with:puntos', 'numeric', 'min:0', 'max:900'],
         ]);
+
+        if (array_key_exists('etiqueta_px', $data))    $data['etiqueta_px']    = $data['etiqueta_px'] ?? 12;
+        if (array_key_exists('etiqueta_color', $data)) $data['etiqueta_color'] = $data['etiqueta_color'] ?? '#334155';
+        if (array_key_exists('puntos', $data)) {
+            // Normalizar a [{x,y}…] numérico; vacío = recta.
+            $data['puntos'] = collect($data['puntos'] ?? [])
+                ->map(fn($p) => ['x' => round((float) $p['x'], 1), 'y' => round((float) $p['y'], 1)])
+                ->values()->all() ?: null;
+        }
 
         $enlace->update($data);
 

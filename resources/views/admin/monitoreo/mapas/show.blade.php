@@ -15,6 +15,8 @@
     .mapv-stage:fullscreen .mapv-nodo .lbl { color:#cbd5e1; }
     .mapv-stage svg { position:absolute; inset:0; width:100%; height:100%; z-index:1; }
     .mapv-fondo { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; z-index:0; }
+    .mapv-elabel { position:absolute; transform:translate(-50%,-50%); z-index:2; pointer-events:none; font-weight:700;
+                   white-space:nowrap; text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff,0 0 4px #fff; }
     .mapv-nodo { position:absolute; width:110px; margin-left:-55px; text-align:center; user-select:none; cursor:pointer; z-index:2; }
     .mapv-nodo .chip { position:relative; width:48px; height:48px; margin:0 auto; border-radius:12px; display:flex; align-items:center;
                        justify-content:center; font-size:22px; border:2.5px solid #94a3b8; background:#fff; color:#64748b;
@@ -226,6 +228,23 @@
                 </select>
                 <label class="form-label" style="font-size:.72rem">Etiqueta <span class="text-muted">(opcional)</span></label>
                 <input type="text" id="eEnlaceEtiqueta" class="form-control form-control-sm mb-2" placeholder="PtP 5GHz Ubiquiti">
+                <div class="row g-2 mb-2">
+                    <div class="col-7">
+                        <label class="form-label" style="font-size:.72rem">Tamaño: <span id="eEnlacePxVal">12</span> px</label>
+                        <input type="range" class="form-range" id="eEnlacePx" min="8" max="40" step="1" value="12">
+                    </div>
+                    <div class="col-5">
+                        <label class="form-label" style="font-size:.72rem">Color</label>
+                        <input type="color" class="form-control form-control-sm form-control-color w-100" id="eEnlaceColor" value="#334155" style="height:31px">
+                    </div>
+                </div>
+                <div class="alert alert-light py-1 px-2 mb-2" style="font-size:.68rem;border:1px dashed #cbd5e1">
+                    <i class="bi bi-bezier me-1"></i><b>Doblar el enlace:</b> doble clic sobre la línea agrega un codo.
+                    Arrastra el cuadrito para moverlo · doble clic en el cuadrito lo elimina.
+                </div>
+                <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-2" id="btnEnderezar" style="font-size:.72rem">
+                    <i class="bi bi-slash-lg me-1"></i>Enderezar (quitar codos)
+                </button>
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-primary btn-sm flex-grow-1" id="btnEnlaceSave"><i class="bi bi-check-lg"></i> Guardar</button>
                     <button type="button" class="btn btn-outline-danger btn-sm" id="btnEnlaceDel" title="Eliminar enlace"><i class="bi bi-trash"></i></button>
@@ -398,22 +417,74 @@
         return 'na';
     }
 
+    /**
+     * Ruta ortogonal del enlace: origen → vértices → destino.
+     * Entre dos puntos consecutivos se inserta un codo (solo horizontal/vertical),
+     * salvo que ya estén alineados. Sin vértices, el enlace queda recto.
+     */
+    function rutaEnlace(e, a, b) {
+        const vs = e.puntos || [];
+        if (!vs.length) return [{ x: a.x, y: a.y }, { x: b.x, y: b.y }];
+
+        const pts = [{ x: a.x, y: a.y }];
+        let prev = pts[0];
+        const alineados = (p, q) => Math.abs(p.x - q.x) < 1 || Math.abs(p.y - q.y) < 1;
+
+        [...vs, { x: b.x, y: b.y }].forEach((v, i, arr) => {
+            if (!alineados(prev, v)) {
+                // Codo: para vértices intermedios sale primero en horizontal;
+                // en el tramo final entra al nodo en vertical (se ve más limpio).
+                const esUltimo = i === arr.length - 1;
+                pts.push(esUltimo ? { x: v.x, y: prev.y } : { x: v.x, y: prev.y });
+            }
+            pts.push({ x: v.x, y: v.y });
+            prev = v;
+        });
+        return pts;
+    }
+
+    /** Punto medio a lo largo de la ruta (para ubicar la etiqueta). */
+    function medioRuta(pts) {
+        let total = 0;
+        const segs = [];
+        for (let i = 1; i < pts.length; i++) {
+            const d = Math.hypot(pts[i].x - pts[i-1].x, pts[i].y - pts[i-1].y);
+            segs.push(d); total += d;
+        }
+        let meta = total / 2;
+        for (let i = 0; i < segs.length; i++) {
+            if (meta <= segs[i] || i === segs.length - 1) {
+                const t = segs[i] ? meta / segs[i] : 0;
+                return { x: pts[i].x + (pts[i+1].x - pts[i].x) * t,
+                         y: pts[i].y + (pts[i+1].y - pts[i].y) * t };
+            }
+            meta -= segs[i];
+        }
+        return pts[0];
+    }
+
     function drawEdges() {
         svg.innerHTML = '';
+        stage.querySelectorAll('.mapv-elabel').forEach(el => el.remove());
         const COLORES = { up:'#16a34a', down:'#dc2626', downtime:'#d97706', na:'#94a3b8' };
         enlaces.forEach(e => {
             const a = nodos.find(n => n.id === e.nodo_a_id), b = nodos.find(n => n.id === e.nodo_b_id);
             if (!a || !b) return;
             const est = estadoEnlace(e);
             const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const pts = rutaEnlace(e, a, b);
+            const coords = pts.map(p => p.x + ',' + p.y).join(' ');
 
-            const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            l.setAttribute('x1', a.x); l.setAttribute('y1', a.y);
-            l.setAttribute('x2', b.x); l.setAttribute('y2', b.y);
+            const l = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+            l.setAttribute('points', coords);
+            l.setAttribute('fill', 'none');
             l.setAttribute('stroke', COLORES[est]);
             l.setAttribute('stroke-width', e.tipo === 'fibra' ? 3.5 : 2);
+            l.setAttribute('stroke-linejoin', 'round');
+            l.setAttribute('stroke-linecap', 'round');
             l.setAttribute('vector-effect', 'non-scaling-stroke');
             if (e.tipo === 'inalambrico') l.setAttribute('stroke-dasharray', '7 6');
+            if (e.tipo === 'starlink')    l.setAttribute('stroke-dasharray', '12 4 2 4');
             if (est === 'down') {
                 l.setAttribute('stroke-dasharray', '7 6');
                 const an = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
@@ -424,28 +495,140 @@
             }
             g.appendChild(l);
 
-            const hit = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            hit.setAttribute('x1', a.x); hit.setAttribute('y1', a.y);
-            hit.setAttribute('x2', b.x); hit.setAttribute('y2', b.y);
+            const hit = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+            hit.setAttribute('points', coords);
+            hit.setAttribute('fill', 'none');
             hit.setAttribute('stroke', 'transparent');
             hit.setAttribute('stroke-width', 16);
             hit.setAttribute('vector-effect', 'non-scaling-stroke');
-            hit.style.cursor = 'pointer';
+            hit.style.cursor = modoEdicion ? 'pointer' : 'default';
             hit.addEventListener('click', ev => { ev.stopPropagation(); if (modoEdicion) seleccionarEnlace(e); });
+            hit.addEventListener('dblclick', ev => {
+                ev.stopPropagation(); ev.preventDefault();
+                if (modoEdicion) agregarVertice(e, ev);
+            });
             g.appendChild(hit);
 
-            if (e.etiqueta) {
-                const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                t.setAttribute('x', (a.x + b.x) / 2);
-                t.setAttribute('y', (a.y + b.y) / 2 - 8);
-                t.setAttribute('text-anchor', 'middle');
-                t.setAttribute('font-size', '15');
-                t.setAttribute('fill', '#64748b');
-                t.textContent = e.etiqueta;
-                g.appendChild(t);
-            }
             svg.appendChild(g);
+
+            // Manijas de los vértices (solo en edición, sobre el enlace seleccionado).
+            if (modoEdicion && enlaceSel?.id === e.id) {
+                (e.puntos || []).forEach((v, idx) => {
+                    const h = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    h.style.cursor = 'move';
+
+                    // Zona de agarre generosa (invisible) + cuadrito visible.
+                    const zona = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    zona.setAttribute('cx', v.x); zona.setAttribute('cy', v.y);
+                    zona.setAttribute('r', 22);
+                    zona.setAttribute('fill', 'transparent');
+                    h.appendChild(zona);
+
+                    const box = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    box.setAttribute('x', v.x - 10); box.setAttribute('y', v.y - 10);
+                    box.setAttribute('width', 20); box.setAttribute('height', 20);
+                    box.setAttribute('rx', 4);
+                    box.setAttribute('fill', '#fff');
+                    box.setAttribute('stroke', '#0284c7');
+                    box.setAttribute('stroke-width', 2);
+                    box.setAttribute('vector-effect', 'non-scaling-stroke');
+                    h.appendChild(box);
+
+                    h.addEventListener('pointerdown', ev => iniciarArrastreVertice(ev, e, idx));
+                    // Evita que el clic llegue al lienzo y cierre el panel (perdiendo las manijas).
+                    h.addEventListener('click', ev => ev.stopPropagation());
+                    h.addEventListener('dblclick', ev => {
+                        ev.stopPropagation(); ev.preventDefault();
+                        quitarVertice(e, idx);
+                    });
+                    svg.appendChild(h);
+                });
+            }
+
+            if (e.etiqueta) {
+                const m = medioRuta(pts);
+                const lbl = document.createElement('div');
+                lbl.className = 'mapv-elabel';
+                lbl.textContent = e.etiqueta;
+                lbl.style.left = pct(m.x, 1600);
+                lbl.style.top  = pct(m.y, 900);
+                lbl.style.fontSize = (e.etiqueta_px || 12) + 'px';
+                lbl.style.color = e.etiqueta_color || '#334155';
+                stage.appendChild(lbl);
+            }
         });
+    }
+
+    /* ── Vértices ortogonales ────────────────────────────────────────────── */
+
+    const svgCoords = ev => {
+        const r = stage.getBoundingClientRect();
+        return {
+            x: Math.round(Math.min(1600, Math.max(0, (ev.clientX - r.left) / r.width * 1600)) / 10) * 10,
+            y: Math.round(Math.min(900,  Math.max(0, (ev.clientY - r.top)  / r.height * 900)) / 10) * 10,
+        };
+    };
+
+    /** Doble clic sobre el enlace: inserta un vértice en el tramo más cercano. */
+    function agregarVertice(e, ev) {
+        const a = nodos.find(n => n.id === e.nodo_a_id), b = nodos.find(n => n.id === e.nodo_b_id);
+        const p = svgCoords(ev);
+        const vs = [...(e.puntos || [])];
+
+        // Insertar en la posición cuyo tramo queda más cerca del clic.
+        const ref = [{ x: a.x, y: a.y }, ...vs, { x: b.x, y: b.y }];
+        let mejor = 0, mejorD = Infinity;
+        for (let i = 1; i < ref.length; i++) {
+            const mx = (ref[i-1].x + ref[i].x) / 2, my = (ref[i-1].y + ref[i].y) / 2;
+            const d = Math.hypot(p.x - mx, p.y - my);
+            if (d < mejorD) { mejorD = d; mejor = i - 1; }
+        }
+        vs.splice(mejor, 0, p);
+        guardarPuntos(e, vs);
+        seleccionarEnlace(e);
+    }
+
+    function quitarVertice(e, idx) {
+        const vs = [...(e.puntos || [])];
+        vs.splice(idx, 1);
+        guardarPuntos(e, vs);
+    }
+
+    function iniciarArrastreVertice(ev, e, idx) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        let movido = false;
+
+        // Los listeners van en document: drawEdges() recrea las manijas en cada
+        // cuadro, así que un listener sobre la manija moriría al primer movimiento.
+        const mover = ev2 => {
+            const p = svgCoords(ev2);
+            const act = e.puntos[idx];
+            if (act && act.x === p.x && act.y === p.y) return;
+            e.puntos[idx] = p;
+            movido = true;
+            drawEdges();
+        };
+        const soltar = () => {
+            document.removeEventListener('pointermove', mover);
+            document.removeEventListener('pointerup', soltar);
+            document.removeEventListener('pointercancel', soltar);
+            if (movido) guardarPuntos(e, e.puntos);
+        };
+        document.addEventListener('pointermove', mover);
+        document.addEventListener('pointerup', soltar);
+        document.addEventListener('pointercancel', soltar);
+    }
+
+    function guardarPuntos(e, vs) {
+        e.puntos = vs;
+        drawEdges();
+        api(URL_ENLACE(e.id), 'PUT', { puntos: vs }).catch(err => alert(err.message));
+    }
+
+    /** Quita todos los codos del enlace seleccionado (vuelve a recta). */
+    function enderezarEnlace(e) {
+        guardarPuntos(e, []);
     }
 
     /* ── Estado en vivo ──────────────────────────────────────────────────── */
@@ -566,7 +749,7 @@
 
     /* ── Editar nodo ─────────────────────────────────────────────────────── */
 
-    let iconoEdit = null, selBackup = null;
+    let iconoEdit = null, selBackup = null, encBackup = null;
 
     function seleccionarNodo(n) {
         cerrarPaneles();
@@ -668,21 +851,41 @@
     function seleccionarEnlace(e) {
         cerrarPaneles();
         enlaceSel = e;
+        encBackup = { etiqueta: e.etiqueta, etiqueta_px: e.etiqueta_px, etiqueta_color: e.etiqueta_color, tipo: e.tipo };
         const a = nodos.find(n => n.id === e.nodo_a_id), b = nodos.find(n => n.id === e.nodo_b_id);
         document.getElementById('pAgregar').style.display = 'none';
         document.getElementById('pEnlace').style.display = '';
         document.getElementById('eEnlaceNombre').textContent = (a?.etiqueta || '?') + '  ⟷  ' + (b?.etiqueta || '?');
         document.getElementById('eTipo').value = e.tipo;
         document.getElementById('eEnlaceEtiqueta').value = e.etiqueta || '';
+        document.getElementById('eEnlacePx').value = e.etiqueta_px || 12;
+        document.getElementById('eEnlacePxVal').textContent = e.etiqueta_px || 12;
+        document.getElementById('eEnlaceColor').value = e.etiqueta_color || '#334155';
+        drawEdges(); // muestra las manijas de los codos
     }
+
+    // Vista previa en vivo del tamaño/color de la etiqueta del enlace.
+    document.getElementById('eEnlacePx').addEventListener('input', ev => {
+        document.getElementById('eEnlacePxVal').textContent = ev.target.value;
+        if (enlaceSel) { enlaceSel.etiqueta_px = parseInt(ev.target.value, 10); drawEdges(); }
+    });
+    document.getElementById('eEnlaceColor').addEventListener('input', ev => {
+        if (enlaceSel) { enlaceSel.etiqueta_color = ev.target.value; drawEdges(); }
+    });
+    document.getElementById('eEnlaceEtiqueta').addEventListener('input', ev => {
+        if (enlaceSel) { enlaceSel.etiqueta = ev.target.value.trim() || null; drawEdges(); }
+    });
 
     document.getElementById('btnEnlaceSave').addEventListener('click', () => {
         if (!enlaceSel) return;
         api(URL_ENLACE(enlaceSel.id), 'PUT', {
             tipo: document.getElementById('eTipo').value,
             etiqueta: document.getElementById('eEnlaceEtiqueta').value.trim() || null,
+            etiqueta_px: parseInt(document.getElementById('eEnlacePx').value, 10),
+            etiqueta_color: document.getElementById('eEnlaceColor').value,
         }).then(j => {
             Object.assign(enlaceSel, j.enlace);
+            encBackup = null; // guardado: no revertir
             drawEdges();
             cerrarPaneles();
         }).catch(e => alert(e.message));
@@ -697,6 +900,10 @@
         }).catch(e => alert(e.message));
     });
 
+    document.getElementById('btnEnderezar').addEventListener('click', () => {
+        if (enlaceSel) enderezarEnlace(enlaceSel);
+    });
+
     document.getElementById('btnEnlaceCerrar').addEventListener('click', cerrarPaneles);
 
     function cerrarPaneles() {
@@ -705,9 +912,15 @@
             // Revertir vista previa de tamaños si se cerró sin guardar.
             if (selBackup) { Object.assign(nodoSel, selBackup); renderNodo(nodoSel); drawEdges(); }
         }
+        // Revertir vista previa de la etiqueta del enlace si se cerró sin guardar.
+        // (Los codos se guardan al instante, así que no se revierten.)
+        if (enlaceSel && encBackup) Object.assign(enlaceSel, encBackup);
+        const habiaEnlace = !!enlaceSel;
         nodoSel = null;
         selBackup = null;
         enlaceSel = null;
+        encBackup = null;
+        if (habiaEnlace) drawEdges(); // oculta las manijas
         document.getElementById('pNodo').style.display = 'none';
         document.getElementById('pEnlace').style.display = 'none';
         document.getElementById('pAgregar').style.display = '';
@@ -804,7 +1017,8 @@
             if (!a || !b) return;
             const ea = j.estados[e.nodo_a_id]?.estado, eb = j.estados[e.nodo_b_id]?.estado;
             const col = (ea === 'down' || eb === 'down') ? COL.down : COL.up;
-            svgL += '<line x1="' + (a.x/16) + '%" y1="' + (a.y/9) + '%" x2="' + (b.x/16) + '%" y2="' + (b.y/9) + '%" stroke="' + col + '" stroke-width="1.4"/>';
+            const pr = rutaEnlace(e, a, b).map(p => p.x + ',' + p.y).join(' ');
+            svgL += '<polyline points="' + pr + '" fill="none" stroke="' + col + '" stroke-width="1.4" vector-effect="non-scaling-stroke"/>';
         });
         let ok = 0, caidos = [], mant = 0;
         j.nodos.forEach(x => {
@@ -817,7 +1031,7 @@
 
         mini.innerHTML =
             '<div class="mm-t"><i class="bi bi-map"></i>' + esc(j.nombre) + ' — vista previa en vivo</div>' +
-            '<div class="mm-stage"><svg>' + svgL + '</svg>' + dots + '</div>' +
+            '<div class="mm-stage"><svg viewBox="0 0 1600 900" preserveAspectRatio="none">' + svgL + '</svg>' + dots + '</div>' +
             '<div class="mm-res">' +
                 '<span style="color:#16a34a"><i class="bi bi-check-circle-fill me-1"></i>' + ok + ' ok</span>' +
                 (caidos.length ? '<span style="color:#dc2626"><i class="bi bi-x-octagon-fill me-1"></i>' + caidos.length + (caidos.length === 1 ? ' caído' : ' caídos') + ' · ' + esc(caidos.slice(0, 2).join(', ')) + (caidos.length > 2 ? '…' : '') + '</span>' : '') +

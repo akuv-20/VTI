@@ -24,7 +24,7 @@ class MapaNodo extends Model
         'bi-buildings'     => 'Planta',
         'bi-building-fill' => 'Edificio / Oficina',
         'bi-house'         => 'Casa / Sede',
-        'bi-tree'          => 'Campo',
+        'bi-pin-map-fill'  => 'Campo',
         'bi-hdd-network'   => 'Switch',
         'bi-wifi'          => 'Access Point',
         'bi-router'        => 'Router',

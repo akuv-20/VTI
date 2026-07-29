@@ -25,6 +25,8 @@
         .tv-stage { position:relative; height:calc(100% - 64px); background-image:radial-gradient(#1e293b 1px, transparent 1px); background-size:30px 30px; }
         .tv-stage svg { position:absolute; inset:0; width:100%; height:100%; z-index:1; }
         .tv-fondo { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; z-index:0; }
+        .tv-elabel { position:absolute; transform:translate(-50%,-50%); z-index:2; pointer-events:none; font-weight:700; color:#e2e8f0;
+                     white-space:nowrap; text-shadow:0 0 3px #0b1220,0 0 3px #0b1220,0 0 4px #0b1220,0 0 5px #0b1220; }
         .tv-nodo { position:absolute; width:130px; margin-left:-65px; text-align:center; transform:translateY(-28px); z-index:2; }
         .tv-nodo .chip { width:56px; height:56px; margin:0 auto; border-radius:14px; display:flex; align-items:center; justify-content:center;
                          font-size:26px; border:3px solid #475569; background:#0f172a; color:#64748b;
@@ -110,9 +112,43 @@
         aplicarEstado();
     }
 
+    // Ruta ortogonal del enlace (mismos codos definidos en el editor).
+    function rutaEnlace(e, a, b) {
+        const vs = e.puntos || [];
+        if (!vs.length) return [{ x: a.x, y: a.y }, { x: b.x, y: b.y }];
+        const pts = [{ x: a.x, y: a.y }];
+        let prev = pts[0];
+        const alineados = (p, q) => Math.abs(p.x - q.x) < 1 || Math.abs(p.y - q.y) < 1;
+        [...vs, { x: b.x, y: b.y }].forEach(v => {
+            if (!alineados(prev, v)) pts.push({ x: v.x, y: prev.y });
+            pts.push({ x: v.x, y: v.y });
+            prev = v;
+        });
+        return pts;
+    }
+
+    function medioRuta(pts) {
+        let total = 0; const segs = [];
+        for (let i = 1; i < pts.length; i++) {
+            const d = Math.hypot(pts[i].x - pts[i-1].x, pts[i].y - pts[i-1].y);
+            segs.push(d); total += d;
+        }
+        let meta = total / 2;
+        for (let i = 0; i < segs.length; i++) {
+            if (meta <= segs[i] || i === segs.length - 1) {
+                const t = segs[i] ? meta / segs[i] : 0;
+                return { x: pts[i].x + (pts[i+1].x - pts[i].x) * t,
+                         y: pts[i].y + (pts[i+1].y - pts[i].y) * t };
+            }
+            meta -= segs[i];
+        }
+        return pts[0];
+    }
+
     function drawEdges() {
         const m = MAPAS[idx];
         svg.innerHTML = '';
+        stage.querySelectorAll('.tv-elabel').forEach(el => el.remove());
         const COL = { up:'#22c55e', down:'#ef4444', downtime:'#f59e0b', na:'#475569' };
         m.enlaces.forEach(e => {
             const a = m.nodos.find(n => n.id === e.nodo_a_id), b = m.nodos.find(n => n.id === e.nodo_b_id);
@@ -122,13 +158,17 @@
             if (ea === 'down' || eb === 'down') est = 'down';
             else if (ea === 'downtime' || eb === 'downtime') est = 'downtime';
             else if (ea === 'up' || eb === 'up') est = 'up';
-            const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            l.setAttribute('x1', a.x); l.setAttribute('y1', a.y);
-            l.setAttribute('x2', b.x); l.setAttribute('y2', b.y);
+            const pts = rutaEnlace(e, a, b);
+            const l = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+            l.setAttribute('points', pts.map(p => p.x + ',' + p.y).join(' '));
+            l.setAttribute('fill', 'none');
+            l.setAttribute('stroke-linejoin', 'round');
+            l.setAttribute('stroke-linecap', 'round');
             l.setAttribute('stroke', COL[est]);
             l.setAttribute('stroke-width', e.tipo === 'fibra' ? 4 : 2.5);
             l.setAttribute('vector-effect', 'non-scaling-stroke');
             if (e.tipo === 'inalambrico') l.setAttribute('stroke-dasharray', '8 7');
+            if (e.tipo === 'starlink')    l.setAttribute('stroke-dasharray', '14 5 3 5');
             if (est === 'down') {
                 l.setAttribute('stroke-dasharray', '8 7');
                 const an = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
@@ -139,14 +179,14 @@
             }
             svg.appendChild(l);
             if (e.etiqueta) {
-                const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                t.setAttribute('x', (a.x + b.x) / 2);
-                t.setAttribute('y', (a.y + b.y) / 2 - 10);
-                t.setAttribute('text-anchor', 'middle');
-                t.setAttribute('font-size', '16');
-                t.setAttribute('fill', '#64748b');
-                t.textContent = e.etiqueta;
-                svg.appendChild(t);
+                const m = medioRuta(pts);
+                const lbl = document.createElement('div');
+                lbl.className = 'tv-elabel';
+                lbl.textContent = e.etiqueta;
+                lbl.style.left = m.x / 1600 * 100 + '%';
+                lbl.style.top  = m.y / 900 * 100 + '%';
+                lbl.style.fontSize = Math.round((e.etiqueta_px || 12) * 1.15) + 'px';
+                stage.appendChild(lbl);
             }
         });
     }
