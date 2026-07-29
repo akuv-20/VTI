@@ -54,7 +54,9 @@
     .mapv-mini .mm-t { font-size:.76rem; font-weight:700; color:#334155; margin-bottom:.4rem; }
     .mapv-mini .mm-t i { color:#7c3aed; margin-right:.3rem; }
     .mapv-mini .mm-stage { position:relative; height:132px; background:#f8fafc; border:1px solid #eef2f7; border-radius:8px; overflow:hidden; }
-    .mapv-mini .mm-stage svg { position:absolute; inset:0; width:100%; height:100%; }
+    .mapv-mini .mm-stage svg { position:absolute; inset:0; width:100%; height:100%; z-index:1; }
+    .mapv-mini .mm-fondo { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; z-index:0; }
+    .mapv-mini .mm-dot { z-index:2; }
     .mapv-mini .mm-dot { position:absolute; width:11px; height:11px; margin:-5.5px 0 0 -5.5px; border-radius:3px; }
     .mapv-mini .mm-res { font-size:.7rem; color:#475569; margin-top:.4rem; display:flex; gap:.7rem; flex-wrap:wrap; }
     .mapv-mini .mm-go { font-size:.68rem; color:#94a3b8; margin-top:.25rem; }
@@ -1029,9 +1031,14 @@
             dots += '<span class="mm-dot" title="' + esc(x.etiqueta) + '" style="left:' + (x.x/16) + '%;top:' + (x.y/9) + '%;background:' + COL[e] + '"></span>';
         });
 
+        // Plano de fondo del mapa destino, si tiene.
+        const fondo = j.fondo
+            ? '<img class="mm-fondo" src="' + esc(j.fondo) + '" alt="" style="opacity:' + ((j.opacidad || 40) / 100) + '">'
+            : '';
+
         mini.innerHTML =
             '<div class="mm-t"><i class="bi bi-map"></i>' + esc(j.nombre) + ' — vista previa en vivo</div>' +
-            '<div class="mm-stage"><svg viewBox="0 0 1600 900" preserveAspectRatio="none">' + svgL + '</svg>' + dots + '</div>' +
+            '<div class="mm-stage">' + fondo + '<svg viewBox="0 0 1600 900" preserveAspectRatio="none">' + svgL + '</svg>' + dots + '</div>' +
             '<div class="mm-res">' +
                 '<span style="color:#16a34a"><i class="bi bi-check-circle-fill me-1"></i>' + ok + ' ok</span>' +
                 (caidos.length ? '<span style="color:#dc2626"><i class="bi bi-x-octagon-fill me-1"></i>' + caidos.length + (caidos.length === 1 ? ' caído' : ' caídos') + ' · ' + esc(caidos.slice(0, 2).join(', ')) + (caidos.length > 2 ? '…' : '') + '</span>' : '') +

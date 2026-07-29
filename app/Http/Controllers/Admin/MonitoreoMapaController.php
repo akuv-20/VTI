@@ -176,12 +176,14 @@ class MonitoreoMapaController extends Controller
         $est = $this->estadoMapa($mapa);
 
         return response()->json([
-            'ok'      => true,
-            'id'      => $mapa->id,
-            'nombre'  => $mapa->nombre,
-            'nodos'   => $mapa->nodos->map(self::nodoArray(...))->values(),
-            'enlaces' => $mapa->enlaces->map(self::enlaceArray(...))->values(),
-            'estados' => ($est['ok'] ?? false) ? $est['nodos'] : new \stdClass(),
+            'ok'       => true,
+            'id'       => $mapa->id,
+            'nombre'   => $mapa->nombre,
+            'fondo'    => $mapa->fondo_url,
+            'opacidad' => $mapa->fondo_opacidad,
+            'nodos'    => $mapa->nodos->map(self::nodoArray(...))->values(),
+            'enlaces'  => $mapa->enlaces->map(self::enlaceArray(...))->values(),
+            'estados'  => ($est['ok'] ?? false) ? $est['nodos'] : new \stdClass(),
         ]);
     }
 
