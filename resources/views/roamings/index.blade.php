@@ -82,6 +82,7 @@
                                 <td><span class="badge {{ $cls }}">{{ $txt }}</span></td>
                                 <td class="text-end">
                                     <div class="d-flex gap-1 justify-content-end">
+                                        @include('roamings._btn_editar')
                                         @if($r->estado !== 'archivado')
                                         <form method="POST" action="{{ route('roamings.archivar', $r) }}" title="Archivar">
                                             @csrf @method('PATCH')
@@ -128,11 +129,14 @@
                                 <td style="font-size:.8rem">{{ $r->id_solicitud ?? '—' }}</td>
                                 <td><span class="badge bg-warning text-dark">Activo</span></td>
                                 <td class="text-end">
-                                    <form method="POST" action="{{ route('roamings.cerrar', $r) }}"
-                                          onsubmit="return confirm('¿Desactivar el recurrente de {{ $r->nombre_usuario }}?')">
-                                        @csrf @method('PATCH')
-                                        <button class="btn btn-outline-danger btn-sm"><i class="bi bi-x-circle me-1"></i>Desactivar</button>
-                                    </form>
+                                    <div class="d-flex gap-1 justify-content-end">
+                                        @include('roamings._btn_editar')
+                                        <form method="POST" action="{{ route('roamings.cerrar', $r) }}"
+                                              onsubmit="return confirm('¿Desactivar el recurrente de {{ $r->nombre_usuario }}?')">
+                                            @csrf @method('PATCH')
+                                            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-x-circle me-1"></i>Desactivar</button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                             @endforeach
@@ -172,6 +176,7 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="d-flex gap-1 justify-content-end">
+                                        @include('roamings._btn_editar')
                                         @if($r->estado === 'activo')
                                         <form method="POST" action="{{ route('roamings.cerrar', $r) }}" onsubmit="return confirm('¿Cerrar la activación Entel?')">
                                             @csrf @method('PATCH')
@@ -199,6 +204,7 @@
 
 @include('roamings._modal_movistar')
 @include('roamings._modal_entel')
+@include('roamings._modal_editar')
 @endsection
 
 {{-- @prepend: estas funciones base deben definirse ANTES que los scripts de los modales incluidos --}}

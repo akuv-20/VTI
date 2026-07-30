@@ -149,8 +149,13 @@ class MonitoreoMapaController extends Controller
 
         $mapa->load(['nodos', 'enlaces']);
 
+        // Fichas de sitios/equipos por host, para ofrecer "Ver ficha" en el hover.
+        $fichas = $this->fichasPorHost($mapa);
+
         return view('admin.monitoreo.mapas.show', [
             'mapa'          => $mapa,
+            'fichas'        => $fichas,
+            'puedeVerFichas' => $user->can('acceso_sitios'),
             'puedeEditar'   => $mapa->puedeEditar($user),
             'esAdmin'       => $user->can('admin'),
             'nodosData'     => $mapa->nodos->map(self::nodoArray(...))->values(),
@@ -185,6 +190,50 @@ class MonitoreoMapaController extends Controller
             'enlaces'  => $mapa->enlaces->map(self::enlaceArray(...))->values(),
             'estados'  => ($est['ok'] ?? false) ? $est['nodos'] : new \stdClass(),
         ]);
+    }
+
+    /**
+     * Mapa host_name → ficha (sitio o equipo) para los nodos de este mapa.
+     * Permite ofrecer "Ver ficha" / "Crear ficha" al pasar el mouse por un nodo.
+     *
+     * @return array<string,array{url:string,nombre:string,tipo:string,portada:?string,es_equipo:bool}>
+     */
+    private function fichasPorHost(MapaRed $mapa): array
+    {
+        $hosts = $mapa->nodos->pluck('host_name')->filter()->unique();
+        if ($hosts->isEmpty()) return [];
+
+        $out = [];
+
+        \App\Models\SitioHost::whereIn('host_name', $hosts)
+            ->with('sitio.fotos')
+            ->get()
+            ->each(function ($sh) use (&$out) {
+                if (!$sh->sitio) return;
+                $out[$sh->host_name] = [
+                    'url'       => route('admin.sitios.show', $sh->sitio),
+                    'nombre'    => $sh->sitio->titulo,
+                    'tipo'      => $sh->sitio->tipo_label,
+                    'portada'   => $sh->sitio->portada?->thumb_url,
+                    'es_equipo' => false,
+                ];
+            });
+
+        \App\Models\SitioEquipo::whereIn('host_name', $hosts)
+            ->with('sitio')
+            ->get()
+            ->each(function ($eq) use (&$out) {
+                if (!$eq->sitio || isset($out[$eq->host_name])) return;
+                $out[$eq->host_name] = [
+                    'url'       => route('admin.sitios.show', $eq->sitio),
+                    'nombre'    => $eq->nombre,
+                    'tipo'      => $eq->tipo_label . ' · ' . $eq->sitio->nombre,
+                    'portada'   => null,
+                    'es_equipo' => true,
+                ];
+            });
+
+        return $out;
     }
 
     /** Payload JSON de un nodo para el front (Blade no soporta closures en @json). */

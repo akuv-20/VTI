@@ -803,19 +803,35 @@
             @endif
 
             {{-- ── Monitoreo ── --}}
-            @can('acceso_monitoreo')
+            @if(auth()->user()->can('acceso_monitoreo') || auth()->user()->can('acceso_sitios'))
             <div class="vti-nav-group" data-group="monitoreo">
                 <button type="button" class="vti-nav-group-toggle">
                     <i class="bi bi-broadcast-pin"></i><span class="sb-text">Monitoreo</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="vti-nav-group-items">
+                    @can('acceso_monitoreo')
                     <a href="{{ route('admin.monitoreo.mapas.index') }}" class="vti-nav-link {{ request()->routeIs('admin.monitoreo.mapas.*') ? 'active' : '' }}">
                         <i class="bi bi-diagram-2"></i>Mapa de red
                     </a>
+                    @endcan
+                    @can('acceso_sitios')
+                    <a href="{{ route('admin.sitios.index') }}" class="vti-nav-link {{ request()->routeIs('admin.sitios.index') || request()->routeIs('admin.sitios.show') ? 'active' : '' }}">
+                        <i class="bi bi-pin-map-fill"></i>Sitios
+                    </a>
+                    <a href="{{ route('admin.sitios.dashboard') }}" class="vti-nav-link {{ request()->routeIs('admin.sitios.dashboard') ? 'active' : '' }}">
+                        <i class="bi bi-graph-up"></i>Avance de enlazamiento
+                    </a>
+                    <a href="{{ route('admin.sitios.descubrimiento') }}" class="vti-nav-link {{ request()->routeIs('admin.sitios.descubrimiento') ? 'active' : '' }}">
+                        <i class="bi bi-search"></i>Descubrir hosts
+                    </a>
+                    <a href="{{ route('admin.sitios.terreno') }}" class="vti-nav-link {{ request()->routeIs('admin.sitios.terreno*') ? 'active' : '' }}">
+                        <i class="bi bi-phone"></i>Terreno
+                    </a>
+                    @endcan
                 </div>
             </div>
-            @endcan
+            @endif
 
             {{-- ── KPIs ── --}}
             @can('acceso_kpi')
@@ -908,6 +924,11 @@
             'admin.entra_id.inspector'    => ['AD | EntraID', 'Value Inspector'],
             'admin.entra_id'              => ['AD | EntraID', 'Entra ID'],
             'admin.monitoreo.mapas'       => ['Monitoreo', 'Mapa de red'],
+            'admin.sitios.dashboard'      => ['Monitoreo', 'Avance de enlazamiento'],
+            'admin.sitios.descubrimiento' => ['Monitoreo', 'Descubrir hosts'],
+            'admin.sitios.terreno'        => ['Monitoreo', 'Levantamiento en terreno'],
+            'admin.sitios.importar'       => ['Monitoreo', 'Importar sitios'],
+            'admin.sitios'                => ['Monitoreo', 'Sitios'],
             'admin.usuarios'              => ['Admin', 'Usuarios'],
             'admin.configuracion'         => ['Admin', 'Configuración'],
             'home'                        => [null, 'Inicio'],

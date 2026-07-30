@@ -42,8 +42,13 @@
     .mapv-icons button { border:1px solid #e2e8f0; background:#fff; border-radius:7px; padding:.3rem 0; font-size:15px; color:#64748b; }
     .mapv-icons button.on { border-color:#0ea5e9; background:#f0f9ff; color:#0284c7; }
     .mapv-tip { position:fixed; z-index:50; background:#0f172a; color:#e2e8f0; border-radius:8px; padding:.5rem .7rem;
-                font-size:.72rem; max-width:280px; pointer-events:none; display:none; }
+                font-size:.72rem; max-width:280px; display:none; }
     .mapv-tip .t { font-weight:700; font-size:.76rem; }
+    .mapv-tip .ficha { display:flex; align-items:center; gap:.4rem; margin-top:.45rem; padding-top:.45rem;
+                       border-top:1px solid #1e293b; }
+    .mapv-tip .ficha img { width:34px; height:34px; border-radius:5px; object-fit:cover; }
+    .mapv-tip .ficha a { color:#7dd3fc; text-decoration:none; font-weight:600; }
+    .mapv-tip .ficha a:hover { text-decoration:underline; }
     .mapv-hint { position:absolute; left:12px; bottom:8px; font-size:.72rem; color:#94a3b8; pointer-events:none; z-index:4; }
     .mapv-crumbs { display:flex; align-items:center; gap:.4rem; font-size:.8rem; color:#94a3b8; margin-bottom:.5rem; flex-wrap:wrap; }
     .mapv-crumbs a { color:#0284c7; text-decoration:none; font-weight:600; }
@@ -60,6 +65,11 @@
     .mapv-mini .mm-dot { position:absolute; width:11px; height:11px; margin:-5.5px 0 0 -5.5px; border-radius:3px; }
     .mapv-mini .mm-res { font-size:.7rem; color:#475569; margin-top:.4rem; display:flex; gap:.7rem; flex-wrap:wrap; }
     .mapv-mini .mm-go { font-size:.68rem; color:#94a3b8; margin-top:.25rem; }
+    .mapv-mini .mm-ficha { display:flex; align-items:center; gap:.45rem; margin-top:.45rem; padding-top:.45rem; border-top:1px solid #f1f5f9; }
+    .mapv-mini .mm-ficha img { width:32px; height:32px; border-radius:5px; object-fit:cover; flex:0 0 auto; }
+    .mapv-mini .mm-ficha > i { font-size:1.1rem; color:#7c3aed; flex:0 0 auto; }
+    .mapv-mini .mm-ficha a { color:#0284c7; text-decoration:none; font-weight:600; font-size:.72rem; }
+    .mapv-mini .mm-ficha a:hover { text-decoration:underline; }
     .mapv-stage.saliendo { transition:transform .3s ease, opacity .3s ease; }
 </style>
 
@@ -270,6 +280,9 @@
     const MAPA_ID = {{ $mapa->id }};
     const MAPA_NOMBRE = @json($mapa->nombre);
     const PUEDE_EDITAR = @json($puedeEditar);
+    const FICHAS = @json($fichas);
+    const VER_FICHAS = @json($puedeVerFichas);
+    const URL_SITIOS = '{{ route('admin.sitios.index') }}';
     const MAPAS_VISIBLES = @json($mapasVisibles);
     // Portal solo si el usuario puede ver el mapa destino.
     const esPortal = n => !!n.mapa_destino_id && MAPAS_VISIBLES.includes(n.mapa_destino_id);
@@ -388,23 +401,54 @@
             if (!modoEdicion && esPortal(n)) { programarMini(n); return; }
             mostrarTip(id, ev);
         });
-        el.addEventListener('mousemove', ev => { if (tip.style.display === 'block') { tip.style.left = (ev.clientX + 14) + 'px'; tip.style.top = (ev.clientY + 14) + 'px'; } });
-        el.addEventListener('mouseleave', () => { tip.style.display = 'none'; cancelarMini(); });
+        el.addEventListener('mouseleave', () => {
+            // Gracia para permitir mover el mouse hacia el tooltip y usar sus enlaces.
+            setTimeout(() => { if (!tip.matches(':hover')) tip.style.display = 'none'; }, 180);
+            cancelarMini();
+        });
     }
 
     function mostrarTip(id, ev) {
         const n = nodos.find(x => x.id === id);
         const e = estados[id] || {};
         const est = { up: '🟢 En línea', down: '🔴 Caído', downtime: '🟠 Mantención programada', na: '⚪ Sin datos' }[e.estado || 'na'];
+
+        // Bloque de ficha: enlace directo si existe, o atajo para crearla.
+        let ficha = '';
+        if (VER_FICHAS && n.host_name) {
+            const f = FICHAS[n.host_name];
+            if (f) {
+                ficha = '<div class="ficha">' +
+                    (f.portada ? '<img src="' + esc(f.portada) + '" alt="">' : '<i class="bi bi-card-text" style="font-size:1.1rem;color:#7dd3fc"></i>') +
+                    '<div style="min-width:0">' +
+                        '<a href="' + esc(f.url) + '"><i class="bi bi-box-arrow-up-right me-1"></i>Ver ficha</a>' +
+                        '<div style="color:#94a3b8;font-size:.66rem">' + esc(f.nombre) + ' · ' + esc(f.tipo) + '</div>' +
+                    '</div></div>';
+            } else {
+                ficha = '<div class="ficha"><i class="bi bi-plus-circle" style="font-size:1.1rem;color:#94a3b8"></i>' +
+                    '<a href="' + esc(URL_SITIOS) + '" style="color:#94a3b8">Sin ficha — crear</a></div>';
+            }
+        }
+
         tip.innerHTML = '<div class="t">' + esc(n.etiqueta) + '</div>' +
             (n.host_name ? '<div style="font-family:monospace">' + esc(n.host_name) + '</div>' : '') +
             '<div>' + est + (e.desde ? ' · desde ' + esc(e.desde) : '') + '</div>' +
             (e.detalle ? '<div style="color:#94a3b8;margin-top:2px">' + esc(e.detalle) + '</div>' : '') +
-            (!modoEdicion && esPortal(n) ? '<div style="color:#7dd3fc;margin-top:2px">Clic para abrir el mapa ↗</div>' : '');
+            (!modoEdicion && esPortal(n) ? '<div style="color:#7dd3fc;margin-top:2px">Clic para abrir el mapa ↗</div>' : '') +
+            ficha;
+
+        // Se ancla al nodo (no sigue al mouse) para poder alcanzar el enlace.
+        const r = document.getElementById('nodo-' + id).getBoundingClientRect();
         tip.style.display = 'block';
-        tip.style.left = (ev.clientX + 14) + 'px';
-        tip.style.top  = (ev.clientY + 14) + 'px';
+        const w = tip.offsetWidth, h = tip.offsetHeight;
+        let left = r.right + 10;
+        if (left + w > window.innerWidth - 8) left = r.left - w - 10;
+        tip.style.left = Math.max(8, left) + 'px';
+        tip.style.top  = Math.max(8, Math.min(window.innerHeight - h - 8, r.top)) + 'px';
     }
+
+    // El tooltip es interactivo: no se cierra mientras el mouse esté sobre él.
+    tip.addEventListener('mouseleave', () => tip.style.display = 'none');
 
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -1036,6 +1080,18 @@
             ? '<img class="mm-fondo" src="' + esc(j.fondo) + '" alt="" style="opacity:' + ((j.opacidad || 40) / 100) + '">'
             : '';
 
+        // Los nodos portal también tienen ficha: se ofrece junto al mapa destino.
+        let fichaMini = '';
+        if (VER_FICHAS && n.host_name && FICHAS[n.host_name]) {
+            const f = FICHAS[n.host_name];
+            fichaMini = '<div class="mm-ficha">' +
+                (f.portada ? '<img src="' + esc(f.portada) + '" alt="">' : '<i class="bi bi-card-text"></i>') +
+                '<div style="min-width:0">' +
+                    '<a href="' + esc(f.url) + '" class="mm-ficha-link"><i class="bi bi-box-arrow-up-right me-1"></i>Ver ficha del sitio</a>' +
+                    '<div style="color:#94a3b8;font-size:.64rem">' + esc(f.nombre) + ' · ' + esc(f.tipo) + '</div>' +
+                '</div></div>';
+        }
+
         mini.innerHTML =
             '<div class="mm-t"><i class="bi bi-map"></i>' + esc(j.nombre) + ' — vista previa en vivo</div>' +
             '<div class="mm-stage">' + fondo + '<svg viewBox="0 0 1600 900" preserveAspectRatio="none">' + svgL + '</svg>' + dots + '</div>' +
@@ -1044,7 +1100,11 @@
                 (caidos.length ? '<span style="color:#dc2626"><i class="bi bi-x-octagon-fill me-1"></i>' + caidos.length + (caidos.length === 1 ? ' caído' : ' caídos') + ' · ' + esc(caidos.slice(0, 2).join(', ')) + (caidos.length > 2 ? '…' : '') + '</span>' : '') +
                 (mant ? '<span style="color:#d97706"><i class="bi bi-cone-striped me-1"></i>' + mant + ' en mantención</span>' : '') +
             '</div>' +
-            '<div class="mm-go">clic para entrar al detalle →</div>';
+            fichaMini +
+            '<div class="mm-go">clic en la miniatura para entrar al detalle →</div>';
+
+        // El enlace a la ficha no debe disparar la navegación al mapa destino.
+        mini.querySelector('.mm-ficha-link')?.addEventListener('click', ev => ev.stopPropagation());
 
         // Posicionar junto al nodo (derecha; si no cabe, izquierda).
         const r = document.getElementById('nodo-' + n.id).getBoundingClientRect();

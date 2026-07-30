@@ -135,6 +135,37 @@ class RoamingController extends Controller
         return redirect()->route('roamings.index')->with('success', 'Roaming agendado correctamente.');
     }
 
+    public function update(Request $request, Roaming $roaming)
+    {
+        $validated = $request->validate([
+            'pasaporte_dias' => 'nullable|integer|in:' . implode(',', self::PASAPORTES),
+            'fecha_inicio'   => 'required|date',
+            'destino'        => 'nullable|string|max:255',
+            'id_solicitud'   => 'nullable|string|max:255',
+            'estado'         => 'required|in:activo,cerrado,archivado',
+            'observacion'    => 'nullable|string|max:500',
+        ]);
+
+        $inicio      = Carbon::parse($validated['fecha_inicio']);
+        $esPasaporte = $roaming->tipo === 'pasaporte';
+
+        if ($esPasaporte && empty($validated['pasaporte_dias'])) {
+            return back()->with('error', 'Debes indicar los días del pasaporte.');
+        }
+
+        $roaming->update([
+            'pasaporte_dias' => $esPasaporte ? (int) $validated['pasaporte_dias'] : null,
+            'fecha_inicio'   => $inicio,
+            'fecha_termino'  => $esPasaporte ? Roaming::calcularTermino($inicio, (int) $validated['pasaporte_dias']) : null,
+            'destino'        => $validated['destino'] ?? null,
+            'id_solicitud'   => $validated['id_solicitud'] ?? null,
+            'estado'         => $validated['estado'],
+            'observacion'    => $validated['observacion'] ?? null,
+        ]);
+
+        return redirect()->route('roamings.index')->with('success', 'Roaming actualizado correctamente.');
+    }
+
     /** Cierra/desactiva un roaming (recurrente Movistar o activación Entel). */
     public function cerrar(Roaming $roaming)
     {

@@ -31,6 +31,8 @@ use App\Http\Controllers\Admin\ActiveDirectory2Controller as AdminAD2Controller;
 use App\Http\Controllers\Admin\EntraIDController as AdminEntraIDController;
 use App\Http\Controllers\Admin\KpiDisponibilidadController as AdminKpiDisponibilidadController;
 use App\Http\Controllers\Admin\MonitoreoMapaController as AdminMonitoreoMapaController;
+use App\Http\Controllers\Admin\SitioController as AdminSitioController;
+use App\Http\Controllers\Admin\SitioPanelController as AdminSitioPanelController;
 use App\Http\Controllers\Auth\AzureController;
 
 // Route::get('/', function () {
@@ -84,6 +86,7 @@ Route::get('informes/telefonia', [InformeController::class, 'telefonia'])->name(
 Route::get('roamings/buscar-lineas',        [RoamingController::class, 'buscarLineas'])->name('roamings.buscar_lineas');
 Route::get('roamings',                      [RoamingController::class, 'index'])->name('roamings.index');
 Route::post('roamings/linea/{linea}',       [RoamingController::class, 'store'])->name('roamings.store');
+Route::patch('roamings/{roaming}',          [RoamingController::class, 'update'])->name('roamings.update');
 Route::patch('roamings/{roaming}/cerrar',   [RoamingController::class, 'cerrar'])->name('roamings.cerrar');
 Route::patch('roamings/{roaming}/archivar', [RoamingController::class, 'archivar'])->name('roamings.archivar');
 Route::delete('roamings/{roaming}',         [RoamingController::class, 'destroy'])->name('roamings.destroy');
@@ -215,6 +218,44 @@ Route::middleware(['auth', 'can:acceso_monitoreo'])->prefix('admin')->name('admi
         Route::post('mapas/{mapa}/enlaces',     [AdminMonitoreoMapaController::class, 'enlaceStore'])->name('mapas.enlaces.store');
         Route::put('enlaces/{enlace}',          [AdminMonitoreoMapaController::class, 'enlaceUpdate'])->name('mapas.enlaces.update');
         Route::delete('enlaces/{enlace}',       [AdminMonitoreoMapaController::class, 'enlaceDestroy'])->name('mapas.enlaces.destroy');
+    });
+});
+
+// ── Monitoreo: fichas de sitios (plantas, campos, datacenter, oficinas) ──────
+Route::middleware(['auth', 'can:acceso_sitios'])->prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('sitios')->name('sitios.')->group(function () {
+        // Panel de levantamiento (antes del {sitio} para no chocar con el binding)
+        Route::get('/dashboard',            [AdminSitioPanelController::class, 'dashboard'])->name('dashboard');
+        Route::get('/descubrimiento',       [AdminSitioPanelController::class, 'descubrimiento'])->name('descubrimiento');
+        Route::post('/descubrimiento/sitio', [AdminSitioPanelController::class, 'descubrimientoSitio'])->name('descubrimiento.sitio');
+        Route::post('/descubrimiento/equipo', [AdminSitioPanelController::class, 'descubrimientoEquipo'])->name('descubrimiento.equipo');
+        Route::post('/descubrimiento/host', [AdminSitioPanelController::class, 'descubrimientoHost'])->name('descubrimiento.host');
+        Route::get('/importar',             [AdminSitioPanelController::class, 'importar'])->name('importar');
+        Route::get('/importar/plantilla',   [AdminSitioPanelController::class, 'importarPlantilla'])->name('importar.plantilla');
+        Route::post('/importar',            [AdminSitioPanelController::class, 'importarProcesar'])->name('importar.procesar');
+        Route::get('/terreno',              [AdminSitioPanelController::class, 'terreno'])->name('terreno');
+        Route::get('/terreno/{sitio}',      [AdminSitioPanelController::class, 'terrenoFicha'])->name('terreno.ficha');
+        Route::post('/terreno/{sitio}',     [AdminSitioPanelController::class, 'terrenoGuardar'])->name('terreno.guardar');
+
+        // Fotos (fuera del scope de {sitio} porque sirven a sitios y equipos)
+        Route::post('/fotos',               [AdminSitioController::class, 'fotoStore'])->name('fotos.store');
+        Route::put('/fotos/{foto}',         [AdminSitioController::class, 'fotoUpdate'])->name('fotos.update');
+        Route::delete('/fotos/{foto}',      [AdminSitioController::class, 'fotoDestroy'])->name('fotos.destroy');
+
+        // Equipos y hosts
+        Route::put('/equipos/{equipo}',     [AdminSitioController::class, 'equipoUpdate'])->name('equipos.update');
+        Route::delete('/equipos/{equipo}',  [AdminSitioController::class, 'equipoDestroy'])->name('equipos.destroy');
+        Route::delete('/hosts/{host}',      [AdminSitioController::class, 'hostDestroy'])->name('hosts.destroy');
+
+        // Fichas
+        Route::get('/',                     [AdminSitioController::class, 'index'])->name('index');
+        Route::post('/',                    [AdminSitioController::class, 'store'])->name('store');
+        Route::get('/{sitio}',              [AdminSitioController::class, 'show'])->name('show');
+        Route::put('/{sitio}',              [AdminSitioController::class, 'update'])->name('update');
+        Route::delete('/{sitio}',           [AdminSitioController::class, 'destroy'])->name('destroy');
+        Route::post('/{sitio}/clonar',      [AdminSitioController::class, 'clonar'])->name('clonar');
+        Route::post('/{sitio}/hosts',       [AdminSitioController::class, 'hostStore'])->name('hosts.store');
+        Route::post('/{sitio}/equipos',     [AdminSitioController::class, 'equipoStore'])->name('equipos.store');
     });
 });
 
