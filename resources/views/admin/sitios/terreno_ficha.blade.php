@@ -60,18 +60,33 @@
 
             <div class="tf-card">
                 <h6><i class="bi bi-geo-alt me-1"></i>Ubicación</h6>
+
+                <button type="button" class="btn btn-primary w-100" id="btnGps" style="font-size:1rem;padding:.7rem">
+                    <i class="bi bi-crosshair me-1"></i>Usar mi ubicación actual
+                </button>
+                <div id="gpsMsg" class="mt-1 mb-2" style="font-size:.74rem;color:#64748b">
+                    Párate en el punto que quieras dejar marcado (portón, sala de equipos) y toca el botón.
+                </div>
+
                 <div class="tf-f">
-                    <label>Coordenadas GPS</label>
-                    <div class="tf-gps">
+                    <label>Link de Google Maps</label>
+                    <input type="text" name="maps_url" id="mapsUrl" class="form-control" value="{{ $sitio->maps_url }}"
+                           placeholder="Se llena solo con el botón, o pega el link desde Maps">
+                    <a href="#" id="verMaps" target="_blank" rel="noopener"
+                       class="btn btn-outline-secondary btn-sm w-100 mt-2" style="display:none">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Abrir en Maps para verificar
+                    </a>
+                </div>
+
+                <details class="tf-f" @if(!$sitio->latitud) style="opacity:.85" @endif>
+                    <summary style="font-size:.76rem;color:#64748b;cursor:pointer">Coordenadas exactas</summary>
+                    <div class="tf-gps mt-2">
                         <input type="text" name="latitud" id="lat" class="form-control" value="{{ $sitio->latitud }}" placeholder="Latitud" inputmode="decimal">
                         <input type="text" name="longitud" id="lon" class="form-control" value="{{ $sitio->longitud }}" placeholder="Longitud" inputmode="decimal">
                     </div>
-                    <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-2" id="btnGps">
-                        <i class="bi bi-crosshair me-1"></i>Tomar mi ubicación actual
-                    </button>
-                    <div id="gpsMsg" class="mt-1" style="font-size:.74rem;color:#64748b"></div>
-                </div>
-                <div class="tf-f">
+                </details>
+
+                <div class="tf-f mb-0">
                     <label>Cómo llegar (portón, referencias)</label>
                     <textarea name="acceso" class="form-control" rows="3">{{ $sitio->acceso }}</textarea>
                 </div>
@@ -145,6 +160,21 @@
 @push('scripts')
 <script>
 // ── GPS del navegador (requiere HTTPS) ───────────────────────────────────────
+const inpLat = document.getElementById('lat');
+const inpLon = document.getElementById('lon');
+const inpUrl = document.getElementById('mapsUrl');
+const lnkVer = document.getElementById('verMaps');
+
+// El botón "Abrir en Maps" usa el link escrito, o uno armado con las coordenadas.
+function refrescarVerMaps() {
+    const destino = inpUrl.value.trim() ||
+        (inpLat.value && inpLon.value ? 'https://www.google.com/maps?q=' + inpLat.value + ',' + inpLon.value : '');
+    lnkVer.href = destino || '#';
+    lnkVer.style.display = destino ? '' : 'none';
+}
+[inpUrl, inpLat, inpLon].forEach(el => el.addEventListener('input', refrescarVerMaps));
+refrescarVerMaps();
+
 document.getElementById('btnGps').addEventListener('click', function () {
     const msg = document.getElementById('gpsMsg');
     if (!navigator.geolocation) {
@@ -156,9 +186,14 @@ document.getElementById('btnGps').addEventListener('click', function () {
 
     navigator.geolocation.getCurrentPosition(
         pos => {
-            document.getElementById('lat').value = pos.coords.latitude.toFixed(6);
-            document.getElementById('lon').value = pos.coords.longitude.toFixed(6);
-            msg.innerHTML = '<span style="color:#16a34a">Ubicación tomada · precisión ' + Math.round(pos.coords.accuracy) + ' m</span>';
+            const lat = pos.coords.latitude.toFixed(6);
+            const lon = pos.coords.longitude.toFixed(6);
+            inpLat.value = lat;
+            inpLon.value = lon;
+            inpUrl.value = 'https://www.google.com/maps?q=' + lat + ',' + lon;
+            refrescarVerMaps();
+            msg.innerHTML = '<span style="color:#16a34a">Ubicación tomada · precisión ' +
+                Math.round(pos.coords.accuracy) + ' m. Link de Maps listo.</span>';
             document.getElementById('btnGps').disabled = false;
         },
         err => {

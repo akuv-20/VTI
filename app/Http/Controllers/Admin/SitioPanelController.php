@@ -530,6 +530,7 @@ class SitioPanelController extends Controller
             'enlace_tipo'        => ['nullable', 'in:' . implode(',', array_keys(Sitio::ENLACE_TIPOS))],
             'latitud'            => ['nullable', 'numeric', 'between:-90,90'],
             'longitud'           => ['nullable', 'numeric', 'between:-180,180'],
+            'maps_url'           => ['nullable', 'string', 'max:2000'],
             'acceso'             => ['nullable', 'string', 'max:2000'],
             'encargado_nombre'   => ['nullable', 'string', 'max:255'],
             'encargado_telefono' => ['nullable', 'string', 'max:60'],
@@ -545,6 +546,11 @@ class SitioPanelController extends Controller
 
         $fotos = $data['fotos'] ?? [];
         unset($data['fotos'], $data['categoria']);
+
+        // Si pegaron un link de Maps sin coordenadas, se sacan del propio link.
+        if (empty($data['latitud']) && $coords = Sitio::coordenadasDesdeUrl($data['maps_url'] ?? null)) {
+            [$data['latitud'], $data['longitud']] = $coords;
+        }
 
         $sitio->update($data + [
             'levantado_at'  => now(),
