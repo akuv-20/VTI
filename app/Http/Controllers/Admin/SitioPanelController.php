@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Compania;
+use App\Models\Empresa;
 use App\Models\Sitio;
 use App\Models\SitioEquipo;
 use App\Models\SitioFoto;
 use App\Services\GaleriaFotos;
+use App\Services\ReferenciasCheckMk;
 use App\Services\SitiosCheckMk;
+use App\Support\DpaChile;
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -27,12 +31,12 @@ class SitioPanelController extends Controller
         'nombre'             => 'Nombre',
         'tipo'               => 'Tipo (planta/campo/datacenter/oficina)',
         'estado_enlace'      => 'Estado enlace (sin_enlace/en_gestion/en_instalacion/operativo)',
-        'empresa'            => 'Empresa',
+        'empresa'            => 'Empresa (del mantenedor)',
         'region'             => 'Region',
         'comuna'             => 'Comuna',
-        'direccion'          => 'Direccion',
+        'maps_url'           => 'Link de Google Maps',
         'enlace_tipo'        => 'Enlace (fibra/ptp/starlink/4g/satelital/ninguno)',
-        'isp'                => 'ISP',
+        'isp'                => 'ISP (compania del mantenedor)',
         'ancho_banda'        => 'Ancho de banda',
         'superficie_ha'      => 'Superficie ha',
         'especies'           => 'Especies',
@@ -47,6 +51,7 @@ class SitioPanelController extends Controller
     public function __construct(
         private SitiosCheckMk $puente = new SitiosCheckMk(),
         private GaleriaFotos $galeria = new GaleriaFotos(),
+        private ReferenciasCheckMk $referencias = new ReferenciasCheckMk(),
     ) {}
 
     /* ── Dashboard de avance ─────────────────────────────────────────────── */
@@ -100,6 +105,7 @@ class SitioPanelController extends Controller
         return view('admin.sitios.dashboard', [
             'sitios'        => $sitios,
             'matriz'        => $matriz,
+            'huerfanos'     => $this->referencias->huerfanos(),
             'operativos'    => $sitios->where('estado_enlace', 'operativo')->count(),
             'sinMonitoreo'  => $sinMonitoreo,
             'hostsSinFicha' => $hostsSinFicha,
@@ -227,8 +233,8 @@ class SitioPanelController extends Controller
         $hoja->freezePane('A2');
 
         // Fila de ejemplo para que se entienda el formato.
-        $ejemplo = ['51', 'Campo Las Palmas', 'campo', 'sin_enlace', 'Unifrutti', 'O\'Higgins', 'Peumo',
-            'Parcela 12, camino a Peumo', 'ninguno', '', '', '45.5', 'Cereza', '4', '2',
+        $ejemplo = ['51', 'Campo Las Palmas', 'campo', 'sin_enlace', 'VERFRUT', 'O\'Higgins', 'Peumo',
+            'https://maps.app.goo.gl/… o -34.39751,-71.17403', 'ninguno', '', '', '45.5', 'Cereza', '4', '2',
             'Juan Pérez', '+56 9 1234 5678', 'jperez@ejemplo.cl', 'Sin enlace aún, se evalúa Starlink'];
         foreach ($ejemplo as $i => $v) {
             $hoja->setCellValue([$i + 1, 2], $v);
@@ -261,6 +267,10 @@ class SitioPanelController extends Controller
         $claves = array_keys(self::COLUMNAS_IMPORT);
         $creados = 0; $actualizados = 0; $errores = [];
         $actualizar = $request->boolean('actualizar');
+
+        // Los mantenedores se cargan una vez y se buscan por nombre normalizado.
+        $empresas  = $this->indicePorNombre(Empresa::all(['id', 'nombre']));
+        $companias = $this->indicePorNombre(Compania::all(['id', 'nombre']));
 
         foreach (array_slice($filas, 1) as $n => $fila) {
             $linea = $n + 2;
@@ -299,6 +309,35 @@ class SitioPanelController extends Controller
                 }
             }
 
+            // Empresa e ISP vienen por nombre: se resuelven contra los mantenedores.
+            foreach ([['empresa', 'empresa_id', $empresas, 'empresa'], ['isp', 'isp_id', $companias, 'compañía']] as [$col, $fk, $indice, $rotulo]) {
+                if (!isset($datos[$col])) continue;
+
+                $id = $indice[$this->claveNombre($datos[$col])] ?? null;
+                if (!$id) {
+                    $errores[] = "Fila {$linea}: la {$rotulo} «{$datos[$col]}» no existe en el mantenedor, se dejó vacía.";
+                }
+                $datos[$fk] = $id;
+                unset($datos[$col]);
+            }
+
+            // Región y comuna se ajustan a la división política oficial.
+            if (isset($datos['comuna'])) {
+                $comuna = DpaChile::normalizarComuna($datos['comuna']);
+                if (!$comuna) {
+                    $errores[] = "Fila {$linea}: la comuna «{$datos['comuna']}» no se reconoce.";
+                }
+                $datos['comuna'] = $comuna ?? $datos['comuna'];
+            }
+            $region = DpaChile::normalizarRegion($datos['region'] ?? null)
+                ?: DpaChile::regionDeComuna($datos['comuna'] ?? null);
+            if ($region) $datos['region'] = $region;
+
+            // Coordenadas a partir del link de Maps.
+            if (!empty($datos['maps_url']) && $coords = Sitio::coordenadasDesdeUrl($datos['maps_url'])) {
+                [$datos['latitud'], $datos['longitud']] = $coords;
+            }
+
             // Buscar existente por código, o por nombre si no trae código.
             $existente = null;
             if (!empty($datos['codigo'])) {
@@ -320,11 +359,118 @@ class SitioPanelController extends Controller
 
         $msg = "Importación lista: {$creados} sitios creados"
             . ($actualizar ? ", {$actualizados} actualizados" : '')
-            . (count($errores) ? '. ' . count($errores) . ' filas con problemas.' : '.');
+            . (count($errores) ? '. ' . count($errores) . ' avisos, revisa el detalle.' : '.');
 
         return redirect()->route('admin.sitios.index')
             ->with('success', $msg)
             ->with('import_errores', $errores);
+    }
+
+    /* ── Enlaces rotos con CheckMK ───────────────────────────────────────── */
+
+    /** Fichas, equipos y nodos que apuntan a hosts que ya no existen. */
+    public function enlaces()
+    {
+        $datos = $this->referencias->huerfanos();
+
+        try {
+            $hosts = $this->puente->estados()->keys()->sort(SORT_NATURAL | SORT_FLAG_CASE)->values();
+        } catch (\Throwable) {
+            $hosts = collect();
+        }
+
+        return view('admin.sitios.enlaces', [
+            'ok'        => $datos['ok'],
+            'error'     => $datos['error'],
+            'total'     => $datos['total_hosts'],
+            'huerfanos' => $datos['huerfanos'],
+            'hosts'     => $hosts,
+        ]);
+    }
+
+    /** Apunta todas las referencias de un host viejo hacia el host nuevo. */
+    public function enlacesRemapear(Request $request)
+    {
+        $data = $request->validate([
+            'viejo' => ['required', 'string', 'max:255'],
+            'nuevo' => ['required', 'string', 'max:255', 'different:viejo'],
+        ]);
+
+        $r = $this->referencias->remapear($data['viejo'], $data['nuevo']);
+        $tocado = array_sum($r);
+
+        if (!$tocado) {
+            return back()->withErrors(['nuevo' => "No quedaban referencias a «{$data['viejo']}»."]);
+        }
+
+        return back()->with('success', sprintf(
+            'Listo: «%s» → «%s». Se actualizaron %s.',
+            $data['viejo'], $data['nuevo'], $this->detalle($r)
+        ));
+    }
+
+    /** Suelta las referencias a un host que ya no existe. */
+    public function enlacesDesenlazar(Request $request)
+    {
+        $data = $request->validate(['host_name' => ['required', 'string', 'max:255']]);
+
+        $r = $this->referencias->desenlazar($data['host_name']);
+
+        return back()->with('success', sprintf(
+            'Se soltó «%s»: %s. El equipamiento y los nodos se conservan, solo quedaron sin host.',
+            $data['host_name'], $this->detalle($r)
+        ));
+    }
+
+    /** "2 fichas, 1 equipo y 1 nodo" a partir del conteo por origen. */
+    private function detalle(array $r): string
+    {
+        $rotulos = [
+            'fichas'  => ['ficha', 'fichas'],
+            'equipos' => ['equipo', 'equipos'],
+            'nodos'   => ['nodo del mapa', 'nodos del mapa'],
+        ];
+
+        $partes = [];
+        foreach ($rotulos as $clave => [$uno, $varios]) {
+            if ($r[$clave] > 0) $partes[] = $r[$clave] . ' ' . ($r[$clave] === 1 ? $uno : $varios);
+        }
+
+        if (!$partes) return 'nada';
+        if (count($partes) === 1) return $partes[0];
+
+        $ultima = array_pop($partes);
+
+        return implode(', ', $partes) . ' y ' . $ultima;
+    }
+
+    /* ── División política (API interna para los selectores) ─────────────── */
+
+    /** Regiones y comunas de Chile: ['Región' => ['Comuna', …]]. */
+    public function dpa()
+    {
+        return response()
+            ->json(DpaChile::todo())
+            ->header('Cache-Control', 'public, max-age=86400');
+    }
+
+    /** [nombre normalizado => id] para buscar empresas y compañías por nombre. */
+    private function indicePorNombre($registros): array
+    {
+        $out = [];
+        foreach ($registros as $r) {
+            $out[$this->claveNombre($r->nombre)] = $r->id;
+        }
+
+        return $out;
+    }
+
+    private function claveNombre(string $nombre): string
+    {
+        $t = mb_strtolower(trim($nombre), 'UTF-8');
+        $t = strtr($t, ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ñ' => 'n']);
+
+        return preg_replace('/[^a-z0-9]/', '', $t);
     }
 
     /* ── Levantamiento en terreno (móvil) ────────────────────────────────── */

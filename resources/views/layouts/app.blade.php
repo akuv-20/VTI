@@ -825,6 +825,9 @@
                     <a href="{{ route('admin.sitios.descubrimiento') }}" class="vti-nav-link {{ request()->routeIs('admin.sitios.descubrimiento') ? 'active' : '' }}">
                         <i class="bi bi-search"></i>Descubrir hosts
                     </a>
+                    <a href="{{ route('admin.sitios.enlaces') }}" class="vti-nav-link {{ request()->routeIs('admin.sitios.enlaces*') ? 'active' : '' }}">
+                        <i class="bi bi-link-45deg"></i>Enlaces con CheckMK
+                    </a>
                     <a href="{{ route('admin.sitios.terreno') }}" class="vti-nav-link {{ request()->routeIs('admin.sitios.terreno*') ? 'active' : '' }}">
                         <i class="bi bi-phone"></i>Terreno
                     </a>
@@ -926,6 +929,7 @@
             'admin.monitoreo.mapas'       => ['Monitoreo', 'Mapa de red'],
             'admin.sitios.dashboard'      => ['Monitoreo', 'Avance de enlazamiento'],
             'admin.sitios.descubrimiento' => ['Monitoreo', 'Descubrir hosts'],
+            'admin.sitios.enlaces'        => ['Monitoreo', 'Enlaces con CheckMK'],
             'admin.sitios.terreno'        => ['Monitoreo', 'Levantamiento en terreno'],
             'admin.sitios.importar'       => ['Monitoreo', 'Importar sitios'],
             'admin.sitios'                => ['Monitoreo', 'Sitios'],

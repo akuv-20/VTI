@@ -233,6 +233,10 @@ Route::middleware(['auth', 'can:acceso_sitios'])->prefix('admin')->name('admin.'
         Route::get('/importar',             [AdminSitioPanelController::class, 'importar'])->name('importar');
         Route::get('/importar/plantilla',   [AdminSitioPanelController::class, 'importarPlantilla'])->name('importar.plantilla');
         Route::post('/importar',            [AdminSitioPanelController::class, 'importarProcesar'])->name('importar.procesar');
+        Route::get('/enlaces',              [AdminSitioPanelController::class, 'enlaces'])->name('enlaces');
+        Route::post('/enlaces/remapear',    [AdminSitioPanelController::class, 'enlacesRemapear'])->name('enlaces.remapear');
+        Route::post('/enlaces/desenlazar',  [AdminSitioPanelController::class, 'enlacesDesenlazar'])->name('enlaces.desenlazar');
+        Route::get('/dpa',                  [AdminSitioPanelController::class, 'dpa'])->name('dpa');
         Route::get('/terreno',              [AdminSitioPanelController::class, 'terreno'])->name('terreno');
         Route::get('/terreno/{sitio}',      [AdminSitioPanelController::class, 'terrenoFicha'])->name('terreno.ficha');
         Route::post('/terreno/{sitio}',     [AdminSitioPanelController::class, 'terrenoGuardar'])->name('terreno.guardar');

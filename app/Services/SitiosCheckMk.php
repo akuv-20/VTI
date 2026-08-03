@@ -51,6 +51,9 @@ class SitiosCheckMk
     /**
      * Estado en vivo de los hosts de una ficha.
      *
+     * Distingue «ausente» (el host ya no está en CheckMK, hay que remapear) de
+     * «na» (no se pudo consultar), que son dos problemas muy distintos.
+     *
      * @return array<string,array{estado:string,detalle:?string,desde:?string}>
      */
     public function estadoDeSitio(Sitio $sitio): array
@@ -65,7 +68,7 @@ class SitiosCheckMk
         foreach ($sitio->todosLosHosts() as $host) {
             $h = $estados->get($host);
             if (!$h) {
-                $out[$host] = ['estado' => 'na', 'detalle' => 'No existe en CheckMK', 'desde' => null];
+                $out[$host] = ['estado' => 'ausente', 'detalle' => 'Ya no existe en CheckMK', 'desde' => null];
                 continue;
             }
             $out[$host] = [

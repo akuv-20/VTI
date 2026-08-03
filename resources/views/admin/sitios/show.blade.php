@@ -8,6 +8,7 @@
     $esCampo = $sitio->tipo === 'campo';
     $esPlanta = $sitio->tipo === 'planta';
     $esDc = $sitio->tipo === 'datacenter';
+    $ta = fn(string $r) => auth()->user()->tieneAcceso($r);
 @endphp
 
 @section('content')
@@ -31,6 +32,7 @@
     .sf-f label { font-size:.7rem; color:#94a3b8; display:block; margin-bottom:2px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
     .sf-chk { display:flex; align-items:center; gap:1.2rem; flex-wrap:wrap; }
     .sf-host { display:flex; align-items:center; gap:.6rem; padding:.5rem .7rem; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:.45rem; }
+    .sf-host.roto { border-color:#d8b4fe; background:#faf5ff; }
     .sf-dot { width:10px; height:10px; border-radius:50%; flex:0 0 auto; }
     .sf-eq { border:1px solid #e2e8f0; border-radius:9px; padding:.7rem .85rem; margin-bottom:.6rem; }
     .sf-eq .cab { display:flex; align-items:center; gap:.5rem; }
@@ -81,7 +83,7 @@
                     @if($sitio->estacional)<span class="sf-tipo" style="background:#fef3c7;color:#92400e"><i class="bi bi-calendar-range me-1"></i>Estacional</span>@endif
                 </div>
                 <div style="font-size:.8rem;color:#475569;line-height:1.7">
-                    @if($sitio->empresa)<div><i class="bi bi-building me-1 text-muted"></i>{{ $sitio->empresa }}</div>@endif
+                    @if($sitio->empresa)<div><i class="bi bi-building me-1 text-muted"></i>{{ $sitio->empresa->nombre }}</div>@endif
                     @if($sitio->comuna || $sitio->region)
                         <div><i class="bi bi-geo-alt me-1 text-muted"></i>{{ collect([$sitio->comuna, $sitio->region])->filter()->implode(', ') }}</div>
                     @endif
@@ -89,11 +91,15 @@
                         <div><i class="bi bi-person me-1 text-muted"></i>{{ $sitio->encargado_nombre }}
                         @if($sitio->encargado_telefono)<span class="text-muted">· {{ $sitio->encargado_telefono }}</span>@endif</div>
                     @endif
-                    @if($sitio->latitud && $sitio->longitud)
+                    @if($sitio->maps_link)
                         <div>
                             <i class="bi bi-pin-map me-1 text-muted"></i>
-                            <a href="https://www.google.com/maps?q={{ $sitio->latitud }},{{ $sitio->longitud }}" target="_blank" rel="noopener">
-                                {{ number_format($sitio->latitud, 5) }}, {{ number_format($sitio->longitud, 5) }}
+                            <a href="{{ $sitio->maps_link }}" target="_blank" rel="noopener">
+                                @if($sitio->latitud && $sitio->longitud)
+                                    {{ number_format($sitio->latitud, 5) }}, {{ number_format($sitio->longitud, 5) }}
+                                @else
+                                    Abrir ubicación en Maps
+                                @endif
                             </a>
                         </div>
                     @endif
@@ -115,7 +121,7 @@
                 </div>
                 @if(count($sitio->faltantes()))
                 <div class="sf-falta">
-                    <b>Falta:</b> {{ collect($sitio->faltantes())->map(fn($c) => str_replace('_', ' ', $c))->implode(', ') }}
+                    <b>Falta:</b> {{ $sitio->faltantesEnPalabras() }}
                 </div>
                 @endif
             </div>
@@ -145,10 +151,36 @@
                                     @foreach(Sitio::ESTADOS_ENLACE as $k => $l)<option value="{{ $k }}" @selected($sitio->estado_enlace === $k)>{{ $l }}</option>@endforeach
                                 </select>
                             </div>
-                            <div class="sf-f"><label>Empresa</label><input type="text" name="empresa" class="form-control form-control-sm" value="{{ $sitio->empresa }}"></div>
-                            <div class="sf-f"><label>Región</label><input type="text" name="region" class="form-control form-control-sm" value="{{ $sitio->region }}"></div>
-                            <div class="sf-f"><label>Comuna</label><input type="text" name="comuna" class="form-control form-control-sm" value="{{ $sitio->comuna }}"></div>
-                            <div class="sf-f" style="grid-column:span 2"><label>Dirección</label><input type="text" name="direccion" class="form-control form-control-sm" value="{{ $sitio->direccion }}"></div>
+                            <div class="sf-f"><label>Empresa</label>
+                                <div class="input-group input-group-sm">
+                                    <select name="empresa_id" class="form-select form-select-sm">
+                                        <option value="">—</option>
+                                        @foreach($empresas as $e)<option value="{{ $e->id }}" @selected($sitio->empresa_id === $e->id)>{{ $e->nombre }}</option>@endforeach
+                                    </select>
+                                    @if($ta('empresas.index'))
+                                    <a href="{{ route('empresas.index') }}" target="_blank" class="btn btn-outline-secondary" title="Ver o agregar empresas"><i class="bi bi-box-arrow-up-right"></i></a>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="sf-f"><label>Región</label>
+                                <select name="region" id="selRegion" class="form-select form-select-sm" data-actual="{{ $sitio->region }}">
+                                    <option value="">—</option>
+                                </select>
+                            </div>
+                            <div class="sf-f"><label>Comuna</label>
+                                <select name="comuna" id="selComuna" class="form-select form-select-sm" data-actual="{{ $sitio->comuna }}">
+                                    <option value="">—</option>
+                                </select>
+                            </div>
+                            <div class="sf-f" style="grid-column:span 2">
+                                <label>Ubicación en Maps <span class="text-muted" style="text-transform:none;font-weight:400">— pega el link y las coordenadas se completan solas</span></label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" name="maps_url" class="form-control form-control-sm" value="{{ $sitio->maps_url }}" placeholder="https://maps.app.goo.gl/… o -34.39751,-71.17403">
+                                    @if($sitio->maps_link)
+                                    <a href="{{ $sitio->maps_link }}" target="_blank" rel="noopener" class="btn btn-outline-secondary" title="Abrir en Maps"><i class="bi bi-geo-alt"></i></a>
+                                    @endif
+                                </div>
+                            </div>
                             <div class="sf-f"><label>Latitud</label><input type="text" name="latitud" class="form-control form-control-sm" value="{{ $sitio->latitud }}" placeholder="-34.12345"></div>
                             <div class="sf-f"><label>Longitud</label><input type="text" name="longitud" class="form-control form-control-sm" value="{{ $sitio->longitud }}" placeholder="-71.12345"></div>
                         </div>
@@ -169,7 +201,17 @@
                                     @foreach(Sitio::ENLACE_TIPOS as $k => $l)<option value="{{ $k }}" @selected($sitio->enlace_tipo === $k)>{{ $l }}</option>@endforeach
                                 </select>
                             </div>
-                            <div class="sf-f"><label>ISP / proveedor</label><input type="text" name="isp" class="form-control form-control-sm" value="{{ $sitio->isp }}"></div>
+                            <div class="sf-f"><label>ISP / proveedor</label>
+                                <div class="input-group input-group-sm">
+                                    <select name="isp_id" class="form-select form-select-sm">
+                                        <option value="">—</option>
+                                        @foreach($companias as $c)<option value="{{ $c->id }}" @selected($sitio->isp_id === $c->id)>{{ $c->nombre }}</option>@endforeach
+                                    </select>
+                                    @if($ta('companias.index'))
+                                    <a href="{{ route('companias.index') }}" target="_blank" class="btn btn-outline-secondary" title="Ver o agregar compañías"><i class="bi bi-box-arrow-up-right"></i></a>
+                                    @endif
+                                </div>
+                            </div>
                             <div class="sf-f"><label>Ancho de banda</label><input type="text" name="ancho_banda" class="form-control form-control-sm" value="{{ $sitio->ancho_banda }}" placeholder="100/100 Mbps"></div>
                             <div class="sf-f"><label>IP pública</label><input type="text" name="ip_publica" class="form-control form-control-sm" value="{{ $sitio->ip_publica }}"></div>
                             <div class="sf-f"><label>N° de servicio</label><input type="text" name="num_servicio" class="form-control form-control-sm" value="{{ $sitio->num_servicio }}"></div>
@@ -192,7 +234,7 @@
                         <div class="sf-grid">
                             <div class="sf-f" style="grid-column:span 2"><label>Gabinete / rack</label><input type="text" name="gabinete" class="form-control form-control-sm" value="{{ $sitio->gabinete }}"></div>
                             <div class="sf-f"><label>UPS modelo</label><input type="text" name="ups_modelo" class="form-control form-control-sm" value="{{ $sitio->ups_modelo }}"></div>
-                            <div class="sf-f"><label>Autonomía UPS (min)</label><input type="number" name="ups_autonomia_min" class="form-control form-control-sm" value="{{ $sitio->ups_autonomia_min }}"></div>
+                            <div class="sf-f"><label>Capacidad UPS (kVA)</label><input type="text" name="ups_kva" class="form-control form-control-sm" value="{{ $sitio->ups_kva }}" placeholder="3.0"></div>
                             @if($esDc)
                             <div class="sf-f"><label>Racks</label><input type="number" name="racks_cant" class="form-control form-control-sm" value="{{ $sitio->racks_cant }}"></div>
                             <div class="sf-f"><label>U usados</label><input type="number" name="racks_u_usados" class="form-control form-control-sm" value="{{ $sitio->racks_u_usados }}"></div>
@@ -262,16 +304,24 @@
                 </h6>
                 <div class="sf-body">
                     @forelse($sitio->hosts as $h)
-                        @php $e = $estadoHosts[$h->host_name] ?? ['estado' => 'na']; @endphp
-                        <div class="sf-host">
-                            <span class="sf-dot" style="background:{{ ['up'=>'#16a34a','down'=>'#dc2626','downtime'=>'#d97706'][$e['estado']] ?? '#94a3b8' }}"></span>
+                        @php
+                            $e = $estadoHosts[$h->host_name] ?? ['estado' => 'na'];
+                            $ausente = $e['estado'] === 'ausente';
+                        @endphp
+                        <div class="sf-host {{ $ausente ? 'roto' : '' }}">
+                            <span class="sf-dot" style="background:{{ ['up'=>'#16a34a','down'=>'#dc2626','downtime'=>'#d97706','ausente'=>'#a855f7'][$e['estado']] ?? '#94a3b8' }}"></span>
                             <div style="flex:1 1 auto;min-width:0">
                                 <div style="font-family:ui-monospace,monospace;font-size:.76rem">{{ $h->host_name }}</div>
-                                <div style="font-size:.68rem;color:#94a3b8">
+                                <div style="font-size:.68rem;color:{{ $ausente ? '#7e22ce' : '#94a3b8' }}">
                                     {{ $h->rol_label }}
-                                    @if($e['estado'] === 'up') · en línea @elseif($e['estado'] === 'down') · caído @elseif($e['estado'] === 'downtime') · mantención @else · sin datos @endif
+                                    @if($e['estado'] === 'up') · en línea @elseif($e['estado'] === 'down') · caído @elseif($e['estado'] === 'downtime') · mantención @elseif($ausente) · <b>ya no existe en CheckMK</b> @else · sin datos @endif
                                     @if(!empty($e['desde'])) · {{ $e['desde'] }}@endif
                                 </div>
+                                @if($ausente)
+                                <a href="{{ route('admin.sitios.enlaces') }}" style="font-size:.68rem">
+                                    <i class="bi bi-arrow-left-right me-1"></i>remapear a otro host
+                                </a>
+                                @endif
                             </div>
                             <form method="POST" action="{{ route('admin.sitios.hosts.destroy', $h) }}" onsubmit="return confirm('¿Desenlazar este host?')">
                                 @csrf @method('DELETE')
@@ -481,6 +531,41 @@ document.querySelectorAll('.ver-foto').forEach(img => img.addEventListener('clic
 }));
 visor.addEventListener('click', () => visor.style.display = 'none');
 document.addEventListener('keydown', e => { if (e.key === 'Escape') visor.style.display = 'none'; });
+
+// Región y comuna: se llenan desde la API interna de división política
+(function () {
+    const selRegion = document.getElementById('selRegion');
+    const selComuna = document.getElementById('selComuna');
+    const opcion = (valor, texto) => new Option(texto ?? valor, valor);
+
+    // Deja seleccionado un valor aunque no esté en la lista (fichas antiguas).
+    const elegir = (sel, valor) => {
+        if (valor && ![...sel.options].some(o => o.value === valor)) sel.add(opcion(valor));
+        sel.value = valor || '';
+    };
+
+    fetch(@json(route('admin.sitios.dpa')))
+        .then(r => r.json())
+        .then(dpa => {
+            Object.keys(dpa).forEach(r => selRegion.add(opcion(r)));
+            elegir(selRegion, selRegion.dataset.actual);
+
+            const pintarComunas = (region, elegida) => {
+                selComuna.innerHTML = '';
+                selComuna.add(opcion('', '—'));
+                (dpa[region] || []).forEach(c => selComuna.add(opcion(c)));
+                elegir(selComuna, elegida);
+            };
+
+            pintarComunas(selRegion.value, selComuna.dataset.actual);
+            selRegion.addEventListener('change', () => pintarComunas(selRegion.value, ''));
+        })
+        .catch(() => {
+            // Sin API, al menos conserva lo ya guardado.
+            elegir(selRegion, selRegion.dataset.actual);
+            elegir(selComuna, selComuna.dataset.actual);
+        });
+})();
 
 // Mostrar solo los campos que aplican al tipo de equipo elegido
 function aplicarTipo(sel) {

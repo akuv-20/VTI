@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Compania;
+use App\Models\Empresa;
 use App\Models\MapaRed;
 use App\Models\Sitio;
 use App\Models\SitioEquipo;
@@ -54,7 +56,7 @@ class SitioController extends Controller
 
     public function show(Sitio $sitio)
     {
-        $sitio->load(['equipos.fotos', 'hosts', 'fotos', 'tecnico', 'levantadoPor', 'mapa']);
+        $sitio->load(['equipos.fotos', 'hosts', 'fotos', 'tecnico', 'levantadoPor', 'mapa', 'empresa', 'isp']);
 
         return view('admin.sitios.show', [
             'sitio'        => $sitio,
@@ -62,6 +64,8 @@ class SitioController extends Controller
             'usuarios'     => User::where('activo', true)->orderBy('name')->get(['id', 'name']),
             'mapas'        => MapaRed::activos()->ordenados()->get(),
             'hostsCheckMk' => $this->listaHosts(),
+            'empresas'     => Empresa::orderBy('nombre')->get(['id', 'nombre']),
+            'companias'    => Compania::orderBy('nombre')->get(['id', 'nombre']),
         ]);
     }
 
@@ -87,15 +91,15 @@ class SitioController extends Controller
             'nombre'            => ['required', 'string', 'max:255'],
             'tipo'              => ['required', 'in:' . implode(',', array_keys(Sitio::TIPOS))],
             'estado_enlace'     => ['required', 'in:' . implode(',', array_keys(Sitio::ESTADOS_ENLACE))],
-            'empresa'           => ['nullable', 'string', 'max:255'],
+            'empresa_id'        => ['nullable', 'integer', 'exists:empresas,id'],
             'region'            => ['nullable', 'string', 'max:255'],
             'comuna'            => ['nullable', 'string', 'max:255'],
-            'direccion'         => ['nullable', 'string', 'max:255'],
+            'maps_url'          => ['nullable', 'string', 'max:2000'],
             'acceso'            => ['nullable', 'string', 'max:2000'],
             'latitud'           => ['nullable', 'numeric', 'between:-90,90'],
             'longitud'          => ['nullable', 'numeric', 'between:-180,180'],
             'enlace_tipo'       => ['nullable', 'in:' . implode(',', array_keys(Sitio::ENLACE_TIPOS))],
-            'isp'               => ['nullable', 'string', 'max:255'],
+            'isp_id'            => ['nullable', 'integer', 'exists:companias,id'],
             'ancho_banda'       => ['nullable', 'string', 'max:60'],
             'ip_publica'        => ['nullable', 'string', 'max:60'],
             'num_servicio'      => ['nullable', 'string', 'max:80'],
@@ -106,7 +110,7 @@ class SitioController extends Controller
             'vpn_detalle'       => ['nullable', 'string', 'max:255'],
             'gabinete'          => ['nullable', 'string', 'max:255'],
             'ups_modelo'        => ['nullable', 'string', 'max:255'],
-            'ups_autonomia_min' => ['nullable', 'integer', 'min:0', 'max:9999'],
+            'ups_kva'           => ['nullable', 'numeric', 'min:0', 'max:9999'],
             'superficie_ha'     => ['nullable', 'numeric', 'min:0'],
             'especies'          => ['nullable', 'string', 'max:255'],
             'usuarios_cant'     => ['nullable', 'integer', 'min:0', 'max:9999'],
@@ -127,9 +131,17 @@ class SitioController extends Controller
             $data[$flag] = $request->boolean($flag);
         }
 
+        $urlCambio = ($data['maps_url'] ?? null) !== $sitio->maps_url;
+        $data = $this->conCoordenadasDelLink($data, $urlCambio || !$sitio->latitud);
+
         $sitio->update($data);
 
-        return back()->with('success', 'Ficha actualizada.');
+        $aviso = 'Ficha actualizada.';
+        if ($urlCambio && ($data['latitud'] ?? null) && !$request->filled('latitud')) {
+            $aviso .= ' Se tomaron las coordenadas del link de Maps.';
+        }
+
+        return back()->with('success', $aviso);
     }
 
     public function destroy(Request $request, Sitio $sitio)
@@ -158,7 +170,7 @@ class SitioController extends Controller
         ]);
 
         $nuevo = $sitio->replicate([
-            'codigo', 'nombre', 'latitud', 'longitud', 'ip_publica', 'num_servicio',
+            'codigo', 'nombre', 'latitud', 'longitud', 'maps_url', 'ip_publica', 'num_servicio',
             'levantado_at', 'levantado_por', 'mapa_id', 'fecha_instalacion',
         ]);
         $nuevo->fill($data + ['estado_enlace' => 'sin_enlace']);
@@ -315,6 +327,23 @@ class SitioController extends Controller
     }
 
     /* ── Helpers ─────────────────────────────────────────────────────────── */
+
+    /**
+     * Rellena latitud/longitud a partir del link de Maps cuando vienen vacías.
+     * Si el usuario escribió coordenadas a mano, esas mandan.
+     */
+    private function conCoordenadasDelLink(array $data, bool $permitirSobrescribir): array
+    {
+        if (!empty($data['latitud']) && !empty($data['longitud'])) return $data;
+        if (!$permitirSobrescribir) return $data;
+
+        $coords = Sitio::coordenadasDesdeUrl($data['maps_url'] ?? null);
+        if ($coords) {
+            [$data['latitud'], $data['longitud']] = $coords;
+        }
+
+        return $data;
+    }
 
     /** Lista de hosts de CheckMK para los selectores (cacheada). */
     private function listaHosts(): array

@@ -155,6 +155,7 @@ class MonitoreoMapaController extends Controller
         return view('admin.monitoreo.mapas.show', [
             'mapa'          => $mapa,
             'fichas'        => $fichas,
+            'hostsRotos'    => $this->hostsRotos($mapa),
             'puedeVerFichas' => $user->can('acceso_sitios'),
             'puedeEditar'   => $mapa->puedeEditar($user),
             'esAdmin'       => $user->can('admin'),
@@ -198,6 +199,31 @@ class MonitoreoMapaController extends Controller
      *
      * @return array<string,array{url:string,nombre:string,tipo:string,portada:?string,es_equipo:bool}>
      */
+    /**
+     * Nodos de este mapa cuyo host ya no existe en CheckMK (borrado o renombrado).
+     * Se avisa arriba del mapa para que no queden nodos grises sin explicación.
+     *
+     * @return string[]
+     */
+    private function hostsRotos(MapaRed $mapa): array
+    {
+        $hosts = $mapa->nodos->pluck('host_name')->filter()->unique();
+        if ($hosts->isEmpty()) return [];
+
+        try {
+            $vivos = Cache::remember('monitoreo_estado_hosts', self::CACHE_ESTADO, function () {
+                return (new CheckMkClient())->estadoHosts();
+            });
+        } catch (\Throwable) {
+            return [];
+        }
+
+        // Sin hosts no se concluye nada: puede ser un problema del servidor.
+        if ($vivos->isEmpty()) return [];
+
+        return $hosts->reject(fn($h) => $vivos->has($h))->values()->all();
+    }
+
     private function fichasPorHost(MapaRed $mapa): array
     {
         $hosts = $mapa->nodos->pluck('host_name')->filter()->unique();

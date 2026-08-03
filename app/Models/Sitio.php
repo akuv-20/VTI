@@ -25,6 +25,7 @@ class Sitio extends Model
         'latitud'           => 'float',
         'longitud'          => 'float',
         'superficie_ha'     => 'float',
+        'ups_kva'           => 'float',
     ];
 
     public const TIPOS = [
@@ -73,13 +74,42 @@ class Sitio extends Model
      */
     public const REQUISITOS = [
         'comun' => ['codigo', 'nombre', 'region', 'comuna', 'encargado_nombre', 'encargado_telefono'],
-        'campo' => ['acceso', 'latitud', 'enlace_tipo', 'superficie_ha', 'usuarios_cant'],
-        'planta' => ['acceso', 'latitud', 'enlace_tipo', 'isp', 'subred', 'usuarios_cant', 'pcs_cant'],
-        'datacenter' => ['enlace_tipo', 'isp', 'subred', 'racks_cant', 'ups_modelo', 'climatizacion'],
-        'oficina' => ['direccion', 'enlace_tipo', 'usuarios_cant'],
+        'campo' => ['acceso', 'maps_url', 'enlace_tipo', 'superficie_ha', 'usuarios_cant'],
+        'planta' => ['acceso', 'maps_url', 'enlace_tipo', 'isp_id', 'subred', 'usuarios_cant', 'pcs_cant'],
+        'datacenter' => ['enlace_tipo', 'isp_id', 'subred', 'racks_cant', 'ups_modelo', 'climatizacion'],
+        'oficina' => ['maps_url', 'enlace_tipo', 'usuarios_cant'],
+    ];
+
+    /** Nombre legible de los campos, para la lista de «lo que falta». */
+    public const ETIQUETAS = [
+        'codigo'             => 'código',
+        'maps_url'           => 'ubicación en Maps',
+        'isp_id'             => 'ISP',
+        'empresa_id'         => 'empresa',
+        'enlace_tipo'        => 'tipo de enlace',
+        'superficie_ha'      => 'superficie',
+        'usuarios_cant'      => 'usuarios',
+        'pcs_cant'           => 'PCs',
+        'racks_cant'         => 'racks',
+        'ups_modelo'         => 'UPS',
+        'ups_kva'            => 'capacidad UPS',
+        'encargado_nombre'   => 'encargado',
+        'encargado_telefono' => 'teléfono del encargado',
+        'acceso'             => 'cómo llegar',
     ];
 
     /* ── Relaciones ──────────────────────────────────────────────────────── */
+
+    public function empresa(): BelongsTo
+    {
+        return $this->belongsTo(Empresa::class, 'empresa_id');
+    }
+
+    /** Proveedor del enlace: sale del mantenedor de compañías de facturación. */
+    public function isp(): BelongsTo
+    {
+        return $this->belongsTo(Compania::class, 'isp_id');
+    }
 
     public function equipos(): HasMany
     {
@@ -179,6 +209,42 @@ class Sitio extends Model
         return $this->fotos->firstWhere('portada', true) ?? $this->fotos->first();
     }
 
+    /** Link para abrir el sitio en Maps: el guardado, o uno armado con las coordenadas. */
+    public function getMapsLinkAttribute(): ?string
+    {
+        if ($this->maps_url) return $this->maps_url;
+
+        return ($this->latitud && $this->longitud)
+            ? "https://www.google.com/maps?q={$this->latitud},{$this->longitud}"
+            : null;
+    }
+
+    /**
+     * Extrae las coordenadas de un link de Google Maps.
+     * Cubre las formas que devuelven «Compartir», la app móvil y el navegador.
+     */
+    public static function coordenadasDesdeUrl(?string $url): ?array
+    {
+        if (!$url) return null;
+
+        $patrones = [
+            '/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/',                          // .../data=…!3dLAT!4dLNG
+            '/@(-?\d+\.\d+),\s*(-?\d+\.\d+)/',                           // .../@LAT,LNG,17z
+            '/[?&](?:q|query|ll|sll|daddr|center)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/', // ?q=LAT,LNG
+            '/^\s*(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)\s*$/',                 // pegar solo las coordenadas
+        ];
+
+        foreach ($patrones as $patron) {
+            if (preg_match($patron, $url, $m)) {
+                $lat = (float) $m[1];
+                $lng = (float) $m[2];
+                if (abs($lat) <= 90 && abs($lng) <= 180) return [$lat, $lng];
+            }
+        }
+
+        return null;
+    }
+
     /** Campos requeridos para este tipo de sitio. */
     public function requisitos(): array
     {
@@ -189,9 +255,17 @@ class Sitio extends Model
     public function faltantes(): array
     {
         return array_values(array_filter($this->requisitos(), function ($campo) {
-            $v = $this->{$campo};
+            $v = $this->getAttribute($campo);
             return $v === null || $v === '' || $v === 0;
         }));
+    }
+
+    /** Lo que falta, en palabras («ubicación en Maps, ISP, subred»). */
+    public function faltantesEnPalabras(): string
+    {
+        return collect($this->faltantes())
+            ->map(fn($c) => self::ETIQUETAS[$c] ?? str_replace('_', ' ', $c))
+            ->implode(', ');
     }
 
     /** % de completitud de la ficha (0-100). */

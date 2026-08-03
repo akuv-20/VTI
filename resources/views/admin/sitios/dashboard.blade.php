@@ -68,7 +68,34 @@
                 @endif
             </div>
         </div>
+        <div class="sd-kpi">
+            @php $rotos = $huerfanos['ok'] ? count($huerfanos['huerfanos']) : null; @endphp
+            <div class="lb">Enlaces rotos</div>
+            <div class="vl" style="color:{{ $rotos === null ? '#94a3b8' : ($rotos ? '#dc2626' : '#16a34a') }}">{{ $rotos ?? '—' }}</div>
+            <div class="sb">
+                @if($rotos === null)
+                    no se pudo revisar
+                @elseif($rotos)
+                    <a href="{{ route('admin.sitios.enlaces') }}">hosts que ya no existen →</a>
+                @else
+                    todos los hosts existen
+                @endif
+            </div>
+        </div>
     </div>
+
+    @if(($huerfanos['ok'] ?? false) && count($huerfanos['huerfanos']))
+    <div class="alert alert-danger py-2 d-flex align-items-center gap-2" style="font-size:.84rem">
+        <i class="bi bi-exclamation-octagon-fill"></i>
+        <div class="flex-grow-1">
+            <b>{{ count($huerfanos['huerfanos']) }}
+                {{ count($huerfanos['huerfanos']) === 1 ? 'host enlazado ya no existe' : 'hosts enlazados ya no existen' }} en CheckMK.</b>
+            Esas fichas y nodos del mapa están sin estado en vivo:
+            {{ collect($huerfanos['huerfanos'])->pluck('host_name')->take(4)->implode(', ') }}@if(count($huerfanos['huerfanos']) > 4)…@endif
+        </div>
+        <a href="{{ route('admin.sitios.enlaces') }}" class="btn btn-danger btn-sm">Revisar y remapear</a>
+    </div>
+    @endif
 
     {{-- ── Avance por tipo ────────────────────────────────────────────────── --}}
     <div class="sd-card">

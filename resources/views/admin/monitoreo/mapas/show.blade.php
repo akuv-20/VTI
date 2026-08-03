@@ -84,6 +84,19 @@
 
     <div class="mapv-crumbs" id="crumbs"></div>
 
+    @if(!empty($hostsRotos) && $puedeVerFichas)
+    <div class="alert alert-warning py-2 d-flex align-items-center gap-2" style="font-size:.8rem">
+        <i class="bi bi-plug-fill"></i>
+        <div class="flex-grow-1">
+            <b>{{ count($hostsRotos) }} {{ count($hostsRotos) === 1 ? 'nodo apunta' : 'nodos apuntan' }}
+                a un host que ya no está en CheckMK</b>
+            — se quedan grises sin estado:
+            <span style="font-family:ui-monospace,monospace">{{ implode(', ', array_slice($hostsRotos, 0, 4)) }}</span>@if(count($hostsRotos) > 4)…@endif
+        </div>
+        <a href="{{ route('admin.sitios.enlaces') }}" class="btn btn-warning btn-sm">Remapear</a>
+    </div>
+    @endif
+
     <div class="mapv-toolbar">
         <span class="mapv-status warn" id="stStatus"><i class="bi bi-hourglass-split me-1"></i>Consultando…</span>
         <span style="font-size:.72rem;color:#94a3b8" id="stTs"></span>
