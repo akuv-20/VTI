@@ -13,6 +13,7 @@ use App\Services\ReferenciasCheckMk;
 use App\Services\SitiosCheckMk;
 use App\Support\DpaChile;
 use Illuminate\Http\Request;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -37,7 +38,8 @@ class SitioPanelController extends Controller
         'maps_url'           => 'Link de Google Maps',
         'enlace_tipo'        => 'Enlace (fibra/ptp/starlink/4g/satelital/ninguno)',
         'isp'                => 'ISP (compania del mantenedor)',
-        'ancho_banda'        => 'Ancho de banda',
+        'ancho_banda'        => 'Ancho de banda Internet',
+        'ancho_banda_mpls'   => 'Ancho de banda MPLS',
         'superficie_ha'      => 'Superficie ha',
         'especies'           => 'Especies',
         'usuarios_cant'      => 'Usuarios',
@@ -226,20 +228,44 @@ class SitioPanelController extends Controller
             $col++;
         }
 
-        $hoja->getStyle('A1:S1')->getFont()->setBold(true);
-        $hoja->getStyle('A1:S1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E2E8F0');
-        $hoja->getStyle('A1:S1')->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
+        // Rango de la última columna, para no quedar amarrado a un ancho fijo.
+        $fin = Coordinate::stringFromColumnIndex(count(self::COLUMNAS_IMPORT));
+
+        $hoja->getStyle("A1:{$fin}1")->getFont()->setBold(true);
+        $hoja->getStyle("A1:{$fin}1")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E2E8F0');
+        $hoja->getStyle("A1:{$fin}1")->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
         $hoja->getRowDimension(1)->setRowHeight(34);
         $hoja->freezePane('A2');
 
-        // Fila de ejemplo para que se entienda el formato.
-        $ejemplo = ['51', 'Campo Las Palmas', 'campo', 'sin_enlace', 'VERFRUT', 'O\'Higgins', 'Peumo',
-            'https://maps.app.goo.gl/… o -34.39751,-71.17403', 'ninguno', '', '', '45.5', 'Cereza', '4', '2',
-            'Juan Pérez', '+56 9 1234 5678', 'jperez@ejemplo.cl', 'Sin enlace aún, se evalúa Starlink'];
-        foreach ($ejemplo as $i => $v) {
-            $hoja->setCellValue([$i + 1, 2], $v);
+        // Fila de ejemplo para que se entienda el formato. Va por clave para que
+        // no se desalinee si mañana se agrega o se mueve una columna.
+        $ejemplo = [
+            'codigo'             => '51',
+            'nombre'             => 'Campo Las Palmas',
+            'tipo'               => 'campo',
+            'estado_enlace'      => 'sin_enlace',
+            'empresa'            => 'VERFRUT',
+            'region'             => "O'Higgins",
+            'comuna'             => 'Peumo',
+            'maps_url'           => 'https://maps.app.goo.gl/… o -34.39751,-71.17403',
+            'enlace_tipo'        => 'ninguno',
+            'ancho_banda'        => '100/100 Mbps',
+            'ancho_banda_mpls'   => '20/20 Mbps',
+            'superficie_ha'      => '45.5',
+            'especies'           => 'Cereza',
+            'usuarios_cant'      => '4',
+            'pcs_cant'           => '2',
+            'encargado_nombre'   => 'Juan Pérez',
+            'encargado_telefono' => '+56 9 1234 5678',
+            'encargado_email'    => 'jperez@ejemplo.cl',
+            'notas'              => 'Sin enlace aún, se evalúa Starlink',
+        ];
+
+        $col = 1;
+        foreach (array_keys(self::COLUMNAS_IMPORT) as $clave) {
+            $hoja->setCellValue([$col++, 2], $ejemplo[$clave] ?? '');
         }
-        $hoja->getStyle('A2:S2')->getFont()->getColor()->setRGB('94A3B8');
+        $hoja->getStyle("A2:{$fin}2")->getFont()->getColor()->setRGB('94A3B8');
 
         $tmp = tempnam(sys_get_temp_dir(), 'sitios');
         (new Xlsx($libro))->save($tmp);

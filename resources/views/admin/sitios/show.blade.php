@@ -212,7 +212,8 @@
                                     @endif
                                 </div>
                             </div>
-                            <div class="sf-f"><label>Ancho de banda</label><input type="text" name="ancho_banda" class="form-control form-control-sm" value="{{ $sitio->ancho_banda }}" placeholder="100/100 Mbps"></div>
+                            <div class="sf-f"><label>Ancho de banda (Internet)</label><input type="text" name="ancho_banda" class="form-control form-control-sm" value="{{ $sitio->ancho_banda }}" placeholder="100/100 Mbps"></div>
+                            <div class="sf-f"><label>Ancho de banda (MPLS)</label><input type="text" name="ancho_banda_mpls" class="form-control form-control-sm" value="{{ $sitio->ancho_banda_mpls }}" placeholder="20/20 Mbps"></div>
                             <div class="sf-f"><label>IP pública</label><input type="text" name="ip_publica" class="form-control form-control-sm" value="{{ $sitio->ip_publica }}"></div>
                             <div class="sf-f"><label>N° de servicio</label><input type="text" name="num_servicio" class="form-control form-control-sm" value="{{ $sitio->num_servicio }}"></div>
                             <div class="sf-f"><label>Fecha instalación</label><input type="date" name="fecha_instalacion" class="form-control form-control-sm" value="{{ $sitio->fecha_instalacion?->format('Y-m-d') }}"></div>

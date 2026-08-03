@@ -101,6 +101,7 @@ class SitioController extends Controller
             'enlace_tipo'       => ['nullable', 'in:' . implode(',', array_keys(Sitio::ENLACE_TIPOS))],
             'isp_id'            => ['nullable', 'integer', 'exists:companias,id'],
             'ancho_banda'       => ['nullable', 'string', 'max:60'],
+            'ancho_banda_mpls'  => ['nullable', 'string', 'max:60'],
             'ip_publica'        => ['nullable', 'string', 'max:60'],
             'num_servicio'      => ['nullable', 'string', 'max:80'],
             'fecha_instalacion' => ['nullable', 'date'],
