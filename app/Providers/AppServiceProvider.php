@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
@@ -90,6 +91,41 @@ class AppServiceProvider extends ServiceProvider
             }
         } catch (\Throwable) {
             // Segunda conexión no configurada aún
+        }
+
+        // ── Conexión a la base de GLPI desde BD ──────────────────────────────
+        // Lo guardado en Admin → Configuración manda sobre el .env.
+        // Va aquí y no en config/database.php porque allá la base de datos
+        // todavía no existe: el cierre fallaba siempre y caía al .env en
+        // silencio, así que lo que se grababa en la pantalla nunca se aplicaba.
+        try {
+            $glpi = Configuracion::whereIn('clave', [
+                'glpi_db_host', 'glpi_db_port', 'glpi_db_database',
+                'glpi_db_username', 'glpi_db_password',
+            ])->pluck('valor', 'clave');
+
+            $campos = [
+                'glpi_db_host'     => 'host',
+                'glpi_db_port'     => 'port',
+                'glpi_db_database' => 'database',
+                'glpi_db_username' => 'username',
+                'glpi_db_password' => 'password',
+            ];
+
+            $aplicados = 0;
+            foreach ($campos as $clave => $campo) {
+                $valor = $glpi[$clave] ?? null;
+                if ($valor === null || $valor === '') continue;  // sin valor guardado, queda el del .env
+                config(["database.connections.glpi.{$campo}" => $valor]);
+                $aplicados++;
+            }
+
+            // Si la conexión ya se había abierto con los valores viejos, se descarta.
+            if ($aplicados) {
+                DB::purge('glpi');
+            }
+        } catch (\Throwable) {
+            // BD no disponible (ej: primera migración) — usa .env como fallback
         }
 
         // Registrar provider de Azure AD para Socialite

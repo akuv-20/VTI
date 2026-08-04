@@ -62,30 +62,28 @@ return [
             ]) : [],
         ],
 
-        'glpi' => (function () {
-            // Lee desde configuraciones en BD si existen, si no cae al .env
-            $dbCfg = function (string $key, string $envKey, mixed $default = null): mixed {
-                try {
-                    $val = \App\Models\Configuracion::find($key)?->valor;
-                    return $val !== null ? $val : env($envKey, $default);
-                } catch (\Throwable) {
-                    return env($envKey, $default);
-                }
-            };
-            return [
-                'driver'    => 'mysql',
-                'host'      => $dbCfg('glpi_db_host',     'GLPI_DB_HOST',     '127.0.0.1'),
-                'port'      => $dbCfg('glpi_db_port',     'GLPI_DB_PORT',     3306),
-                'database'  => $dbCfg('glpi_db_database', 'GLPI_DB_DATABASE', 'glpi'),
-                'username'  => $dbCfg('glpi_db_username', 'GLPI_DB_USERNAME', 'root'),
-                'password'  => $dbCfg('glpi_db_password', 'GLPI_DB_PASSWORD', ''),
-                'charset'   => 'utf8mb4',
-                'collation' => 'utf8mb4_unicode_ci',
-                'prefix'    => '',
-                'strict'    => false,
-                'engine'    => null,
-            ];
-        })(),
+        /*
+         | Base de datos de GLPI (solo lectura).
+         |
+         | Estos valores son el respaldo: lo que mande es lo guardado en
+         | Admin → Configuración, que AppServiceProvider::boot() aplica encima
+         | apenas la base de datos está disponible. Aquí no se puede consultar
+         | la tabla `configuraciones` — la configuración se está armando y la
+         | conexión todavía no existe.
+         */
+        'glpi' => [
+            'driver'    => 'mysql',
+            'host'      => env('GLPI_DB_HOST',     '127.0.0.1'),
+            'port'      => env('GLPI_DB_PORT',     3306),
+            'database'  => env('GLPI_DB_DATABASE', 'glpi'),
+            'username'  => env('GLPI_DB_USERNAME', 'root'),
+            'password'  => env('GLPI_DB_PASSWORD', ''),
+            'charset'   => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix'    => '',
+            'strict'    => false,
+            'engine'    => null,
+        ],
 
         'mariadb' => [
             'driver' => 'mariadb',
