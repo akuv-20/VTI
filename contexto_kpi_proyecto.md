@@ -95,7 +95,7 @@ Cada KPI tiene escala del 1 al 5 (1=significativamente por debajo, 3=meta, 5=sig
 
 ---
 
-### ⏳ KPI 4 — Formación y certificación (PENDIENTE — próxima fase)
+### 🙋 KPI 4 — Formación y certificación (PERSONAL — fuera del alcance del desarrollo)
 **Peso:** 10%
 **Meta (nivel 3):** Completar durante 2027 una formación o certificación en infraestructura, nube, virtualización, redes o continuidad operacional, aplicando al menos una mejora documentada.
 
@@ -107,10 +107,9 @@ Cada KPI tiene escala del 1 al 5 (1=significativamente por debajo, 3=meta, 5=sig
 | 4 | Aprobado ≥ 85% + 2 mejoras |
 | 5 | Certificación obtenida + 3 mejoras |
 
-**Lo que se necesitará desarrollar (pendiente):**
-- Registro de cursos/certificaciones con estado y progreso
-- Registro de mejoras documentadas asociadas a la formación
-- Indicador visual del nivel alcanzado
+**No se desarrolla.** Es un compromiso de formación personal: el curso, la
+certificación y las mejoras documentadas se gestionan y evidencian fuera de la
+plataforma. No corresponde construirle un módulo.
 
 ---
 
@@ -152,4 +151,5 @@ Cada KPI tiene escala del 1 al 5 (1=significativamente por debajo, 3=meta, 5=sig
 - **Jefatura directa:** Erick Olguín (NLATAM Infrastructure Manager) — a quien se le presentarán los informes
 - **Período:** enero–diciembre 2027
 - **Filosofía de desarrollo:** preferir soluciones nativas y simples sobre complejidad innecesaria
-- **Los KPI 2, 3 y 4 se desarrollarán en fases posteriores** dentro de la misma plataforma Laravel
+- **Los KPI 2 y 3 se desarrollarán en fases posteriores** dentro de la misma plataforma Laravel
+- **El KPI 4 no se desarrolla**: es formación personal y se evidencia fuera de la plataforma
