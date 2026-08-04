@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Storage;
 
 class InventarioTiController extends Controller
 {
-    private const EXCLUIR_USER = 138;
+    /** Usuario de GLPI que no cuenta como equipo asignado (lo reusa el dashboard del home). */
+    public const EXCLUIR_USER = 138;
 
     public function __construct()
     {

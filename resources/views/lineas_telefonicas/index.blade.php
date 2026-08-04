@@ -52,12 +52,25 @@
                 <button class="btn btn-primary btn-sm" type="submit">
                     <i class="bi bi-search"></i><span class="d-none d-sm-inline ms-1">Buscar</span>
                 </button>
-                @if(request('buscar') || $estado !== 'Activo' || $emisorFiltro !== 'Todos' || $vigenciaFiltro !== 'Todos' || $soloIncompletas)
+                @if(request('buscar') || $estado !== 'Activo' || $emisorFiltro !== 'Todos' || $vigenciaFiltro !== 'Todos' || $soloIncompletas || $soloSinUsuario)
                     <a href="{{ route('lineas_telefonicas.index') }}" class="btn btn-outline-secondary btn-sm">
                         <i class="bi bi-x-lg"></i>
                     </a>
                 @endif
             </div>
+            {{-- Atajo que llega desde el dashboard: se muestra y se puede quitar --}}
+            @if($soloSinUsuario)
+            <input type="hidden" name="sin_usuario" value="1">
+            <div class="col-auto d-flex align-items-center">
+                <span class="badge rounded-pill d-inline-flex align-items-center gap-1"
+                      style="background:#fffbeb;color:#b45309;border:1px solid #fde68a;font-size:.72rem;font-weight:600">
+                    <i class="bi bi-person-x-fill"></i>Solo líneas sin usuario
+                    <a href="{{ request()->fullUrlWithQuery(['sin_usuario' => null]) }}" class="text-decoration-none" style="color:#b45309" title="Quitar filtro">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </span>
+            </div>
+            @endif
         </div>
 
         {{-- Grupos de filtro (scrollables en móvil) --}}

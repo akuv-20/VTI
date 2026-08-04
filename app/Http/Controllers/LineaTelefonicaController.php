@@ -116,6 +116,11 @@ class LineaTelefonicaController extends Controller
             });
         }
 
+        // Atajo desde el dashboard: solo líneas sin responsable asignado.
+        if ($request->boolean('sin_usuario')) {
+            $query->whereNull('id_usuario');
+        }
+
         if ($request->filled('buscar')) {
             $b = $request->input('buscar');
             $query->where(function ($q) use ($b) {
@@ -141,6 +146,7 @@ class LineaTelefonicaController extends Controller
         $lineas = $query->paginate(20)->withQueryString();
 
         $soloIncompletas = $request->boolean('incompletas');
+        $soloSinUsuario  = $request->boolean('sin_usuario');
 
         // ── Conteos para badges de filtros (independientes de filtros activos) ──
         $totalLineas   = LineaTelefonica::count();
@@ -163,7 +169,7 @@ class LineaTelefonicaController extends Controller
         })->count();
 
         return view('lineas_telefonicas.index', compact(
-            'lineas', 'estado', 'emisorFiltro', 'vigenciaFiltro', 'soloIncompletas',
+            'lineas', 'estado', 'emisorFiltro', 'vigenciaFiltro', 'soloIncompletas', 'soloSinUsuario',
             'ultimoMovil', 'ultimoBAM', 'lineasMovistarMovil', 'lineasMovistarBAM',
             'ultimoEntelMovil', 'ultimoEntelBAM', 'lineasEntelMovil', 'lineasEntelBAM',
             'ultimoWom', 'lineasWom',
