@@ -263,6 +263,10 @@ Route::middleware(['auth', 'can:acceso_sitios'])->prefix('admin')->name('admin.'
     });
 });
 
+// Plano de fondo de un mapa. Sin login, igual que cuando salía de
+// storage/public: el modo TV es público y necesita poder mostrarlo.
+Route::get('monitoreo/mapas/{mapa}/fondo', [AdminMonitoreoMapaController::class, 'fondo'])->name('monitoreo.mapas.fondo');
+
 // Modo TV público (sin login; autenticado por token largo regenerable)
 Route::get('monitoreo/tv/{token}',               [AdminMonitoreoMapaController::class, 'tv'])->name('monitoreo.tv');
 Route::get('monitoreo/tv/{token}/estado/{mapa}', [AdminMonitoreoMapaController::class, 'tvEstado'])->name('monitoreo.tv.estado');

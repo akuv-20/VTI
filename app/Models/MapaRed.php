@@ -9,14 +9,15 @@ class MapaRed extends Model
 {
     protected $table = 'mapas_red';
 
-    protected $fillable = ['nombre', 'descripcion', 'imagen_fondo', 'fondo_opacidad', 'orden', 'activo', 'en_tv', 'publico_lectura', 'tv_token'];
+    protected $fillable = ['nombre', 'descripcion', 'fondo_opacidad', 'fondo_actualizado_at', 'orden', 'activo', 'en_tv', 'publico_lectura', 'tv_token'];
 
     protected $casts = [
-        'activo'          => 'boolean',
-        'en_tv'           => 'boolean',
-        'publico_lectura' => 'boolean',
-        'orden'           => 'integer',
-        'fondo_opacidad'  => 'integer',
+        'activo'               => 'boolean',
+        'en_tv'                => 'boolean',
+        'publico_lectura'      => 'boolean',
+        'orden'                => 'integer',
+        'fondo_opacidad'       => 'integer',
+        'fondo_actualizado_at' => 'datetime',
     ];
 
     /** Técnicos asignados: pueden mantener el contenido del mapa. */
@@ -48,12 +49,25 @@ class MapaRed extends Model
         });
     }
 
-    /** URL pública de la imagen de fondo (plano), o null si no tiene. */
+    /** Plano de fondo guardado en la base (relación aparte para no cargar el blob). */
+    public function fondo(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(MapaFondo::class, 'mapa_id');
+    }
+
+    /**
+     * URL de la imagen de fondo (plano), o null si no tiene.
+     * Basta la marca de tiempo para saber que existe: el blob no se toca, y de
+     * paso sirve de versión para que el navegador refresque al cambiar el plano.
+     */
     public function getFondoUrlAttribute(): ?string
     {
-        return ($this->imagen_fondo && \Illuminate\Support\Facades\Storage::disk('public')->exists($this->imagen_fondo))
-            ? \Illuminate\Support\Facades\Storage::url($this->imagen_fondo)
-            : null;
+        if (!$this->fondo_actualizado_at) return null;
+
+        return route('monitoreo.mapas.fondo', [
+            'mapa' => $this->id,
+            'v'    => $this->fondo_actualizado_at->timestamp,
+        ]);
     }
 
     public function nodos(): HasMany

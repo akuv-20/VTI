@@ -91,12 +91,20 @@ class MonitoreoMapaController extends Controller
         unset($data['imagen_fondo'], $data['quitar_fondo']);
 
         // Imagen de fondo (plano de la planta): subir nueva o quitar la actual.
+        // Se guarda en la base para que sobreviva a los despliegues.
         if ($request->boolean('quitar_fondo')) {
             $this->borrarFondo($mapa);
-            $data['imagen_fondo'] = null;
+            $data['fondo_actualizado_at'] = null;
         } elseif ($request->hasFile('imagen_fondo')) {
-            $this->borrarFondo($mapa);
-            $data['imagen_fondo'] = $request->file('imagen_fondo')->store('mapas_red', 'public');
+            $archivo = $request->file('imagen_fondo');
+
+            \App\Models\MapaFondo::updateOrCreate(['mapa_id' => $mapa->id], [
+                'mime'   => $archivo->getMimeType() ?: 'image/jpeg',
+                'bytes'  => $archivo->getSize(),
+                'imagen' => file_get_contents($archivo->getRealPath()),
+            ]);
+
+            $data['fondo_actualizado_at'] = now();
         }
 
         $mapa->update($data);
@@ -136,9 +144,34 @@ class MonitoreoMapaController extends Controller
 
     private function borrarFondo(MapaRed $mapa): void
     {
-        if ($mapa->imagen_fondo) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($mapa->imagen_fondo);
+        \App\Models\MapaFondo::where('mapa_id', $mapa->id)->delete();
+    }
+
+    /**
+     * Sirve el plano de fondo desde la base.
+     *
+     * Sin autenticación, igual que antes cuando salía de storage/public: el
+     * modo TV es público y necesita mostrarlo. Se apoya en ETag y caché larga
+     * para que el navegador lo descargue una sola vez por versión.
+     */
+    public function fondo(Request $request, MapaRed $mapa)
+    {
+        $fondo = \App\Models\MapaFondo::find($mapa->id);
+        abort_unless($fondo, 404);
+
+        $etag = '"' . md5($mapa->id . '-' . ($mapa->fondo_actualizado_at?->timestamp ?? 0) . '-' . $fondo->bytes) . '"';
+
+        if (trim($request->header('If-None-Match', '')) === $etag) {
+            return response('', 304, ['ETag' => $etag, 'Cache-Control' => 'public, max-age=604800']);
         }
+
+        return response($fondo->imagen, 200, [
+            'Content-Type'        => $fondo->mime,
+            'Content-Length'      => $fondo->bytes,
+            'Content-Disposition' => 'inline; filename="plano-' . $mapa->id . '"',
+            'Cache-Control'       => 'public, max-age=604800',
+            'ETag'                => $etag,
+        ]);
     }
 
     /** Vista principal del mapa: edición + en vivo en la misma página. */
