@@ -73,6 +73,16 @@
                     @endif
                 </button>
             </li>
+            <li class="nav-item">
+                <button class="nav-link fw-semibold" id="tab-veeam"
+                        data-bs-toggle="tab" data-bs-target="#pane-veeam"
+                        type="button" style="font-size:.88rem">
+                    <i class="bi bi-shield-check me-1"></i>Veeam
+                    @if($veeamCfg['url'] && $veeamCfg['user'])
+                        <span class="badge bg-success ms-1" style="font-size:.65rem">ON</span>
+                    @endif
+                </button>
+            </li>
         </ul>
 
         <div class="tab-content bg-white border border-top-0 rounded-bottom-3 shadow-sm p-4"
@@ -660,6 +670,81 @@
 
             </div>{{-- /pane-checkmk --}}
 
+            {{-- ══════════════════ Veeam B&R ═════════════════════════════ --}}
+            <div class="tab-pane fade" id="pane-veeam">
+
+                <form method="POST" action="{{ route('admin.configuracion.update') }}">
+                    @csrf
+                    <input type="hidden" name="seccion" value="veeam">
+
+                    <p class="text-muted mb-3" style="font-size:.83rem">
+                        Conexión a la API REST de <strong>Veeam Backup &amp; Replication</strong> (v12+)
+                        para el KPI de continuidad operacional: jobs configurados y sesiones ejecutadas.
+                        Basta una cuenta de <strong>solo lectura</strong> (rol <em>Veeam Backup Viewer</em>).
+                        La contraseña solo se actualiza si ingresas una nueva.
+                    </p>
+
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">URL del servidor</label>
+                            <input type="text" name="veeam_url" class="form-control form-control-sm"
+                                   value="{{ old('veeam_url', $veeamCfg['url']) }}"
+                                   placeholder="https://192.168.2.80:9419">
+                            <div class="form-text" style="font-size:.75rem">
+                                Incluye el puerto. El de la API REST de VBR es el <code>9419</code>.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">Usuario</label>
+                            <input type="text" name="veeam_user" class="form-control form-control-sm"
+                                   value="{{ old('veeam_user', $veeamCfg['user']) }}"
+                                   placeholder="VERFRUT\fhenriquez" autocomplete="off">
+                            <div class="form-text" style="font-size:.75rem">
+                                Cuenta de dominio (<code>DOMINIO\usuario</code> o <code>usuario@dominio</code>)
+                                o local del servidor Veeam.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">
+                                Contraseña <span class="text-muted fw-normal">(dejar en blanco para mantener la actual)</span>
+                            </label>
+                            <input type="password" name="veeam_password" class="form-control form-control-sm"
+                                   placeholder="••••••••" autocomplete="new-password">
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded-2 mt-3 d-flex align-items-start gap-2"
+                         style="background:#f0f9ff;border:1px solid #bae6fd;font-size:.8rem">
+                        <i class="bi bi-info-circle-fill flex-shrink-0 mt-1" style="color:#0284c7"></i>
+                        <span>
+                            La API se consulta en <code>{URL}/api/v1</code>.
+                            La revisión de API (<code>x-api-version</code>) se detecta sola al probar la conexión
+                            @if($veeamCfg['api_version'])
+                                — actualmente <code>{{ $veeamCfg['api_version'] }}</code>.
+                            @else
+                                y queda guardada.
+                            @endif
+                            Puedes probar sin guardar: el test usa lo que esté escrito en el formulario.
+                        </span>
+                    </div>
+
+                    @error('veeam_url')  <div class="text-danger mt-2" style="font-size:.8rem">{{ $message }}</div> @enderror
+                    @error('veeam_user') <div class="text-danger mt-2" style="font-size:.8rem">{{ $message }}</div> @enderror
+
+                    <div class="mt-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-check-lg me-1"></i>Guardar configuración
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTestVeeam">
+                            <i class="bi bi-plug me-1"></i>Probar conexión
+                        </button>
+                    </div>
+
+                    <div id="veeamTestResult" class="mt-2" style="font-size:.83rem;display:none"></div>
+                </form>
+
+            </div>{{-- /pane-veeam --}}
+
         </div>{{-- /tab-content --}}
     </div>
 
@@ -777,6 +862,42 @@ document.getElementById('btnTestLdap2')?.addEventListener('click', function () {
     .catch(() => {
         result.textContent = '✗ Error al conectar con el servidor';
         result.className   = 'small ms-1 text-danger';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-plug me-1"></i>Probar conexión';
+    });
+});
+
+document.getElementById('btnTestVeeam')?.addEventListener('click', function () {
+    var btn    = this;
+    var result = document.getElementById('veeamTestResult');
+    var form   = btn.closest('form');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Probando…';
+    result.style.display = 'none';
+
+    var data = {
+        url:      form.querySelector('[name=veeam_url]').value,
+        user:     form.querySelector('[name=veeam_user]').value,
+        password: form.querySelector('[name=veeam_password]').value,
+    };
+
+    fetch('{{ route("admin.configuracion.test-veeam") }}', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    })
+    .then(r => r.json())
+    .then(d => {
+        result.textContent   = (d.ok ? '✓ ' : '✗ ') + d.message;
+        result.className     = 'mt-2 ' + (d.ok ? 'text-success' : 'text-danger');
+        result.style.display = 'block';
+    })
+    .catch(() => {
+        result.textContent   = '✗ Error al conectar con el servidor';
+        result.className     = 'mt-2 text-danger';
+        result.style.display = 'block';
     })
     .finally(() => {
         btn.disabled = false;

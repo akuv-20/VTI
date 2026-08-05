@@ -52,7 +52,13 @@ class ConfiguracionController extends Controller
             'user' => Configuracion::get('checkmk_user', env('CHECKMK_USER', '')),
         ];
 
-        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'favicon', 'azureCfg', 'ldapCfg', 'ldap2Cfg', 'glpiCfg', 'checkmkCfg'));
+        $veeamCfg = [
+            'url'         => Configuracion::get('veeam_url',  env('VEEAM_URL',  '')),
+            'user'        => Configuracion::get('veeam_user', env('VEEAM_USER', '')),
+            'api_version' => Configuracion::get('veeam_api_version', ''),
+        ];
+
+        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'favicon', 'azureCfg', 'ldapCfg', 'ldap2Cfg', 'glpiCfg', 'checkmkCfg', 'veeamCfg'));
     }
 
     public function update(Request $request)
@@ -271,6 +277,26 @@ class ConfiguracionController extends Controller
             return back()->with('success', 'Configuración de CheckMK guardada.');
         }
 
+        // ── Veeam Backup & Replication (KPI de respaldos) ────────────────────
+        if ($request->input('seccion') === 'veeam') {
+            $request->validate([
+                'veeam_url'  => 'required|string|max:255',
+                'veeam_user' => 'required|string|max:150',
+            ]);
+
+            Configuracion::set('veeam_url',  rtrim(trim($request->input('veeam_url')), '/'));
+            Configuracion::set('veeam_user', trim($request->input('veeam_user')));
+
+            if ($request->filled('veeam_password')) {
+                Configuracion::set('veeam_password', $request->input('veeam_password'));
+            }
+
+            // Las credenciales cambiaron: el token cacheado ya no sirve.
+            \App\Services\VeeamClient::olvidarToken();
+
+            return back()->with('success', 'Configuración de Veeam guardada.');
+        }
+
         return back()->with('success', 'Configuración guardada.');
     }
 
@@ -278,6 +304,30 @@ class ConfiguracionController extends Controller
     public function testCheckmk(Request $request)
     {
         $resultado = (new \App\Services\CheckMkClient())->probarConexion();
+
+        return response()->json($resultado);
+    }
+
+    /**
+     * Test de conexión Veeam B&R — responde JSON.
+     *
+     * Usa los datos del formulario si vienen (para poder probar antes de
+     * guardar) y cae en los guardados si no. La contraseña solo viaja si el
+     * usuario escribió una nueva.
+     */
+    public function testVeeam(Request $request)
+    {
+        $url      = $request->input('url')  ?: Configuracion::get('veeam_url',  env('VEEAM_URL',  ''));
+        $user     = $request->input('user') ?: Configuracion::get('veeam_user', env('VEEAM_USER', ''));
+        $password = $request->filled('password')
+            ? $request->input('password')
+            : Configuracion::get('veeam_password', env('VEEAM_PASSWORD', ''));
+
+        // Al probar con datos del formulario, el token cacheado puede ser de
+        // otras credenciales: descartarlo para que la prueba sea real.
+        \App\Services\VeeamClient::olvidarToken();
+
+        $resultado = (new \App\Services\VeeamClient($url, $user, $password))->probarConexion();
 
         return response()->json($resultado);
     }
