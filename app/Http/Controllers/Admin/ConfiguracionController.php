@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Configuracion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use LdapRecord\Container as LdapContainer;
 use LdapRecord\Connection  as LdapConnection;
@@ -324,12 +325,72 @@ class ConfiguracionController extends Controller
             : Configuracion::get('veeam_password', env('VEEAM_PASSWORD', ''));
 
         // Al probar con datos del formulario, el token cacheado puede ser de
-        // otras credenciales: descartarlo para que la prueba sea real.
-        \App\Services\VeeamClient::olvidarToken();
+        // otras credenciales: descartarlo para que la prueba sea real. Cuando
+        // el test es automático (sin formulario) no se toca, para no invalidar
+        // el token en cada carga de la pantalla.
+        if ($request->filled('url') || $request->filled('user') || $request->filled('password')) {
+            \App\Services\VeeamClient::olvidarToken();
+        }
 
         $resultado = (new \App\Services\VeeamClient($url, $user, $password))->probarConexion();
 
         return response()->json($resultado);
+    }
+
+    /**
+     * Test de conexión Microsoft 365 / Entra ID — responde JSON.
+     *
+     * Pide un token con client credentials y lo usa para leer la organización,
+     * que es la forma de comprobar que además de autenticar tiene permisos
+     * efectivos sobre Graph.
+     */
+    public function testAzure(Request $request)
+    {
+        $tenantId     = Configuracion::get('azure_tenant_id');
+        $clientId     = Configuracion::get('azure_client_id');
+        $clientSecret = Configuracion::get('azure_client_secret');
+
+        if (!$tenantId || !$clientId || !$clientSecret) {
+            return response()->json(['ok' => false, 'message' => 'Completa client ID, secret y tenant, y guarda antes de probar.']);
+        }
+
+        try {
+            $resp = Http::asForm()->timeout(15)->post(
+                "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token",
+                [
+                    'grant_type'    => 'client_credentials',
+                    'client_id'     => $clientId,
+                    'client_secret' => $clientSecret,
+                    'scope'         => 'https://graph.microsoft.com/.default',
+                ]
+            );
+
+            if (!$resp->successful()) {
+                // Los AADSTS vienen con varias líneas y una URL de ayuda; con la
+                // primera línea basta para saber qué pasó.
+                $detalle = (string) ($resp->json('error_description') ?? $resp->json('error') ?? ('HTTP ' . $resp->status()));
+                $detalle = trim(explode("\n", str_replace("\r\n", "\n", $detalle))[0]);
+                return response()->json(['ok' => false, 'message' => $detalle]);
+            }
+
+            $org = Http::withToken($resp->json('access_token'))->timeout(15)
+                    ->get('https://graph.microsoft.com/v1.0/organization');
+
+            if (!$org->successful()) {
+                return response()->json([
+                    'ok'      => false,
+                    'message' => 'Token obtenido, pero Graph rechazó la consulta: '
+                               . ($org->json('error.message') ?? ('HTTP ' . $org->status()))
+                               . ' — revisa los permisos de aplicación concedidos.',
+                ]);
+            }
+
+            $nombre = $org->json('value.0.displayName') ?: 'organización sin nombre';
+
+            return response()->json(['ok' => true, 'message' => "Conexión exitosa — {$nombre}"]);
+        } catch (\Throwable $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()]);
+        }
     }
 
     /** Test de conexión BD GLPI — responde JSON */

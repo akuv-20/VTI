@@ -145,6 +145,7 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::post('configuracion/test-glpi', [AdminConfiguracionController::class, 'testGlpi'])->name('configuracion.test-glpi');
     Route::post('configuracion/test-checkmk', [AdminConfiguracionController::class, 'testCheckmk'])->name('configuracion.test-checkmk');
     Route::post('configuracion/test-veeam',   [AdminConfiguracionController::class, 'testVeeam'])->name('configuracion.test-veeam');
+    Route::post('configuracion/test-azure',   [AdminConfiguracionController::class, 'testAzure'])->name('configuracion.test-azure');
 });
 
 // ── Active Directory (admins + usuarios con permiso AD) ───────────────────────

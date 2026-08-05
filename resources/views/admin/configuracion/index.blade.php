@@ -1,91 +1,155 @@
 @extends('layouts.app')
 @section('content')
+<style>
+/* cfg- : pantalla Admin → Configuración */
+.cfg-nav            { position:sticky; top:1rem }
+.cfg-grupo          { font-size:.68rem; font-weight:700; letter-spacing:.06em;
+                      text-transform:uppercase; color:#94a3b8; padding:0 .25rem .35rem;
+                      margin-top:1rem }
+.cfg-grupo:first-child { margin-top:0 }
+.cfg-nav .nav-link  { display:flex; align-items:center; gap:.5rem; width:100%;
+                      font-size:.84rem; font-weight:600; color:#475569;
+                      border:1px solid transparent; border-radius:.5rem;
+                      padding:.5rem .65rem; margin-bottom:.15rem; text-align:left }
+.cfg-nav .nav-link:hover        { background:#f1f5f9; color:#1e293b }
+.cfg-nav .nav-link.active       { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe }
+.cfg-nav .nav-link .cfg-ico     { width:1.1rem; flex-shrink:0; text-align:center }
+.cfg-nav .nav-link .cfg-txt     { flex:1; min-width:0; overflow:hidden;
+                                  text-overflow:ellipsis; white-space:nowrap }
+
+/* Semáforo de estado por conexión */
+.cfg-dot            { width:9px; height:9px; border-radius:50%; flex-shrink:0;
+                      background:#cbd5e1; box-shadow:0 0 0 2px #fff }
+.cfg-dot[data-estado="ok"]       { background:#16a34a }
+.cfg-dot[data-estado="error"]    { background:#dc2626 }
+.cfg-dot[data-estado="probando"] { background:#f59e0b; animation:cfgLatido 1s ease-in-out infinite }
+@keyframes cfgLatido { 0%,100% { opacity:1 } 50% { opacity:.25 } }
+
+.cfg-resumen        { font-size:.75rem; color:#64748b; padding:.5rem .25rem 0 }
+.cfg-estado-pane    { font-size:.83rem; border-radius:.5rem; padding:.6rem .8rem;
+                      margin-bottom:1rem; display:none; align-items:flex-start; gap:.5rem }
+.cfg-estado-pane.ok    { background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d }
+.cfg-estado-pane.error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c }
+.cfg-estado-pane.info  { background:#f8fafc; border:1px solid #e2e8f0; color:#64748b }
+</style>
 <div class="container-fluid vti-page">
 
     <div class="vti-page-header">
         <h4><i class="bi bi-gear-fill me-2"></i>Configuración del Sistema</h4>
     </div>
 
-    <div style="max-width:780px">
+    <div style="max-width:1040px">
 
-        {{-- ── Tabs ──────────────────────────────────────────────────── --}}
-        <ul class="nav nav-tabs mb-0" id="cfgTabs" role="tablist"
-            style="border-bottom:2px solid #e2e8f0">
-            <li class="nav-item">
-                <button class="nav-link active fw-semibold" id="tab-apariencia"
-                        data-bs-toggle="tab" data-bs-target="#pane-apariencia"
-                        type="button" style="font-size:.88rem">
-                    <i class="bi bi-palette me-1"></i>Apariencia
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link fw-semibold" id="tab-ldap"
-                        data-bs-toggle="tab" data-bs-target="#pane-ldap"
-                        type="button" style="font-size:.88rem">
-                    <i class="bi bi-diagram-3 me-1"></i>Active Directory
-                    @if($ldapCfg['username'])
-                        <span class="badge bg-success ms-1" style="font-size:.65rem">ON</span>
-                    @endif
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link fw-semibold" id="tab-ldap2"
-                        data-bs-toggle="tab" data-bs-target="#pane-ldap2"
-                        type="button" style="font-size:.88rem">
-                    <i class="bi bi-diagram-3 me-1"></i>AD Grupo Verfrut (Perú)
-                    @if($ldap2Cfg['username'])
-                        <span class="badge bg-success ms-1" style="font-size:.65rem">ON</span>
-                    @endif
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link fw-semibold" id="tab-glpi"
-                        data-bs-toggle="tab" data-bs-target="#pane-glpi"
-                        type="button" style="font-size:.88rem">
-                    <i class="bi bi-pc-display me-1"></i>BD GLPI
-                    @if($glpiCfg['username'])
-                        <span class="badge bg-success ms-1" style="font-size:.65rem">ON</span>
-                    @endif
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link fw-semibold" id="tab-azure"
-                        data-bs-toggle="tab" data-bs-target="#pane-azure"
-                        type="button" style="font-size:.88rem">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 23 23" class="me-1" style="vertical-align:-.1em">
-                        <path fill="#f3f3f3" d="M0 0h23v23H0z"/><path fill="#f35325" d="M1 1h10v10H1z"/>
-                        <path fill="#81bc06" d="M12 1h10v10H12z"/><path fill="#05a6f0" d="M1 12h10v10H1z"/>
-                        <path fill="#ffba08" d="M12 12h10v10H12z"/>
-                    </svg>
-                    Microsoft 365
-                    @if($azureCfg['enabled'])
-                        <span class="badge bg-success ms-1" style="font-size:.65rem">ON</span>
-                    @endif
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link fw-semibold" id="tab-checkmk"
-                        data-bs-toggle="tab" data-bs-target="#pane-checkmk"
-                        type="button" style="font-size:.88rem">
-                    <i class="bi bi-activity me-1"></i>CheckMK
-                    @if($checkmkCfg['url'] && $checkmkCfg['site'])
-                        <span class="badge bg-success ms-1" style="font-size:.65rem">ON</span>
-                    @endif
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link fw-semibold" id="tab-veeam"
-                        data-bs-toggle="tab" data-bs-target="#pane-veeam"
-                        type="button" style="font-size:.88rem">
-                    <i class="bi bi-shield-check me-1"></i>Veeam
-                    @if($veeamCfg['url'] && $veeamCfg['user'])
-                        <span class="badge bg-success ms-1" style="font-size:.65rem">ON</span>
-                    @endif
-                </button>
-            </li>
-        </ul>
+        <div class="row g-3">
 
-        <div class="tab-content bg-white border border-top-0 rounded-bottom-3 shadow-sm p-4"
+        {{-- ── Navegación lateral ────────────────────────────────────── --}}
+        <div class="col-lg-4">
+        <div class="cfg-nav bg-white border rounded-3 shadow-sm p-3"
+             style="border-color:#e2e8f0 !important">
+
+            <div class="cfg-grupo">General</div>
+            <ul class="nav flex-column mb-0" id="cfgTabs" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" id="tab-apariencia"
+                            data-bs-toggle="tab" data-bs-target="#pane-apariencia" type="button">
+                        <i class="bi bi-palette cfg-ico"></i>
+                        <span class="cfg-txt">Apariencia</span>
+                    </button>
+                </li>
+            </ul>
+
+            <div class="cfg-grupo">Conexiones</div>
+            <ul class="nav flex-column mb-0" role="tablist">
+                {{-- data-cfg-test  : endpoint del test
+                     data-cfg-lista : si está configurada (si no, ni se prueba)
+                     data-cfg-panel : dónde escribir el detalle del resultado --}}
+                <li class="nav-item">
+                    <button class="nav-link" id="tab-ldap"
+                            data-bs-toggle="tab" data-bs-target="#pane-ldap" type="button"
+                            data-cfg-test="{{ route('admin.configuracion.test-ldap') }}"
+                            data-cfg-lista="{{ $ldapCfg['username'] ? '1' : '0' }}"
+                            data-cfg-panel="ldapEstado">
+                        <i class="bi bi-diagram-3 cfg-ico"></i>
+                        <span class="cfg-txt">Active Directory</span>
+                        <span class="cfg-dot" data-estado="sin"></span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="tab-ldap2"
+                            data-bs-toggle="tab" data-bs-target="#pane-ldap2" type="button"
+                            data-cfg-test="{{ route('admin.configuracion.test-ldap2') }}"
+                            data-cfg-lista="{{ $ldap2Cfg['username'] ? '1' : '0' }}"
+                            data-cfg-panel="ldap2Estado">
+                        <i class="bi bi-diagram-3 cfg-ico"></i>
+                        <span class="cfg-txt">AD Verfrut Perú</span>
+                        <span class="cfg-dot" data-estado="sin"></span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="tab-glpi"
+                            data-bs-toggle="tab" data-bs-target="#pane-glpi" type="button"
+                            data-cfg-test="{{ route('admin.configuracion.test-glpi') }}"
+                            data-cfg-lista="{{ $glpiCfg['username'] ? '1' : '0' }}"
+                            data-cfg-panel="glpiEstado">
+                        <i class="bi bi-pc-display cfg-ico"></i>
+                        <span class="cfg-txt">BD GLPI</span>
+                        <span class="cfg-dot" data-estado="sin"></span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="tab-azure"
+                            data-bs-toggle="tab" data-bs-target="#pane-azure" type="button"
+                            data-cfg-test="{{ route('admin.configuracion.test-azure') }}"
+                            data-cfg-lista="{{ $azureCfg['enabled'] ? '1' : '0' }}"
+                            data-cfg-panel="azureEstado">
+                        <span class="cfg-ico">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 23 23" style="vertical-align:-.1em">
+                                <path fill="#f35325" d="M1 1h10v10H1z"/><path fill="#81bc06" d="M12 1h10v10H12z"/>
+                                <path fill="#05a6f0" d="M1 12h10v10H1z"/><path fill="#ffba08" d="M12 12h10v10H12z"/>
+                            </svg>
+                        </span>
+                        <span class="cfg-txt">Microsoft 365</span>
+                        <span class="cfg-dot" data-estado="sin"></span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="tab-checkmk"
+                            data-bs-toggle="tab" data-bs-target="#pane-checkmk" type="button"
+                            data-cfg-test="{{ route('admin.configuracion.test-checkmk') }}"
+                            data-cfg-lista="{{ $checkmkCfg['url'] && $checkmkCfg['site'] ? '1' : '0' }}"
+                            data-cfg-panel="checkmkEstado">
+                        <i class="bi bi-activity cfg-ico"></i>
+                        <span class="cfg-txt">CheckMK</span>
+                        <span class="cfg-dot" data-estado="sin"></span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="tab-veeam"
+                            data-bs-toggle="tab" data-bs-target="#pane-veeam" type="button"
+                            data-cfg-test="{{ route('admin.configuracion.test-veeam') }}"
+                            data-cfg-lista="{{ $veeamCfg['url'] && $veeamCfg['user'] ? '1' : '0' }}"
+                            data-cfg-panel="veeamEstado">
+                        <i class="bi bi-shield-check cfg-ico"></i>
+                        <span class="cfg-txt">Veeam</span>
+                        <span class="cfg-dot" data-estado="sin"></span>
+                    </button>
+                </li>
+            </ul>
+
+            <div class="cfg-resumen d-flex align-items-center justify-content-between">
+                <span id="cfgResumen">Comprobando conexiones…</span>
+                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none"
+                        id="btnProbarTodas" style="font-size:.75rem">
+                    <i class="bi bi-arrow-clockwise"></i> Reintentar
+                </button>
+            </div>
+
+        </div>
+        </div>
+
+        {{-- ── Contenido ─────────────────────────────────────────────── --}}
+        <div class="col-lg-8">
+        <div class="tab-content bg-white border rounded-3 shadow-sm p-4"
              style="border-color:#e2e8f0 !important">
 
             {{-- ══════════════════════════════════════════════════════════
@@ -311,6 +375,8 @@
             ══════════════════════════════════════════════════════════ --}}
             <div class="tab-pane fade" id="pane-ldap">
 
+                <div class="cfg-estado-pane" id="ldapEstado"></div>
+
                 <form action="{{ route('admin.configuracion.update') }}" method="POST" data-loader id="formLdap">
                     @csrf
                     <input type="hidden" name="seccion" value="ldap">
@@ -393,6 +459,8 @@
             ══════════════════════════════════════════════════════════ --}}
             <div class="tab-pane fade" id="pane-ldap2">
 
+                <div class="cfg-estado-pane" id="ldap2Estado"></div>
+
                 <form action="{{ route('admin.configuracion.update') }}" method="POST" data-loader id="formLdap2">
                     @csrf
                     <input type="hidden" name="seccion" value="ldap2">
@@ -473,6 +541,8 @@
             {{-- ══════════════════ GLPI ══════════════════════════════════ --}}
             <div class="tab-pane fade" id="pane-glpi">
 
+                <div class="cfg-estado-pane" id="glpiEstado"></div>
+
                 <form method="POST" action="{{ route('admin.configuracion.update') }}">
                     @csrf
                     <input type="hidden" name="seccion" value="glpi">
@@ -534,6 +604,8 @@
 
             <div class="tab-pane fade" id="pane-azure">
 
+                <div class="cfg-estado-pane" id="azureEstado"></div>
+
                 <form action="{{ route('admin.configuracion.update') }}" method="POST" data-loader>
                     @csrf
                     <input type="hidden" name="seccion" value="azure">
@@ -594,15 +666,24 @@
                         </span>
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="bi bi-check-lg me-1"></i>Guardar configuración
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-check-lg me-1"></i>Guardar configuración
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTestAzure">
+                            <i class="bi bi-plug me-1"></i>Probar conexión
+                        </button>
+                    </div>
+
+                    <div id="azureTestResult" class="mt-2" style="font-size:.83rem;display:none"></div>
                 </form>
 
             </div>{{-- /pane-azure --}}
 
             {{-- ══════════════════ CheckMK ═══════════════════════════════ --}}
             <div class="tab-pane fade" id="pane-checkmk">
+
+                <div class="cfg-estado-pane" id="checkmkEstado"></div>
 
                 <form method="POST" action="{{ route('admin.configuracion.update') }}">
                     @csrf
@@ -672,6 +753,8 @@
 
             {{-- ══════════════════ Veeam B&R ═════════════════════════════ --}}
             <div class="tab-pane fade" id="pane-veeam">
+
+                <div class="cfg-estado-pane" id="veeamEstado"></div>
 
                 <form method="POST" action="{{ route('admin.configuracion.update') }}">
                     @csrf
@@ -746,6 +829,9 @@
             </div>{{-- /pane-veeam --}}
 
         </div>{{-- /tab-content --}}
+        </div>{{-- /col contenido --}}
+
+        </div>{{-- /row --}}
     </div>
 
 </div>
@@ -777,160 +863,153 @@
     });
 })();
 
-document.getElementById('btnTestLdap')?.addEventListener('click', function () {
-    var btn = this;
-    var result = document.getElementById('ldapTestResult');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Probando…';
-    result.textContent = '';
-    result.className = 'small ms-1';
+/* ─────────────────────────────────────────────────────────────────────────
+   Estado real de cada conexión.
 
-    fetch('{{ route("admin.configuracion.test-ldap") }}', {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
-    })
-    .then(r => r.json())
-    .then(data => {
-        result.textContent = (data.ok ? '✓ ' : '✗ ') + data.message;
-        result.className   = 'small ms-1 ' + (data.ok ? 'text-success' : 'text-danger');
-    })
-    .catch(() => {
-        result.textContent = '✗ Error al conectar con el servidor';
-        result.className   = 'small ms-1 text-danger';
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-plug me-1"></i>Probar conexión';
+   El badge "ON" anterior solo decía que había datos guardados, no que la
+   conexión funcionara. Ahora cada una se prueba al entrar: el punto de color
+   del menú resume el resultado y el detalle queda dentro de su pestaña.
+
+   Las pruebas van en serie a propósito. Comparten la sesión de PHP, que se
+   bloquea por request, así que lanzarlas en paralelo no las aceleraría y solo
+   haría más difícil ver cuál está corriendo.
+   ───────────────────────────────────────────────────────────────────────── */
+(function () {
+    var CSRF    = '{{ csrf_token() }}';
+    var tabs    = Array.prototype.slice.call(document.querySelectorAll('[data-cfg-test]'));
+    var resumen = document.getElementById('cfgResumen');
+
+    function pintar(tab, estado, mensaje) {
+        // El title va en el punto y no en el botón: puesto en el botón pisa su
+        // nombre accesible y el lector de pantalla anuncia el mensaje de error
+        // en lugar de la conexión.
+        var dot = tab.querySelector('.cfg-dot');
+        if (dot) {
+            dot.setAttribute('data-estado', estado);
+            dot.setAttribute('title', mensaje || '');
+        }
+
+        var panel = document.getElementById(tab.getAttribute('data-cfg-panel'));
+        if (!panel) return;
+
+        var clase = estado === 'ok' ? 'ok' : (estado === 'error' ? 'error' : 'info');
+        var icono = estado === 'ok'    ? 'bi-check-circle-fill'
+                  : estado === 'error' ? 'bi-exclamation-triangle-fill'
+                  : estado === 'probando' ? 'bi-hourglass-split'
+                  : 'bi-dash-circle';
+
+        panel.className = 'cfg-estado-pane ' + clase;
+        panel.innerHTML = '<i class="bi ' + icono + '" style="margin-top:.15rem"></i><span></span>';
+        panel.querySelector('span').textContent = mensaje;
+        panel.style.display = 'flex';
+    }
+
+    /** Prueba una conexión. Devuelve true/false, o null si no está configurada. */
+    function probar(tab, cuerpo) {
+        if (tab.getAttribute('data-cfg-lista') !== '1' && !cuerpo) {
+            pintar(tab, 'sin', 'Sin configurar.');
+            return Promise.resolve(null);
+        }
+
+        pintar(tab, 'probando', 'Probando conexión…');
+
+        return fetch(tab.getAttribute('data-cfg-test'), {
+                method:  'POST',
+                headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json' },
+                body:    JSON.stringify(cuerpo || {})
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                pintar(tab, d.ok ? 'ok' : 'error', d.message);
+                return !!d.ok;
+            })
+            .catch(function () {
+                pintar(tab, 'error', 'No hubo respuesta del servidor al probar.');
+                return false;
+            });
+    }
+
+    function probarTodas() {
+        var ok = 0, fallidas = 0, configuradas = 0;
+        resumen.textContent = 'Comprobando conexiones…';
+
+        return tabs.reduce(function (cadena, tab) {
+            return cadena.then(function () {
+                if (tab.getAttribute('data-cfg-lista') === '1') configuradas++;
+                return probar(tab).then(function (r) {
+                    if (r === true)  ok++;
+                    if (r === false) fallidas++;
+                });
+            });
+        }, Promise.resolve()).then(function () {
+            if (!configuradas) {
+                resumen.textContent = 'Ninguna conexión configurada.';
+            } else if (fallidas) {
+                resumen.innerHTML = '<span class="text-danger fw-semibold">' + fallidas +
+                                    ' con problemas</span> de ' + configuradas;
+            } else {
+                resumen.innerHTML = '<span class="text-success fw-semibold">' + ok +
+                                    ' de ' + configuradas + ' conectadas</span>';
+            }
+        });
+    }
+
+    document.getElementById('btnProbarTodas')?.addEventListener('click', probarTodas);
+    probarTodas();
+
+    /* Botones "Probar conexión" de cada pestaña.
+
+       Los que declaran campos mandan lo escrito en el formulario, para poder
+       probar antes de guardar; el resto usa lo que ya está guardado. En ambos
+       casos se actualiza el semáforo, para que el menú no quede diciendo algo
+       distinto de lo que muestra la pestaña. */
+    var BOTONES = [
+        ['btnTestLdap',    'ldapTestResult',    'tab-ldap',    null],
+        ['btnTestLdap2',   'ldap2TestResult',   'tab-ldap2',   null],
+        ['btnTestGlpi',    'glpiTestResult',    'tab-glpi',    { glpi_db_host: 'host', glpi_db_port: 'port', glpi_db_database: 'database', glpi_db_username: 'username', glpi_db_password: 'password' }],
+        ['btnTestAzure',   'azureTestResult',   'tab-azure',   null],
+        ['btnTestCheckmk', 'checkmkTestResult', 'tab-checkmk', null],
+        ['btnTestVeeam',   'veeamTestResult',   'tab-veeam',   { veeam_url: 'url', veeam_user: 'user', veeam_password: 'password' }]
+    ];
+
+    BOTONES.forEach(function (cfg) {
+        var btn = document.getElementById(cfg[0]);
+        var tab = document.getElementById(cfg[2]);
+        if (!btn || !tab) return;
+
+        btn.addEventListener('click', function () {
+            var result = document.getElementById(cfg[1]);
+            var campos = cfg[3];
+            var form   = btn.closest('form');
+            var cuerpo = null;
+
+            if (campos && form) {
+                cuerpo = {};
+                Object.keys(campos).forEach(function (name) {
+                    var input = form.querySelector('[name=' + name + ']');
+                    if (input) cuerpo[campos[name]] = input.value;
+                });
+            }
+
+            btn.disabled  = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Probando…';
+            if (result) result.style.display = 'none';
+
+            probar(tab, cuerpo)
+                .then(function (r) {
+                    if (!result) return;
+                    var panel = document.getElementById(tab.getAttribute('data-cfg-panel'));
+                    var msg   = panel ? panel.querySelector('span').textContent : '';
+                    result.textContent   = (r ? '✓ ' : '✗ ') + msg;
+                    result.className     = 'mt-2 ' + (r ? 'text-success' : 'text-danger');
+                    result.style.display = 'block';
+                })
+                .finally(function () {
+                    btn.disabled  = false;
+                    btn.innerHTML = '<i class="bi bi-plug me-1"></i>Probar conexión';
+                });
+        });
     });
-});
-
-document.getElementById('btnTestGlpi')?.addEventListener('click', function () {
-    var btn    = this;
-    var result = document.getElementById('glpiTestResult');
-    var form   = btn.closest('form');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Probando…';
-    result.style.display = 'none';
-
-    var data = {
-        host:     form.querySelector('[name=glpi_db_host]').value,
-        port:     form.querySelector('[name=glpi_db_port]').value,
-        database: form.querySelector('[name=glpi_db_database]').value,
-        username: form.querySelector('[name=glpi_db_username]').value,
-        password: form.querySelector('[name=glpi_db_password]').value,
-    };
-
-    fetch('{{ route("admin.configuracion.test-glpi") }}', {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-    })
-    .then(r => r.json())
-    .then(d => {
-        result.textContent   = (d.ok ? '✓ ' : '✗ ') + d.message;
-        result.className     = 'mt-2 ' + (d.ok ? 'text-success' : 'text-danger');
-        result.style.display = 'block';
-    })
-    .catch(() => {
-        result.textContent   = '✗ Error al conectar con el servidor';
-        result.className     = 'mt-2 text-danger';
-        result.style.display = 'block';
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-plug me-1"></i>Probar conexión';
-    });
-});
-
-document.getElementById('btnTestLdap2')?.addEventListener('click', function () {
-    var btn    = this;
-    var result = document.getElementById('ldap2TestResult');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Probando…';
-    result.textContent = '';
-    result.className = 'small ms-1';
-
-    fetch('{{ route("admin.configuracion.test-ldap2") }}', {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
-    })
-    .then(r => r.json())
-    .then(data => {
-        result.textContent = (data.ok ? '✓ ' : '✗ ') + data.message;
-        result.className   = 'small ms-1 ' + (data.ok ? 'text-success' : 'text-danger');
-    })
-    .catch(() => {
-        result.textContent = '✗ Error al conectar con el servidor';
-        result.className   = 'small ms-1 text-danger';
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-plug me-1"></i>Probar conexión';
-    });
-});
-
-document.getElementById('btnTestVeeam')?.addEventListener('click', function () {
-    var btn    = this;
-    var result = document.getElementById('veeamTestResult');
-    var form   = btn.closest('form');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Probando…';
-    result.style.display = 'none';
-
-    var data = {
-        url:      form.querySelector('[name=veeam_url]').value,
-        user:     form.querySelector('[name=veeam_user]').value,
-        password: form.querySelector('[name=veeam_password]').value,
-    };
-
-    fetch('{{ route("admin.configuracion.test-veeam") }}', {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-    })
-    .then(r => r.json())
-    .then(d => {
-        result.textContent   = (d.ok ? '✓ ' : '✗ ') + d.message;
-        result.className     = 'mt-2 ' + (d.ok ? 'text-success' : 'text-danger');
-        result.style.display = 'block';
-    })
-    .catch(() => {
-        result.textContent   = '✗ Error al conectar con el servidor';
-        result.className     = 'mt-2 text-danger';
-        result.style.display = 'block';
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-plug me-1"></i>Probar conexión';
-    });
-});
-
-document.getElementById('btnTestCheckmk')?.addEventListener('click', function () {
-    var btn    = this;
-    var result = document.getElementById('checkmkTestResult');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Probando…';
-    result.style.display = 'none';
-
-    fetch('{{ route("admin.configuracion.test-checkmk") }}', {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
-    })
-    .then(r => r.json())
-    .then(d => {
-        result.textContent   = (d.ok ? '✓ ' : '✗ ') + d.message;
-        result.className     = 'mt-2 ' + (d.ok ? 'text-success' : 'text-danger');
-        result.style.display = 'block';
-    })
-    .catch(() => {
-        result.textContent   = '✗ Error al conectar con el servidor';
-        result.className     = 'mt-2 text-danger';
-        result.style.display = 'block';
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-plug me-1"></i>Probar conexión';
-    });
-});
+})();
 </script>
 @endpush
