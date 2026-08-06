@@ -536,16 +536,62 @@ class SitioPanelController extends Controller
             'encargado_telefono' => ['nullable', 'string', 'max:60'],
             'usuarios_cant'      => ['nullable', 'integer', 'min:0', 'max:9999'],
             'pcs_cant'           => ['nullable', 'integer', 'min:0', 'max:9999'],
-            'notas'              => ['nullable', 'string', 'max:5000'],
+            'nota_nueva'         => ['nullable', 'string', 'max:5000'],
             'fotos'              => ['nullable', 'array', 'max:12'],
             'fotos.*'            => ['image', 'mimes:jpg,jpeg,png,webp', 'max:12288'],
             'categoria'          => ['nullable', 'in:' . implode(',', array_keys(SitioFoto::CATEGORIAS))],
+
+            // ── Evaluación de factibilidad (sitios sin enlace) ───────────────
+            // Los tri-estado llegan como '' cuando no se respondió; Laravel los
+            // convierte a null antes de validar, así que `nullable` los deja pasar
+            // y se distinguen de un "no" explícito.
+            'cob_entel'          => ['nullable', 'in:' . implode(',', array_keys(Sitio::COBERTURA))],
+            'cob_movistar'       => ['nullable', 'in:' . implode(',', array_keys(Sitio::COBERTURA))],
+            'cob_wom'            => ['nullable', 'in:' . implode(',', array_keys(Sitio::COBERTURA))],
+            'cob_claro'          => ['nullable', 'in:' . implode(',', array_keys(Sitio::COBERTURA))],
+            'cob_notas'          => ['nullable', 'string', 'max:2000'],
+
+            'eval_energia'             => ['nullable', 'in:' . implode(',', array_keys(Sitio::EVAL_ENERGIA))],
+            'eval_energia_estable'     => ['nullable', 'in:0,1'],
+            'eval_internet_particular' => ['nullable', 'in:0,1'],
+            'eval_internet_detalle'    => ['nullable', 'string', 'max:255'],
+            'eval_infra_existente'     => ['nullable', 'string', 'max:2000'],
+
+            'eval_linea_vista'       => ['nullable', 'in:' . implode(',', array_keys(Sitio::EVAL_LINEA_VISTA))],
+            'eval_linea_vista_hacia' => ['nullable', 'string', 'max:255'],
+            'eval_distancia_km'      => ['nullable', 'numeric', 'min:0', 'max:9999'],
+            'eval_cielo_despejado'   => ['nullable', 'in:0,1'],
+            'eval_fibra_zona'        => ['nullable', 'in:' . implode(',', array_keys(Sitio::EVAL_FIBRA_ZONA))],
+
+            'eval_punto_montaje' => ['nullable', 'in:' . implode(',', array_keys(Sitio::EVAL_PUNTO_MONTAJE))],
+            'eval_altura_m'      => ['nullable', 'numeric', 'min:0', 'max:999'],
+            'eval_sala_equipos'  => ['nullable', 'in:' . implode(',', array_keys(Sitio::EVAL_SALA_EQUIPOS))],
+
+            'eval_necesita_camaras' => ['nullable', 'in:0,1'],
+            'eval_necesita_wifi'    => ['nullable', 'in:0,1'],
+            'eval_uso_previsto'     => ['nullable', 'string', 'max:2000'],
+
+            'solucion_propuesta' => ['nullable', 'in:' . implode(',', array_keys(Sitio::SOLUCIONES))],
+            'orden_ejecucion'    => ['nullable', 'integer', 'min:0', 'max:999'],
+            'costo_estimado'     => ['nullable', 'integer', 'min:0', 'max:999999999'],
+            'acciones'           => ['nullable', 'string', 'max:2000'],
         ]);
 
         @set_time_limit(0);
 
         $fotos = $data['fotos'] ?? [];
         unset($data['fotos'], $data['categoria']);
+
+        // La nota se AGREGA fechada, no reemplaza. Desde el celular se escribe
+        // poco y a las apuradas: pisar lo que ya había en la ficha de escritorio
+        // sería perder trabajo previo sin darse cuenta.
+        $nota = trim((string) ($data['nota_nueva'] ?? ''));
+        unset($data['nota_nueva']);
+
+        if ($nota !== '') {
+            $sello = now()->format('d-m-Y H:i') . ' · ' . $request->user()->name;
+            $data['notas'] = trim(($sitio->notas ? $sitio->notas . "\n\n" : '') . "[{$sello}]\n{$nota}");
+        }
 
         // Si pegaron un link de Maps sin coordenadas, se sacan del propio link.
         if (empty($data['latitud']) && $coords = Sitio::coordenadasDesdeUrl($data['maps_url'] ?? null)) {

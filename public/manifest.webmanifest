@@ -1,0 +1,12 @@
+{
+    "name": "VTI — Levantamiento en terreno",
+    "short_name": "VTI Terreno",
+    "description": "Captura de fichas de sitio en terreno, con o sin señal.",
+    "start_url": "/admin/sitios/terreno",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#e8ecf0",
+    "theme_color": "#7c3aed",
+    "lang": "es-CL"
+}

@@ -26,6 +26,16 @@ class Sitio extends Model
         'longitud'          => 'float',
         'superficie_ha'     => 'float',
         'ups_kva'           => 'float',
+
+        // Evaluación en terreno. Estos booleanos admiten null porque
+        // "no lo evalué" no es lo mismo que "no hay".
+        'eval_energia_estable'     => 'boolean',
+        'eval_internet_particular' => 'boolean',
+        'eval_cielo_despejado'     => 'boolean',
+        'eval_necesita_camaras'    => 'boolean',
+        'eval_necesita_wifi'       => 'boolean',
+        'eval_distancia_km'        => 'float',
+        'eval_altura_m'            => 'float',
     ];
 
     public const TIPOS = [
@@ -66,6 +76,76 @@ class Sitio extends Model
         '4g'        => '4G / LTE',
         'satelital' => 'Satelital',
         'ninguno'   => 'Sin enlace',
+    ];
+
+    /* ── Evaluación en terreno de sitios sin enlace ───────────────────────── */
+
+    public const EVAL_ENERGIA = [
+        'no'         => 'No hay energía',
+        'monofasica' => 'Monofásica',
+        'trifasica'  => 'Trifásica',
+        'generador'  => 'Solo generador',
+    ];
+
+    /** Operadores que se miden en terreno, en el orden en que se muestran. */
+    public const OPERADORES = [
+        'cob_entel'    => 'Entel',
+        'cob_movistar' => 'Movistar',
+        'cob_wom'      => 'WOM',
+        'cob_claro'    => 'Claro',
+    ];
+
+    public const COBERTURA = [
+        'sin'     => 'Sin señal',
+        'mala'    => 'Mala',
+        'regular' => 'Regular',
+        'buena'   => 'Buena',
+    ];
+
+    /**
+     * Etiquetas cortas para los botones del celular: con "Sin señal" completa,
+     * los cuatro operadores no caben en una fila de 375 px y se parten en dos.
+     */
+    public const COBERTURA_CORTA = [
+        'sin'     => 'Sin',
+        'mala'    => 'Mala',
+        'regular' => 'Reg.',
+        'buena'   => 'Buena',
+    ];
+
+    public const EVAL_LINEA_VISTA = [
+        'si'      => 'Sí, despejada',
+        'parcial' => 'Parcial (obstáculos)',
+        'no'      => 'No hay',
+    ];
+
+    public const EVAL_FIBRA_ZONA = [
+        'si'    => 'Sí, hay fibra en la zona',
+        'no'    => 'No hay',
+        'no_se' => 'No se pudo averiguar',
+    ];
+
+    public const EVAL_PUNTO_MONTAJE = [
+        'poste'  => 'Poste',
+        'torre'  => 'Torre',
+        'techo'  => 'Techo / galpón',
+        'silo'   => 'Silo / estructura alta',
+        'no_hay' => 'No hay dónde montar',
+    ];
+
+    public const EVAL_SALA_EQUIPOS = [
+        'si'     => 'Sí, hay sala',
+        'caseta' => 'Caseta / gabinete',
+        'no'     => 'No hay',
+    ];
+
+    public const SOLUCIONES = [
+        'fibra'         => 'Fibra óptica',
+        'ptp'           => 'Enlace punto a punto',
+        'starlink'      => 'Starlink',
+        '4g'            => '4G / LTE',
+        'satelital'     => 'Satelital',
+        'sin_solucion'  => 'Sin solución viable por ahora',
     ];
 
     /**
