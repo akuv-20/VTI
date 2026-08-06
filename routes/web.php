@@ -239,6 +239,7 @@ Route::middleware(['auth', 'can:acceso_sitios'])->prefix('admin')->name('admin.'
         Route::post('/enlaces/remapear',    [AdminSitioPanelController::class, 'enlacesRemapear'])->name('enlaces.remapear');
         Route::post('/enlaces/desenlazar',  [AdminSitioPanelController::class, 'enlacesDesenlazar'])->name('enlaces.desenlazar');
         Route::get('/dpa',                  [AdminSitioPanelController::class, 'dpa'])->name('dpa');
+        Route::get('/geocodificar',         [AdminSitioPanelController::class, 'geocodificar'])->name('geocodificar');
         Route::get('/terreno',              [AdminSitioPanelController::class, 'terreno'])->name('terreno');
         Route::get('/terreno/{sitio}',      [AdminSitioPanelController::class, 'terrenoFicha'])->name('terreno.ficha');
         Route::post('/terreno/{sitio}',     [AdminSitioPanelController::class, 'terrenoGuardar'])->name('terreno.guardar');

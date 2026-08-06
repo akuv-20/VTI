@@ -515,6 +515,24 @@ class SitioPanelController extends Controller
         ]);
     }
 
+    /**
+     * Comuna y región a partir de unas coordenadas — solo una sugerencia para
+     * el formulario de terreno. Va por acá y no directo desde el navegador para
+     * aprovechar el caché del servidor y no repetir consultas al servicio
+     * externo por cada teléfono.
+     */
+    public function geocodificar(Request $request)
+    {
+        $datos = $request->validate([
+            'lat' => ['required', 'numeric', 'between:-90,90'],
+            'lon' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        return response()->json(
+            (new \App\Services\Geocodificador())->comunaYRegion((float) $datos['lat'], (float) $datos['lon'])
+        );
+    }
+
     public function terrenoFicha(Sitio $sitio)
     {
         $sitio->load('fotos');
@@ -534,6 +552,8 @@ class SitioPanelController extends Controller
             'acceso'             => ['nullable', 'string', 'max:2000'],
             'encargado_nombre'   => ['nullable', 'string', 'max:255'],
             'encargado_telefono' => ['nullable', 'string', 'max:60'],
+            'region'             => ['nullable', 'string', 'max:255'],
+            'comuna'             => ['nullable', 'string', 'max:255'],
             'usuarios_cant'      => ['nullable', 'integer', 'min:0', 'max:9999'],
             'pcs_cant'           => ['nullable', 'integer', 'min:0', 'max:9999'],
             'nota_nueva'         => ['nullable', 'string', 'max:5000'],
@@ -596,6 +616,22 @@ class SitioPanelController extends Controller
         // Si pegaron un link de Maps sin coordenadas, se sacan del propio link.
         if (empty($data['latitud']) && $coords = Sitio::coordenadasDesdeUrl($data['maps_url'] ?? null)) {
             [$data['latitud'], $data['longitud']] = $coords;
+        }
+
+        // Comuna y región: se sugieren desde las coordenadas solo si vienen
+        // vacías. En terreno el navegador ya lo intenta, pero sin señal no puede;
+        // acá se recupera cuando la ficha llega sincronizada horas después.
+        $lat = $data['latitud']  ?? $sitio->latitud;
+        $lon = $data['longitud'] ?? $sitio->longitud;
+
+        $faltaRegion = empty($data['region']) && empty($sitio->region);
+        $faltaComuna = empty($data['comuna']) && empty($sitio->comuna);
+
+        if ($lat && $lon && ($faltaRegion || $faltaComuna)) {
+            $geo = (new \App\Services\Geocodificador())->comunaYRegion((float) $lat, (float) $lon);
+
+            if ($faltaRegion && $geo['region']) $data['region'] = $geo['region'];
+            if ($faltaComuna && $geo['comuna']) $data['comuna'] = $geo['comuna'];
         }
 
         $sitio->update($data + [

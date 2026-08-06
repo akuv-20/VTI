@@ -107,6 +107,23 @@
                     </div>
                 </details>
 
+                {{-- Se sugieren desde las coordenadas, pero mandan estos campos:
+                     el servicio de geocodificación se equivoca en zonas rurales y
+                     quien está parado ahí sabe mejor. --}}
+                <div class="row g-2">
+                    <div class="col-6 tf-f">
+                        <label>Región</label>
+                        <input type="text" name="region" id="inpRegion" class="form-control"
+                               value="{{ $sitio->region }}">
+                    </div>
+                    <div class="col-6 tf-f">
+                        <label>Comuna</label>
+                        <input type="text" name="comuna" id="inpComuna" class="form-control"
+                               value="{{ $sitio->comuna }}">
+                    </div>
+                </div>
+                <div id="geoMsg" style="font-size:.72rem;color:#64748b;margin:-.4rem 0 .8rem"></div>
+
                 <div class="tf-f mb-0">
                     <label>Cómo llegar (portón, referencias)</label>
                     <textarea name="acceso" class="form-control" rows="3">{{ $sitio->acceso }}</textarea>
@@ -424,6 +441,8 @@ document.getElementById('btnGps').addEventListener('click', function () {
             msg.innerHTML = '<span style="color:#16a34a">Ubicación tomada · precisión ' +
                 Math.round(pos.coords.accuracy) + ' m. Link de Maps listo.</span>';
             document.getElementById('btnGps').disabled = false;
+
+            sugerirComuna(lat, lon);
         },
         err => {
             const causas = {
@@ -438,6 +457,41 @@ document.getElementById('btnGps').addEventListener('click', function () {
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
 });
+
+// ── Sugerencia de comuna y región a partir del GPS ───────────────────────────
+// Es solo una ayuda: nunca pisa lo que ya esté escrito, y sin señal simplemente
+// no sugiere nada. Cuando la ficha se sincroniza, el servidor lo intenta de
+// nuevo si esos campos siguen vacíos.
+async function sugerirComuna(lat, lon) {
+    const region = document.getElementById('inpRegion');
+    const comuna = document.getElementById('inpComuna');
+    const aviso  = document.getElementById('geoMsg');
+
+    if (region.value.trim() && comuna.value.trim()) return;
+
+    aviso.textContent = 'Buscando comuna…';
+
+    try {
+        const control = new AbortController();
+        setTimeout(() => control.abort(), 8000);
+
+        const resp = await fetch('{{ route('admin.sitios.geocodificar') }}?lat=' + lat + '&lon=' + lon,
+                                 { credentials: 'same-origin', signal: control.signal });
+        if (!resp.ok) throw new Error();
+
+        const d = await resp.json();
+        let puestos = [];
+
+        if (d.region && !region.value.trim()) { region.value = d.region; puestos.push('región'); }
+        if (d.comuna && !comuna.value.trim()) { comuna.value = d.comuna; puestos.push('comuna'); }
+
+        aviso.innerHTML = puestos.length
+            ? '<span style="color:#15803d">Sugerido desde la ubicación (' + puestos.join(' y ') + '). Corrígelo si no calza.</span>'
+            : 'No se pudo determinar la comuna desde la ubicación.';
+    } catch {
+        aviso.textContent = 'Sin señal para buscar la comuna; escríbela a mano o se completa al sincronizar.';
+    }
+}
 
 // ── Captura sin conexión ─────────────────────────────────────────────────────
 // Los campos que se evalúan están sin enlace y algunos sin señal de celular.

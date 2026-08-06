@@ -160,6 +160,32 @@ class Sitio extends Model
         'oficina' => ['maps_url', 'enlace_tipo', 'usuarios_cant'],
     ];
 
+    /**
+     * Requisitos de un sitio que todavía se está evaluando (sin enlace).
+     *
+     * Reemplaza a los de arriba —no se suman— porque miden cosas distintas: los
+     * de un sitio operativo preguntan por ISP, subred o superficie, que en un
+     * campo sin nada no existen todavía y no dicen nada del avance del
+     * levantamiento.
+     *
+     * Acá va SOLO lo que hay que estar parado en el sitio para saber. Todo lo
+     * que se puede completar después desde el escritorio (código, comuna,
+     * superficie, costo, orden de ejecución) queda fuera a propósito: si contara,
+     * el porcentaje mediría trabajo de oficina en vez de decir si la visita
+     * quedó bien hecha.
+     */
+    public const REQUISITOS_EVALUACION = [
+        'maps_url',            // el GPS solo se puede tomar estando ahí
+        'acceso',
+        'encargado_nombre',
+        'encargado_telefono',
+        'cobertura_medida',    // atributo calculado: al menos un operador medido
+        'eval_energia',
+        'eval_linea_vista',
+        'eval_punto_montaje',
+        'solucion_propuesta',
+    ];
+
     /** Nombre legible de los campos, para la lista de «lo que falta». */
     public const ETIQUETAS = [
         'codigo'             => 'código',
@@ -176,6 +202,13 @@ class Sitio extends Model
         'encargado_nombre'   => 'encargado',
         'encargado_telefono' => 'teléfono del encargado',
         'acceso'             => 'cómo llegar',
+
+        // Levantamiento de factibilidad
+        'cobertura_medida'   => 'cobertura móvil',
+        'eval_energia'       => 'energía',
+        'eval_linea_vista'   => 'línea de vista',
+        'eval_punto_montaje' => 'punto de montaje',
+        'solucion_propuesta' => 'solución propuesta',
     ];
 
     /* ── Relaciones ──────────────────────────────────────────────────────── */
@@ -326,8 +359,34 @@ class Sitio extends Model
     }
 
     /** Campos requeridos para este tipo de sitio. */
+    /**
+     * ¿El sitio está en etapa de evaluación?
+     *
+     * Un campo sin enlace o recién en gestión todavía se está levantando; en
+     * cuanto pasa a instalación u operativo se le exigen los datos de un sitio
+     * en funcionamiento.
+     */
+    public function enEvaluacion(): bool
+    {
+        return $this->tipo === 'campo'
+            && in_array($this->estado_enlace, ['sin_enlace', 'en_gestion'], true);
+    }
+
+    /** Atributo calculado: ¿se midió la señal de al menos un operador? */
+    public function getCoberturaMedidaAttribute(): ?bool
+    {
+        foreach (array_keys(self::OPERADORES) as $campo) {
+            if (!empty($this->getAttribute($campo))) return true;
+        }
+        return null;   // null = no medido, para que cuente como faltante
+    }
+
     public function requisitos(): array
     {
+        if ($this->enEvaluacion()) {
+            return self::REQUISITOS_EVALUACION;
+        }
+
         return array_merge(self::REQUISITOS['comun'], self::REQUISITOS[$this->tipo] ?? []);
     }
 
