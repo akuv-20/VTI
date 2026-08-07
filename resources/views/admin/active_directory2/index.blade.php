@@ -163,6 +163,10 @@
                             </td>
                             <td class="text-end">
                                 <div class="d-flex gap-1 justify-content-end">
+                                    <a href="{{ route('admin.active_directory2.detalle', $sam) }}"
+                                       class="btn btn-outline-secondary btn-sm" title="Ver estado de la cuenta">
+                                        <i class="bi bi-person-vcard"></i>
+                                    </a>
                                     <a href="{{ route('admin.active_directory2.edit', $sam) }}"
                                        class="btn btn-outline-primary btn-sm" title="Editar">
                                         <i class="bi bi-pencil"></i>

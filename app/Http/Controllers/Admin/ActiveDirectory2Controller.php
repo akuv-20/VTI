@@ -81,6 +81,30 @@ class ActiveDirectory2Controller extends Controller
 
     // ── Editar ────────────────────────────────────────────────────────────────
 
+    /** Diagnóstico de la cuenta — mismo tablero que el dominio de Chile. */
+    public function detalle(string $username)
+    {
+        try {
+            $estado = (new \App\Services\EstadoCuentaAd($this->connection))->de($username);
+
+            if (!$estado['encontrado']) {
+                return redirect()->route('admin.active_directory2.index')
+                    ->withErrors(['Usuario no encontrado en Active Directory.']);
+            }
+
+            return view('admin.ad.detalle', [
+                'estado'    => $estado,
+                'dominio'   => $this->dominio,
+                'urlEditar' => route('admin.active_directory2.edit', $username),
+                'urlVolver' => url()->previous(route('admin.active_directory2.index')),
+                'urlIndex'  => route('admin.active_directory2.index'),
+            ]);
+        } catch (\Throwable $e) {
+            return redirect()->route('admin.active_directory2.index')
+                ->withErrors([$this->mensajeError($e)]);
+        }
+    }
+
     public function edit(string $username)
     {
         try {
