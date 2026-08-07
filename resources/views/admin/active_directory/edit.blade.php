@@ -16,8 +16,8 @@
         </a>
     </div>
 
-    <div class="row justify-content-center">
-    <div class="col-xl-7 col-lg-9">
+    <div class="row g-3">
+    <div class="col-xl-7 col-lg-7">
 
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-body p-4">
@@ -187,6 +187,17 @@
         </div>
 
     </div>
+
+    {{-- Estado de la cuenta al lado del formulario: el técnico ve el porqué y
+         lo corrige sin cambiar de pantalla.
+
+         En pantalla angosta se muestra ARRIBA (order-first): apilado detrás del
+         formulario quedaría a una pantalla de scroll, y el motivo por el que el
+         usuario no puede entrar es lo primero que se busca. --}}
+    <div class="col-xl-5 col-lg-5 order-first order-lg-last">
+        @include('admin.ad._estado', ['estado' => $estado ?? null])
+    </div>
+
     </div>
 
 </div>

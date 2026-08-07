@@ -154,7 +154,6 @@ Route::middleware(['auth', 'can:acceso_ad'])->prefix('admin')->name('admin.')->g
         Route::get('/',                           [AdminADController::class, 'index'])->name('index');
         Route::get('/importar-correos',           [AdminADController::class, 'importarCorreos'])->name('importar_correos');
         Route::post('/importar-correos',          [AdminADController::class, 'procesarImportacion'])->name('procesar_importacion');
-        Route::get('/{username}/detalle',         [AdminADController::class, 'detalle'])->name('detalle');
         Route::get('/{username}/editar',          [AdminADController::class, 'edit'])->name('edit');
         Route::put('/{username}',                 [AdminADController::class, 'update'])->name('update');
         Route::post('/{username}/toggle',         [AdminADController::class, 'toggleEnabled'])->name('toggle');
@@ -281,7 +280,6 @@ Route::middleware(['auth', 'can:acceso_ad2'])->prefix('admin')->name('admin.')->
         Route::get('/',                           [AdminAD2Controller::class, 'index'])->name('index');
         Route::get('/importar-correos',           [AdminAD2Controller::class, 'importarCorreos'])->name('importar_correos');
         Route::post('/importar-correos',          [AdminAD2Controller::class, 'procesarImportacion'])->name('procesar_importacion');
-        Route::get('/{username}/detalle',         [AdminAD2Controller::class, 'detalle'])->name('detalle');
         Route::get('/{username}/editar',          [AdminAD2Controller::class, 'edit'])->name('edit');
         Route::put('/{username}',                 [AdminAD2Controller::class, 'update'])->name('update');
         Route::post('/{username}/toggle',         [AdminAD2Controller::class, 'toggleEnabled'])->name('toggle');

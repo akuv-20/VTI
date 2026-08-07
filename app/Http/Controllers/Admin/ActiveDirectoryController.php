@@ -82,41 +82,23 @@ class ActiveDirectoryController extends Controller
 
     // ── Formulario de edición ─────────────────────────────────────────────────
 
-    /**
-     * Diagnóstico de la cuenta: por qué el usuario no puede entrar.
-     *
-     * Va aparte de la edición porque responde otra pregunta: acá no se cambia
-     * nada, solo se lee el estado que hoy obliga a abrir la consola de AD.
-     */
-    public function detalle(string $username)
-    {
-        try {
-            $estado = (new \App\Services\EstadoCuentaAd())->de($username);
-
-            if (!$estado['encontrado']) {
-                return redirect()->route('admin.active_directory.index')
-                    ->withErrors(['Usuario no encontrado en Active Directory.']);
-            }
-
-            return view('admin.ad.detalle', [
-                'estado'     => $estado,
-                'dominio'    => 'Verfrut',
-                'urlEditar'  => route('admin.active_directory.edit', $username),
-                'urlVolver'  => url()->previous(route('admin.active_directory.index')),
-                'urlIndex'   => route('admin.active_directory.index'),
-            ]);
-        } catch (\Throwable $e) {
-            return redirect()->route('admin.active_directory.index')
-                ->withErrors([$this->mensajeError($e)]);
-        }
-    }
-
     public function edit(string $username)
     {
         try {
             $usuario   = AdUser::where('samaccountname', $username)->firstOrFail();
             $returnUrl = url()->previous(route('admin.active_directory.index'));
-            return view('admin.active_directory.edit', compact('usuario', 'returnUrl'));
+
+            // Estado de la cuenta junto al formulario: es lo que responde "por
+            // qué este usuario no puede entrar". Va en su propio try/catch para
+            // que un problema leyéndolo no impida editar los datos.
+            try {
+                $estado = (new \App\Services\EstadoCuentaAd())->de($username);
+                if (!$estado['encontrado']) $estado = null;
+            } catch (\Throwable) {
+                $estado = null;
+            }
+
+            return view('admin.active_directory.edit', compact('usuario', 'returnUrl', 'estado'));
         } catch (\LdapRecord\Models\ModelNotFoundException) {
             return redirect()->route('admin.active_directory.index')
                 ->withErrors(['Usuario no encontrado en Active Directory.']);

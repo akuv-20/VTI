@@ -81,36 +81,22 @@ class ActiveDirectory2Controller extends Controller
 
     // ── Editar ────────────────────────────────────────────────────────────────
 
-    /** Diagnóstico de la cuenta — mismo tablero que el dominio de Chile. */
-    public function detalle(string $username)
-    {
-        try {
-            $estado = (new \App\Services\EstadoCuentaAd($this->connection))->de($username);
-
-            if (!$estado['encontrado']) {
-                return redirect()->route('admin.active_directory2.index')
-                    ->withErrors(['Usuario no encontrado en Active Directory.']);
-            }
-
-            return view('admin.ad.detalle', [
-                'estado'    => $estado,
-                'dominio'   => $this->dominio,
-                'urlEditar' => route('admin.active_directory2.edit', $username),
-                'urlVolver' => url()->previous(route('admin.active_directory2.index')),
-                'urlIndex'  => route('admin.active_directory2.index'),
-            ]);
-        } catch (\Throwable $e) {
-            return redirect()->route('admin.active_directory2.index')
-                ->withErrors([$this->mensajeError($e)]);
-        }
-    }
-
     public function edit(string $username)
     {
         try {
             $usuario   = AdUser::on($this->connection)->where('samaccountname', $username)->firstOrFail();
             $returnUrl = url()->previous(route('admin.active_directory2.index'));
-            return view('admin.active_directory2.edit', compact('usuario', 'returnUrl'));
+
+            // Igual que en el dominio de Chile: el estado va al lado del
+            // formulario, y si no se puede leer la edición sigue funcionando.
+            try {
+                $estado = (new \App\Services\EstadoCuentaAd($this->connection))->de($username);
+                if (!$estado['encontrado']) $estado = null;
+            } catch (\Throwable) {
+                $estado = null;
+            }
+
+            return view('admin.active_directory2.edit', compact('usuario', 'returnUrl', 'estado'));
         } catch (\LdapRecord\Models\ModelNotFoundException) {
             return redirect()->route('admin.active_directory2.index')
                 ->withErrors(['Usuario no encontrado en Active Directory.']);
