@@ -17,6 +17,13 @@
                            color:#94a3b8; text-decoration:none; padding:.2rem .35rem; line-height:1; font-size:.75rem; }
     .sit-buscar .limpiar:hover { color:#475569; }
     .sit-sep { width:1px; align-self:stretch; background:#e2e8f0; margin:.1rem .15rem; }
+    .sit-zona-sel { font-size:.72rem; padding:.2rem 1.4rem .2rem .5rem; height:auto; width:auto; max-width:190px; }
+    .sit-zona { display:inline-block; font-size:.62rem; font-weight:600; padding:1px 7px;
+                border-radius:5px; background:#ede9fe; color:#5b21b6; max-width:100%;
+                overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    /* Sin asignar se ve, pero apagado: con 52 campos por clasificar, el hueco
+       hay que notarlo sin que grite en cada tarjeta. */
+    .sit-zona.vacia { background:#f8fafc; color:#cbd5e1; border:1px dashed #e2e8f0; font-weight:500; }
     .sit-chips { display:flex; gap:.25rem; flex-wrap:wrap; }
     .sit-tab { font-size:.72rem; padding:.2rem .6rem; border-radius:20px; border:1px solid #e2e8f0;
                background:#fff; color:#475569; text-decoration:none; white-space:nowrap; line-height:1.5; }
@@ -66,11 +73,12 @@
         <form method="GET" action="{{ route('admin.sitios.index') }}" class="sit-buscar">
             <input type="hidden" name="tipo" value="{{ $tipo }}">
             <input type="hidden" name="estado" value="{{ $estado }}">
+            <input type="hidden" name="zona" value="{{ $zona }}">
             <i class="bi bi-search"></i>
             <input type="search" name="q" class="form-control form-control-sm" value="{{ $q }}"
                    placeholder="Nombre, código, comuna o encargado…" autocomplete="off">
             @if($q)
-                <a href="{{ route('admin.sitios.index', ['tipo' => $tipo, 'estado' => $estado]) }}"
+                <a href="{{ route('admin.sitios.index', ['tipo' => $tipo, 'estado' => $estado, 'zona' => $zona]) }}"
                    class="limpiar" title="Limpiar búsqueda"><i class="bi bi-x-lg"></i></a>
             @endif
         </form>
@@ -78,11 +86,11 @@
         <div class="sit-sep"></div>
 
         <div class="sit-chips">
-            <a href="{{ route('admin.sitios.index', ['estado' => $estado, 'q' => $q]) }}" class="sit-tab {{ $tipo ? '' : 'on' }}">
+            <a href="{{ route('admin.sitios.index', ['tipo' => null, 'estado' => $estado, 'zona' => $zona, 'q' => $q]) }}" class="sit-tab {{ $tipo ? '' : 'on' }}">
                 Todos <span class="n">{{ $conteos['total'] }}</span>
             </a>
             @foreach(Sitio::TIPOS as $k => $label)
-                <a href="{{ route('admin.sitios.index', ['tipo' => $k, 'estado' => $estado, 'q' => $q]) }}"
+                <a href="{{ route('admin.sitios.index', ['tipo' => $k, 'estado' => $estado, 'zona' => $zona, 'q' => $q]) }}"
                    class="sit-tab {{ $tipo === $k ? 'on' : '' }}">
                     <i class="bi {{ Sitio::ICONOS_TIPO[$k] }} me-1"></i>{{ $label }} <span class="n">{{ $conteos['tipos'][$k] }}</span>
                 </a>
@@ -92,15 +100,41 @@
         <div class="sit-sep"></div>
 
         <div class="sit-chips">
-            <a href="{{ route('admin.sitios.index', ['tipo' => $tipo, 'q' => $q]) }}" class="sit-tab {{ $estado ? '' : 'on' }}">Cualquier estado</a>
+            <a href="{{ route('admin.sitios.index', ['tipo' => $tipo, 'estado' => null, 'zona' => $zona, 'q' => $q]) }}" class="sit-tab {{ $estado ? '' : 'on' }}">Cualquier estado</a>
             @foreach(Sitio::ESTADOS_ENLACE as $k => $label)
-                <a href="{{ route('admin.sitios.index', ['tipo' => $tipo, 'estado' => $k, 'q' => $q]) }}"
+                <a href="{{ route('admin.sitios.index', ['tipo' => $tipo, 'estado' => $k, 'zona' => $zona, 'q' => $q]) }}"
                    class="sit-tab {{ $estado === $k ? 'on' : '' }}">
                     <span class="pt" style="background:{{ Sitio::COLORES_ENLACE[$k] }}"></span>{{ $label }}
                     <span class="n">{{ $conteos['estados'][$k] }}</span>
                 </a>
             @endforeach
         </div>
+
+        <div class="sit-sep"></div>
+
+        {{-- Zona: un select y no chips, porque el mantenedor no tiene tope y
+             una decena de zonas partiría la barra en tres líneas. --}}
+        <form method="GET" action="{{ route('admin.sitios.index') }}" class="d-flex align-items-center gap-1">
+            <input type="hidden" name="tipo" value="{{ $tipo }}">
+            <input type="hidden" name="estado" value="{{ $estado }}">
+            <input type="hidden" name="q" value="{{ $q }}">
+            <select name="zona" class="form-select form-select-sm sit-zona-sel" onchange="this.form.submit()"
+                    title="Filtrar por zona">
+                <option value="">Cualquier zona</option>
+                @foreach($zonas as $z)
+                    <option value="{{ $z->id }}" @selected((string) $zona === (string) $z->id)>
+                        {{ $z->nombre }} ({{ $z->sitios_count }})
+                    </option>
+                @endforeach
+                @if($conteos['sin_zona'])
+                    <option value="sin" @selected($zona === 'sin')>— Sin zona ({{ $conteos['sin_zona'] }})</option>
+                @endif
+            </select>
+            <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2"
+                    data-bs-toggle="modal" data-bs-target="#modalZonas" title="Administrar zonas">
+                <i class="bi bi-gear"></i>
+            </button>
+        </form>
     </div>
 
     @if(session('import_errores') && count(session('import_errores')))
@@ -138,6 +172,16 @@
                         <span class="sit-badge" style="background:{{ $s->estado_enlace_color }}">{{ $s->estado_enlace_label }}</span>
                         @php $c = $s->completitud; $cc = $c >= 80 ? '#16a34a' : ($c >= 40 ? '#d97706' : '#dc2626'); @endphp
                         <span class="sit-pct" style="color:{{ $cc }}">{{ $c }}%</span>
+                    </div>
+                    {{-- La zona va en su propia fila y no junto al tipo y el estado:
+                         en una tarjeta de 198 px los tres chips juntos se parten en
+                         dos líneas apenas el nombre pasa de una palabra. --}}
+                    <div class="sit-tags mt-1">
+                        @if($s->zona)
+                            <span class="sit-zona"><i class="bi bi-signpost-split me-1"></i>{{ $s->zona->nombre }}</span>
+                        @else
+                            <span class="sit-zona vacia"><i class="bi bi-signpost me-1"></i>Sin zona</span>
+                        @endif
                     </div>
                     <div class="sit-meta">
                         @if($s->comuna)<span><i class="bi bi-geo me-1"></i>{{ $s->comuna }}</span>@endif
@@ -187,7 +231,7 @@
                                    value="{{ old('nombre') }}" required placeholder="Campo Las Palmas">
                             @error('nombre')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-12">
+                        <div class="col-6">
                             <label class="form-label" style="font-size:.75rem">Tipo <span class="text-danger">*</span></label>
                             <select name="tipo" class="form-select form-select-sm @error('tipo') is-invalid @enderror" required>
                                 @foreach(Sitio::TIPOS as $k => $label)
@@ -195,6 +239,18 @@
                                 @endforeach
                             </select>
                             @error('tipo')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" style="font-size:.75rem">Zona</label>
+                            <select name="zona_id" class="form-select form-select-sm @error('zona_id') is-invalid @enderror">
+                                <option value="">— Sin zona —</option>
+                                @foreach($zonas as $z)
+                                    {{-- Si estás filtrando por una zona, lo más probable es
+                                         que el sitio nuevo sea de esa misma. --}}
+                                    <option value="{{ $z->id }}" @selected((string) old('zona_id', $zona) === (string) $z->id)>{{ $z->nombre }}</option>
+                                @endforeach
+                            </select>
+                            @error('zona_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
                 </div>
@@ -206,6 +262,10 @@
         </div>
     </div>
 </div>
+
+{{-- Al cerrarlo se recarga la página si cambió algo: el filtro por zona de arriba
+     se habría quedado viejo. --}}
+@include('admin.sitios._modal_zonas', ['recargarAlCerrar' => true])
 
 @push('scripts')
 <script>

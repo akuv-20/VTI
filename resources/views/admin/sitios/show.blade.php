@@ -9,6 +9,12 @@
     $esPlanta = $sitio->tipo === 'planta';
     $esDc = $sitio->tipo === 'datacenter';
     $ta = fn(string $r) => auth()->user()->tieneAcceso($r);
+
+    // Qué campos mueven el porcentaje de ESTA ficha. Depende del tipo, del estado
+    // del enlace y de si declaró enlace, así que se calcula una vez acá y lo lee
+    // el parcial `_req` heredando el scope de la vista.
+    $req    = $sitio->requisitos();
+    $faltan = $sitio->faltantes();
 @endphp
 
 @section('content')
@@ -28,6 +34,22 @@
     .sf-comp { height:7px; background:#f1f5f9; border-radius:4px; overflow:hidden; max-width:280px; }
     .sf-comp span { display:block; height:100%; }
     .sf-falta { font-size:.7rem; color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:.4rem .6rem; margin-top:.5rem; }
+    /* Marca de "esto mueve el porcentaje". Discreta a propósito: acompaña a la
+       etiqueta sin competir con el asterisco de los campos obligatorios. */
+    .sf-req { display:inline-block; width:6px; height:6px; border-radius:50%; margin-left:5px;
+              vertical-align:middle; }
+    .sf-req.ok    { background:#86efac; }
+    .sf-req.falta { background:#fff; border:1.5px solid #fbbf24; }
+    .sf-leyenda { font-size:.68rem; color:#94a3b8; margin-top:.45rem; display:flex; align-items:center; gap:.35rem; flex-wrap:wrap; }
+    .sf-leyenda .sf-req { margin-left:0; }
+    .sf-terreno { border:1px dashed #e2e8f0; border-radius:8px; padding:.6rem .7rem; margin-bottom:1rem; background:#fcfcfd; }
+    .sf-terreno .tit { font-size:.66rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.03em; margin-bottom:.45rem; }
+    .sf-terreno .fila { display:flex; align-items:center; gap:.4rem; font-size:.76rem; padding:.15rem 0; }
+    .sf-terreno .fila .sf-req { margin-left:0; flex:0 0 auto; }
+    .sf-terreno .rot { color:#64748b; }
+    .sf-terreno .val { margin-left:auto; color:#1e293b; font-weight:600; }
+    .sf-terreno .val.vacio { color:#cbd5e1; font-weight:400; font-style:italic; }
+    .sf-terreno .ir { display:inline-block; margin-top:.5rem; font-size:.72rem; text-decoration:none; color:#7c3aed; }
     .sf-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:.75rem 1rem; }
     .sf-f label { font-size:.7rem; color:#94a3b8; display:block; margin-bottom:2px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
     .sf-chk { display:flex; align-items:center; gap:1.2rem; flex-wrap:wrap; }
@@ -124,6 +146,11 @@
                     <b>Falta:</b> {{ $sitio->faltantesEnPalabras() }}
                 </div>
                 @endif
+                <div class="sf-leyenda">
+                    <span class="sf-req ok"></span> respondido
+                    <span class="sf-req falta ms-2"></span> falta
+                    <span class="ms-1">— {{ count($req) }} campos cuentan para este {{ $sitio->tipo_label }}</span>
+                </div>
             </div>
         </div>
     </div>
@@ -139,8 +166,8 @@
                     <h6><i class="bi bi-card-text"></i>Identificación y ubicación</h6>
                     <div class="sf-body">
                         <div class="sf-grid">
-                            <div class="sf-f"><label>Código</label><input type="text" name="codigo" class="form-control form-control-sm" value="{{ $sitio->codigo }}"></div>
-                            <div class="sf-f" style="grid-column:span 2"><label>Nombre *</label><input type="text" name="nombre" class="form-control form-control-sm" value="{{ $sitio->nombre }}" required></div>
+                            <div class="sf-f"><label>Código @include('admin.sitios._req', ['campo' => 'codigo'])</label><input type="text" name="codigo" class="form-control form-control-sm" value="{{ $sitio->codigo }}"></div>
+                            <div class="sf-f" style="grid-column:span 2"><label>Nombre * @include('admin.sitios._req', ['campo' => 'nombre'])</label><input type="text" name="nombre" class="form-control form-control-sm" value="{{ $sitio->nombre }}" required></div>
                             <div class="sf-f"><label>Tipo *</label>
                                 <select name="tipo" class="form-select form-select-sm">
                                     @foreach(Sitio::TIPOS as $k => $l)<option value="{{ $k }}" @selected($sitio->tipo === $k)>{{ $l }}</option>@endforeach
@@ -162,18 +189,33 @@
                                     @endif
                                 </div>
                             </div>
-                            <div class="sf-f"><label>Región</label>
+                            {{-- El botón abre el mantenedor sin salir de la ficha: la zona
+                                 que falta se crea y queda elegida acá mismo, sin perder lo
+                                 que ya se lleve escrito en el formulario. --}}
+                            <div class="sf-f"><label>Zona</label>
+                                <div class="input-group input-group-sm">
+                                    <select name="zona_id" class="form-select form-select-sm">
+                                        <option value="">— Sin zona —</option>
+                                        @foreach($zonas as $z)<option value="{{ $z->id }}" @selected($sitio->zona_id === $z->id)>{{ $z->nombre }}</option>@endforeach
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary"
+                                            data-bs-toggle="modal" data-bs-target="#modalZonas"
+                                            title="Crear o editar zonas"><i class="bi bi-plus-lg"></i></button>
+                                </div>
+                            </div>
+                            <div class="sf-f"><label>Región @include('admin.sitios._req', ['campo' => 'region'])</label>
                                 <select name="region" id="selRegion" class="form-select form-select-sm" data-actual="{{ $sitio->region }}">
                                     <option value="">—</option>
                                 </select>
                             </div>
-                            <div class="sf-f"><label>Comuna</label>
+                            <div class="sf-f"><label>Comuna @include('admin.sitios._req', ['campo' => 'comuna'])</label>
                                 <select name="comuna" id="selComuna" class="form-select form-select-sm" data-actual="{{ $sitio->comuna }}">
                                     <option value="">—</option>
                                 </select>
                             </div>
                             <div class="sf-f" style="grid-column:span 2">
-                                <label>Ubicación en Maps <span class="text-muted" style="text-transform:none;font-weight:400">— pega el link y las coordenadas se completan solas</span></label>
+                                <label>Ubicación en Maps @include('admin.sitios._req', ['campo' => 'maps_url'])
+                                    <span class="text-muted" style="text-transform:none;font-weight:400">— pega el link y las coordenadas se completan solas</span></label>
                                 <div class="input-group input-group-sm">
                                     <input type="text" name="maps_url" class="form-control form-control-sm" value="{{ $sitio->maps_url }}" placeholder="https://maps.app.goo.gl/… o -34.39751,-71.17403">
                                     @if($sitio->maps_link)
@@ -185,7 +227,8 @@
                             <div class="sf-f"><label>Longitud</label><input type="text" name="longitud" class="form-control form-control-sm" value="{{ $sitio->longitud }}" placeholder="-71.12345"></div>
                         </div>
                         <div class="sf-f mt-3">
-                            <label>Cómo llegar / acceso <span class="text-muted" style="text-transform:none;font-weight:400">— portón, referencias, ruta</span></label>
+                            <label>Cómo llegar / acceso @include('admin.sitios._req', ['campo' => 'acceso'])
+                                <span class="text-muted" style="text-transform:none;font-weight:400">— portón, referencias, ruta</span></label>
                             <textarea name="acceso" class="form-control form-control-sm" rows="2">{{ $sitio->acceso }}</textarea>
                         </div>
                     </div>
@@ -195,13 +238,13 @@
                     <h6><i class="bi bi-ethernet"></i>Enlace y red</h6>
                     <div class="sf-body">
                         <div class="sf-grid">
-                            <div class="sf-f"><label>Tipo de enlace</label>
+                            <div class="sf-f"><label>Tipo de enlace @include('admin.sitios._req', ['campo' => 'enlace_tipo'])</label>
                                 <select name="enlace_tipo" class="form-select form-select-sm">
                                     <option value="">—</option>
                                     @foreach(Sitio::ENLACE_TIPOS as $k => $l)<option value="{{ $k }}" @selected($sitio->enlace_tipo === $k)>{{ $l }}</option>@endforeach
                                 </select>
                             </div>
-                            <div class="sf-f"><label>ISP / proveedor</label>
+                            <div class="sf-f"><label>ISP / proveedor @include('admin.sitios._req', ['campo' => 'isp_id'])</label>
                                 <div class="input-group input-group-sm">
                                     <select name="isp_id" class="form-select form-select-sm">
                                         <option value="">—</option>
@@ -212,19 +255,25 @@
                                     @endif
                                 </div>
                             </div>
-                            <div class="sf-f"><label>Ancho de banda (Internet)</label><input type="text" name="ancho_banda" class="form-control form-control-sm" value="{{ $sitio->ancho_banda }}" placeholder="100/100 Mbps"></div>
+                            <div class="sf-f"><label>Ancho de banda (Internet) @include('admin.sitios._req', ['campo' => 'ancho_banda'])</label><input type="text" name="ancho_banda" class="form-control form-control-sm" value="{{ $sitio->ancho_banda }}" placeholder="100/100 Mbps"></div>
                             <div class="sf-f"><label>Ancho de banda (MPLS)</label><input type="text" name="ancho_banda_mpls" class="form-control form-control-sm" value="{{ $sitio->ancho_banda_mpls }}" placeholder="20/20 Mbps"></div>
                             <div class="sf-f"><label>IP pública</label><input type="text" name="ip_publica" class="form-control form-control-sm" value="{{ $sitio->ip_publica }}"></div>
                             <div class="sf-f"><label>N° de servicio</label><input type="text" name="num_servicio" class="form-control form-control-sm" value="{{ $sitio->num_servicio }}"></div>
                             <div class="sf-f"><label>Fecha instalación</label><input type="date" name="fecha_instalacion" class="form-control form-control-sm" value="{{ $sitio->fecha_instalacion?->format('Y-m-d') }}"></div>
-                            <div class="sf-f"><label>Subred</label><input type="text" name="subred" class="form-control form-control-sm" value="{{ $sitio->subred }}" placeholder="192.168.34.0/24"></div>
+                            <div class="sf-f"><label>Subred @include('admin.sitios._req', ['campo' => 'subred'])</label><input type="text" name="subred" class="form-control form-control-sm" value="{{ $sitio->subred }}" placeholder="192.168.34.0/24"></div>
                             <div class="sf-f"><label>VLAN</label><input type="text" name="vlan" class="form-control form-control-sm" value="{{ $sitio->vlan }}"></div>
                             <div class="sf-f"><label>Gateway</label><input type="text" name="gateway" class="form-control form-control-sm" value="{{ $sitio->gateway }}"></div>
+                            {{-- Desplegable y no casilla: una casilla sin marcar no
+                                 distingue «no tiene VPN» de «nadie lo ha revisado», y
+                                 esa diferencia es la que se necesita en el informe. --}}
+                            <div class="sf-f"><label>VPN al datacenter @include('admin.sitios._req', ['campo' => 'vpn'])</label>
+                                <select name="vpn" class="form-select form-select-sm">
+                                    <option value="" @selected($sitio->vpn === null)>— Sin revisar —</option>
+                                    <option value="1" @selected($sitio->vpn === true)>Sí tiene</option>
+                                    <option value="0" @selected($sitio->vpn === false)>No tiene</option>
+                                </select>
+                            </div>
                             <div class="sf-f" style="grid-column:span 2"><label>Detalle VPN</label><input type="text" name="vpn_detalle" class="form-control form-control-sm" value="{{ $sitio->vpn_detalle }}" placeholder="Túnel IPSec al datacenter"></div>
-                        </div>
-                        <div class="sf-chk mt-3">
-                            <div class="form-check"><input class="form-check-input" type="checkbox" name="vpn" value="1" id="cVpn" @checked($sitio->vpn)>
-                                <label class="form-check-label" for="cVpn" style="font-size:.78rem">Tiene VPN al datacenter</label></div>
                         </div>
                     </div>
                 </div>
@@ -234,10 +283,10 @@
                     <div class="sf-body">
                         <div class="sf-grid">
                             <div class="sf-f" style="grid-column:span 2"><label>Gabinete / rack</label><input type="text" name="gabinete" class="form-control form-control-sm" value="{{ $sitio->gabinete }}"></div>
-                            <div class="sf-f"><label>UPS modelo</label><input type="text" name="ups_modelo" class="form-control form-control-sm" value="{{ $sitio->ups_modelo }}"></div>
+                            <div class="sf-f"><label>UPS modelo @include('admin.sitios._req', ['campo' => 'ups_modelo'])</label><input type="text" name="ups_modelo" class="form-control form-control-sm" value="{{ $sitio->ups_modelo }}"></div>
                             <div class="sf-f"><label>Capacidad UPS (kVA)</label><input type="text" name="ups_kva" class="form-control form-control-sm" value="{{ $sitio->ups_kva }}" placeholder="3.0"></div>
                             @if($esDc)
-                            <div class="sf-f"><label>Racks</label><input type="number" name="racks_cant" class="form-control form-control-sm" value="{{ $sitio->racks_cant }}"></div>
+                            <div class="sf-f"><label>Racks @include('admin.sitios._req', ['campo' => 'racks_cant'])</label><input type="number" name="racks_cant" class="form-control form-control-sm" value="{{ $sitio->racks_cant }}"></div>
                             <div class="sf-f"><label>U usados</label><input type="number" name="racks_u_usados" class="form-control form-control-sm" value="{{ $sitio->racks_u_usados }}"></div>
                             <div class="sf-f"><label>U totales</label><input type="number" name="racks_u_totales" class="form-control form-control-sm" value="{{ $sitio->racks_u_totales }}"></div>
                             @endif
@@ -248,7 +297,7 @@
                             <div class="form-check"><input class="form-check-input" type="checkbox" name="puesta_tierra" value="1" id="cPt" @checked($sitio->puesta_tierra)>
                                 <label class="form-check-label" for="cPt" style="font-size:.78rem">Puesta a tierra</label></div>
                             <div class="form-check"><input class="form-check-input" type="checkbox" name="climatizacion" value="1" id="cCli" @checked($sitio->climatizacion)>
-                                <label class="form-check-label" for="cCli" style="font-size:.78rem">Climatización</label></div>
+                                <label class="form-check-label" for="cCli" style="font-size:.78rem">Climatización @include('admin.sitios._req', ['campo' => 'climatizacion'])</label></div>
                         </div>
                     </div>
                 </div>
@@ -258,14 +307,14 @@
                     <div class="sf-body">
                         <div class="sf-grid">
                             @if($esCampo || $esPlanta)
-                            <div class="sf-f"><label>Superficie (ha)</label><input type="text" name="superficie_ha" class="form-control form-control-sm" value="{{ $sitio->superficie_ha }}"></div>
+                            <div class="sf-f"><label>Superficie (ha) @include('admin.sitios._req', ['campo' => 'superficie_ha'])</label><input type="text" name="superficie_ha" class="form-control form-control-sm" value="{{ $sitio->superficie_ha }}"></div>
                             <div class="sf-f"><label>Especies / cultivos</label><input type="text" name="especies" class="form-control form-control-sm" value="{{ $sitio->especies }}" placeholder="Cereza, uva"></div>
                             @endif
-                            <div class="sf-f"><label>Usuarios</label><input type="number" name="usuarios_cant" class="form-control form-control-sm" value="{{ $sitio->usuarios_cant }}"></div>
-                            <div class="sf-f"><label>PCs / equipos</label><input type="number" name="pcs_cant" class="form-control form-control-sm" value="{{ $sitio->pcs_cant }}"></div>
+                            <div class="sf-f"><label>Usuarios @include('admin.sitios._req', ['campo' => 'usuarios_cant'])</label><input type="number" name="usuarios_cant" class="form-control form-control-sm" value="{{ $sitio->usuarios_cant }}"></div>
+                            <div class="sf-f"><label>PCs / equipos @include('admin.sitios._req', ['campo' => 'pcs_cant'])</label><input type="number" name="pcs_cant" class="form-control form-control-sm" value="{{ $sitio->pcs_cant }}"></div>
                             <div class="sf-f"><label>Temporada</label><input type="text" name="temporada" class="form-control form-control-sm" value="{{ $sitio->temporada }}" placeholder="octubre a marzo"></div>
-                            <div class="sf-f"><label>Encargado</label><input type="text" name="encargado_nombre" class="form-control form-control-sm" value="{{ $sitio->encargado_nombre }}"></div>
-                            <div class="sf-f"><label>Teléfono</label><input type="text" name="encargado_telefono" class="form-control form-control-sm" value="{{ $sitio->encargado_telefono }}"></div>
+                            <div class="sf-f"><label>Encargado @include('admin.sitios._req', ['campo' => 'encargado_nombre'])</label><input type="text" name="encargado_nombre" class="form-control form-control-sm" value="{{ $sitio->encargado_nombre }}"></div>
+                            <div class="sf-f"><label>Teléfono @include('admin.sitios._req', ['campo' => 'encargado_telefono'])</label><input type="text" name="encargado_telefono" class="form-control form-control-sm" value="{{ $sitio->encargado_telefono }}"></div>
                             <div class="sf-f"><label>Email</label><input type="email" name="encargado_email" class="form-control form-control-sm" value="{{ $sitio->encargado_email }}"></div>
                             <div class="sf-f"><label>Técnico TI asignado</label>
                                 <select name="tecnico_id" class="form-select form-select-sm">
@@ -289,6 +338,127 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- ── Evaluación de factibilidad ─────────────────────────────
+                     Todo lo que el levantamiento en terreno NO pregunta, más lo
+                     que sí pregunta, para poder corregirlo desde el escritorio.
+                     Antes estos campos solo existían en el formulario móvil: si
+                     algo quedaba mal escrito, no había dónde arreglarlo.
+
+                     Se muestra abierta mientras el sitio esté en evaluación; en
+                     un sitio operativo queda plegada para no estorbar. --}}
+                @php
+                    $tieneEval = $sitio->solucion_propuesta || $sitio->eval_linea_vista
+                        || $sitio->acciones || $sitio->eval_uso_previsto || $sitio->eval_infra_existente;
+                @endphp
+                <details class="sf-card" @if($sitio->enEvaluacion() || $tieneEval) open @endif>
+                    <summary style="cursor:pointer;list-style:none">
+                        <h6 class="mb-0"><i class="bi bi-clipboard-check"></i>Evaluación de factibilidad
+                            <span class="rt">lo que no se pregunta en terreno</span>
+                        </h6>
+                    </summary>
+                    <div class="sf-body">
+
+                        {{-- Estos requisitos se contestan en el celular, parado en el
+                             campo, y no tienen control acá: se muestran igual porque si
+                             no, el porcentaje diría "12 campos" y en pantalla solo se
+                             verían 5. Van de solo lectura para no invitar a llenarlos
+                             desde el escritorio. --}}
+                        @php
+                            $enTerreno = [
+                                'cobertura_medida'     => ['Cobertura móvil', $sitio->cobertura_medida ? 'medida' : null],
+                                'eval_energia'         => ['Energía', Sitio::EVAL_ENERGIA[$sitio->eval_energia] ?? null],
+                                'eval_energia_estable' => ['Energía estable', is_null($sitio->eval_energia_estable) ? null : ($sitio->eval_energia_estable ? 'Sí' : 'No')],
+                                'eval_cielo_despejado' => ['Cielo despejado', is_null($sitio->eval_cielo_despejado) ? null : ($sitio->eval_cielo_despejado ? 'Sí' : 'No')],
+                                'eval_fibra_zona'      => ['Fibra en la zona', Sitio::EVAL_FIBRA_ZONA[$sitio->eval_fibra_zona] ?? null],
+                                'eval_punto_montaje'   => ['Punto de montaje', Sitio::EVAL_PUNTO_MONTAJE[$sitio->eval_punto_montaje] ?? null],
+                                'tiene_fotos'          => ['Fotos del sitio', $sitio->fotos->count() ? $sitio->fotos->count() . ' foto(s)' : null],
+                            ];
+                            $enTerreno = array_filter($enTerreno, fn($_, $c) => in_array($c, $req, true), ARRAY_FILTER_USE_BOTH);
+                        @endphp
+                        @if($enTerreno)
+                        <div class="sf-terreno">
+                            <div class="tit">Se toman en terreno, desde el celular</div>
+                            @foreach($enTerreno as $campo => [$rotulo, $valor])
+                                <div class="fila">
+                                    @include('admin.sitios._req', ['campo' => $campo])
+                                    <span class="rot">{{ $rotulo }}</span>
+                                    <span class="val {{ $valor ? '' : 'vacio' }}">{{ $valor ?? 'sin responder' }}</span>
+                                </div>
+                            @endforeach
+                            <a href="{{ route('admin.sitios.terreno.ficha', $sitio) }}" class="ir">
+                                <i class="bi bi-phone me-1"></i>Abrir el levantamiento
+                            </a>
+                        </div>
+                        @endif
+
+                        <div class="sf-grid">
+                            <div class="sf-f"><label>¿Tienen internet hoy?</label>
+                                <select name="eval_internet_particular" class="form-select form-select-sm">
+                                    <option value="">—</option>
+                                    <option value="1" @selected($sitio->eval_internet_particular === true)>Sí</option>
+                                    <option value="0" @selected($sitio->eval_internet_particular === false)>No</option>
+                                </select>
+                            </div>
+                            <div class="sf-f"><label>¿De quién / qué tipo?</label>
+                                <input type="text" name="eval_internet_detalle" class="form-control form-control-sm"
+                                       value="{{ $sitio->eval_internet_detalle }}" placeholder="Starlink del administrador, 4G…">
+                            </div>
+                            <div class="sf-f"><label>Línea de vista</label>
+                                <select name="eval_linea_vista" class="form-select form-select-sm">
+                                    <option value="">—</option>
+                                    @foreach(Sitio::EVAL_LINEA_VISTA as $k => $l)<option value="{{ $k }}" @selected($sitio->eval_linea_vista === $k)>{{ $l }}</option>@endforeach
+                                </select>
+                            </div>
+                            <div class="sf-f"><label>¿Hacia dónde?</label>
+                                <input type="text" name="eval_linea_vista_hacia" class="form-control form-control-sm"
+                                       value="{{ $sitio->eval_linea_vista_hacia }}" placeholder="Planta Rapel, cerro…">
+                            </div>
+                            <div class="sf-f"><label>Distancia (km)</label>
+                                <input type="text" name="eval_distancia_km" class="form-control form-control-sm" value="{{ $sitio->eval_distancia_km }}">
+                            </div>
+                            <div class="sf-f"><label>¿Necesita cámaras?</label>
+                                <select name="eval_necesita_camaras" class="form-select form-select-sm">
+                                    <option value="">—</option>
+                                    <option value="1" @selected($sitio->eval_necesita_camaras === true)>Sí</option>
+                                    <option value="0" @selected($sitio->eval_necesita_camaras === false)>No</option>
+                                </select>
+                            </div>
+                            <div class="sf-f"><label>¿Necesita WiFi?</label>
+                                <select name="eval_necesita_wifi" class="form-select form-select-sm">
+                                    <option value="">—</option>
+                                    <option value="1" @selected($sitio->eval_necesita_wifi === true)>Sí</option>
+                                    <option value="0" @selected($sitio->eval_necesita_wifi === false)>No</option>
+                                </select>
+                            </div>
+                            <div class="sf-f"><label>Solución propuesta</label>
+                                <select name="solucion_propuesta" class="form-select form-select-sm">
+                                    <option value="">— Por definir —</option>
+                                    @foreach(Sitio::SOLUCIONES as $k => $l)<option value="{{ $k }}" @selected($sitio->solucion_propuesta === $k)>{{ $l }}</option>@endforeach
+                                </select>
+                            </div>
+                            <div class="sf-f"><label>Orden de ejecución</label>
+                                <input type="number" name="orden_ejecucion" class="form-control form-control-sm" value="{{ $sitio->orden_ejecucion }}" placeholder="1, 2, 3…">
+                            </div>
+                            <div class="sf-f"><label>Costo estimado (CLP)</label>
+                                <input type="number" name="costo_estimado" class="form-control form-control-sm" value="{{ $sitio->costo_estimado }}">
+                            </div>
+                        </div>
+
+                        <div class="sf-f mt-3"><label>Infraestructura aprovechable</label>
+                            <textarea name="eval_infra_existente" class="form-control form-control-sm" rows="2"
+                                      placeholder="Postes, ductos, torre, cableado, gabinete…">{{ $sitio->eval_infra_existente }}</textarea>
+                        </div>
+                        <div class="sf-f mt-2"><label>Uso previsto</label>
+                            <textarea name="eval_uso_previsto" class="form-control form-control-sm" rows="2"
+                                      placeholder="Balanza, oficina, packing, control de riego…">{{ $sitio->eval_uso_previsto }}</textarea>
+                        </div>
+                        <div class="sf-f mt-2 mb-0"><label>Qué hay que hacer</label>
+                            <textarea name="acciones" class="form-control form-control-sm" rows="2"
+                                      placeholder="Cotizar PTP a Planta Rapel, pedir factibilidad de fibra…">{{ $sitio->acciones }}</textarea>
+                        </div>
+                    </div>
+                </details>
 
                 <div class="d-flex gap-2 mb-3">
                     <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Guardar ficha</button>
@@ -512,6 +682,9 @@
 </div>
 
 <div class="sf-vis" id="visor"><img src="" alt=""></div>
+
+{{-- Sin recargar al cerrar: acá botaría los cambios sin guardar de la ficha. --}}
+@include('admin.sitios._modal_zonas')
 
 @push('scripts')
 <script>

@@ -52,9 +52,17 @@ class Sitio extends Model
         'oficina'    => 'bi-building-fill',
     ];
 
-    /** Etapas del enlazamiento (estado de proyecto, distinto del estado en vivo). */
+    /**
+     * Etapas del enlazamiento (estado de proyecto, distinto del estado en vivo).
+     *
+     * «Solo Internet» es el campo que hoy tiene un internet cualquiera —del dueño,
+     * un 4G, un Starlink— pero todavía no nuestro enlace. Reemplaza a la pregunta
+     * «¿tienen algún internet hoy?» del levantamiento: se responde eligiendo este
+     * estado y el tipo de enlace, en vez de con una casilla aparte.
+     */
     public const ESTADOS_ENLACE = [
         'sin_enlace'      => 'Sin enlace',
+        'solo_internet'   => 'Solo Internet',
         'en_gestion'      => 'En gestión',
         'en_instalacion'  => 'En instalación',
         'operativo'       => 'Operativo',
@@ -63,6 +71,7 @@ class Sitio extends Model
 
     public const COLORES_ENLACE = [
         'sin_enlace'     => '#94a3b8',
+        'solo_internet'  => '#0d9488',
         'en_gestion'     => '#d97706',
         'en_instalacion' => '#0284c7',
         'operativo'      => '#16a34a',
@@ -80,11 +89,16 @@ class Sitio extends Model
 
     /* ── Evaluación en terreno de sitios sin enlace ───────────────────────── */
 
+    /**
+     * Energía en el sitio, sí o no.
+     *
+     * Antes distinguía monofásica, trifásica y generador. En terreno eso no se
+     * usó —de 12 levantamientos, 9 quedaron sin responder— y para decidir un
+     * enlace da lo mismo: lo que importa es si hay de dónde alimentar el equipo.
+     */
     public const EVAL_ENERGIA = [
-        'no'         => 'No hay energía',
-        'monofasica' => 'Monofásica',
-        'trifasica'  => 'Trifásica',
-        'generador'  => 'Solo generador',
+        'si' => 'Sí hay',
+        'no' => 'No hay',
     ];
 
     /** Operadores que se miden en terreno, en el orden en que se muestran. */
@@ -173,18 +187,43 @@ class Sitio extends Model
      * superficie, costo, orden de ejecución) queda fuera a propósito: si contara,
      * el porcentaje mediría trabajo de oficina en vez de decir si la visita
      * quedó bien hecha.
+     *
+     * La lista se ajustó el 2026-08-12 con los 12 levantamientos reales de los
+     * campos de Linderos y Maipú. Salieron cinco requisitos que la visita casi
+     * nunca dejaba resueltos, cada uno por un motivo distinto:
+     *
+     *   - `acceso` (0/12): describir el portón y la ruta es texto largo, y en el
+     *     celular no se escribe. Lo cubre la foto de categoría «Entorno / acceso».
+     *   - `encargado_nombre` (1/12) y `encargado_telefono` (0/12): dependen de que
+     *     haya alguien en el campo ese día. Se piden en el escritorio.
+     *   - `eval_linea_vista` (8/12): rara vez aplica; pasó al escritorio.
+     *   - `solucion_propuesta` (2/12): es una decisión que se toma después, no
+     *     parado en el campo.
+     *
+     * Y entraron los que la visita sí resuelve siempre: tipo de enlace, energía
+     * estable, cielo despejado, fibra en la zona y haber sacado alguna foto.
      */
     public const REQUISITOS_EVALUACION = [
         'maps_url',            // el GPS solo se puede tomar estando ahí
-        'acceso',
-        'encargado_nombre',
-        'encargado_telefono',
         'cobertura_medida',    // atributo calculado: al menos un operador medido
+        'enlace_tipo',
         'eval_energia',
-        'eval_linea_vista',
+        'eval_energia_estable',
+        'eval_cielo_despejado',
+        'eval_fibra_zona',
         'eval_punto_montaje',
-        'solucion_propuesta',
+        'vpn',                 // sí/no explícito: «no tiene» es un dato del informe
+        'tiene_fotos',         // atributo calculado: la visita dejó registro visual
     ];
+
+    /**
+     * Requisitos que solo aplican si el sitio tiene algún enlace.
+     *
+     * Preguntar el ancho de banda y el proveedor de un campo donde no llega nada
+     * no tiene sentido, y contarlos como faltantes castigaría una visita que
+     * quedó bien hecha.
+     */
+    public const REQUISITOS_CON_ENLACE = ['ancho_banda', 'isp_id'];
 
     /** Nombre legible de los campos, para la lista de «lo que falta». */
     public const ETIQUETAS = [
@@ -204,11 +243,17 @@ class Sitio extends Model
         'acceso'             => 'cómo llegar',
 
         // Levantamiento de factibilidad
-        'cobertura_medida'   => 'cobertura móvil',
-        'eval_energia'       => 'energía',
-        'eval_linea_vista'   => 'línea de vista',
-        'eval_punto_montaje' => 'punto de montaje',
-        'solucion_propuesta' => 'solución propuesta',
+        'cobertura_medida'     => 'cobertura móvil',
+        'eval_energia'         => 'energía',
+        'eval_energia_estable' => 'si la energía es estable',
+        'eval_cielo_despejado' => 'cielo despejado',
+        'eval_fibra_zona'      => 'fibra en la zona',
+        'eval_linea_vista'     => 'línea de vista',
+        'eval_punto_montaje'   => 'punto de montaje',
+        'solucion_propuesta'   => 'solución propuesta',
+        'tiene_fotos'          => 'fotos del sitio',
+        'vpn'                  => 'VPN al datacenter',
+        'ancho_banda'          => 'ancho de banda',
     ];
 
     /* ── Relaciones ──────────────────────────────────────────────────────── */
@@ -216,6 +261,12 @@ class Sitio extends Model
     public function empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class, 'empresa_id');
+    }
+
+    /** Agrupación de operación, por encima de comuna y región. */
+    public function zona(): BelongsTo
+    {
+        return $this->belongsTo(Zona::class, 'zona_id');
     }
 
     /** Proveedor del enlace: sale del mantenedor de compañías de facturación. */
@@ -269,6 +320,17 @@ class Sitio extends Model
     public function scopeEstadoEnlace($q, ?string $estado)
     {
         return $estado ? $q->where('estado_enlace', $estado) : $q;
+    }
+
+    /**
+     * Filtra por zona. El valor 'sin' aísla los sitios que todavía no la tienen
+     * asignada, que es lo que hay que ir cerrando después de crear una zona.
+     */
+    public function scopeZona($q, $zona)
+    {
+        if ($zona === null || $zona === '') return $q;
+
+        return $zona === 'sin' ? $q->whereNull('zona_id') : $q->where('zona_id', $zona);
     }
 
     public function scopeBuscar($q, ?string $texto)
@@ -368,8 +430,13 @@ class Sitio extends Model
      */
     public function enEvaluacion(): bool
     {
+        // «En instalación» y «Solo Internet» siguen siendo etapas de evaluación:
+        // el enlace nuestro todavía no está. Si no estuvieran, la ficha cambiaría
+        // sola de vara al avanzar de estado y su porcentaje pasaría a medir otra
+        // cosa —a mitad del proyecto y sin avisar—, que fue justo lo que pasó con
+        // «Linderos - 1V Don Miguel».
         return $this->tipo === 'campo'
-            && in_array($this->estado_enlace, ['sin_enlace', 'en_gestion'], true);
+            && in_array($this->estado_enlace, ['sin_enlace', 'solo_internet', 'en_gestion', 'en_instalacion'], true);
     }
 
     /** Atributo calculado: ¿se midió la señal de al menos un operador? */
@@ -381,13 +448,41 @@ class Sitio extends Model
         return null;   // null = no medido, para que cuente como faltante
     }
 
+    /**
+     * Atributo calculado: ¿la visita dejó alguna foto?
+     *
+     * Sustituye a `acceso` escrito a mano: en los 12 levantamientos reales nadie
+     * escribió la ruta pero los 12 trajeron fotos, y una foto del portón dice más
+     * que un párrafo tecleado con una mano en el celular.
+     */
+    public function getTieneFotosAttribute(): ?bool
+    {
+        // Si la relación ya viene cargada se usa esa, sin volver a la base: el
+        // listado calcula la completitud de cada tarjeta y con 67 sitios esto
+        // serían 67 consultas de más por cada carga de pantalla.
+        $hay = $this->relationLoaded('fotos')
+            ? $this->fotos->isNotEmpty()
+            : $this->fotos()->exists();
+
+        return $hay ?: null;   // null = falta, para el conteo
+    }
+
     public function requisitos(): array
     {
         if ($this->enEvaluacion()) {
-            return self::REQUISITOS_EVALUACION;
+            return array_merge(
+                self::REQUISITOS_EVALUACION,
+                $this->tieneEnlace() ? self::REQUISITOS_CON_ENLACE : []
+            );
         }
 
         return array_merge(self::REQUISITOS['comun'], self::REQUISITOS[$this->tipo] ?? []);
+    }
+
+    /** ¿Se declaró algún enlace? «Sin enlace» y sin responder no cuentan. */
+    public function tieneEnlace(): bool
+    {
+        return $this->enlace_tipo !== null && $this->enlace_tipo !== '' && $this->enlace_tipo !== 'ninguno';
     }
 
     /** Lista de campos requeridos que están vacíos. */

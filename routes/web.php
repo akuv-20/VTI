@@ -33,6 +33,7 @@ use App\Http\Controllers\Admin\KpiDisponibilidadController as AdminKpiDisponibil
 use App\Http\Controllers\Admin\MonitoreoMapaController as AdminMonitoreoMapaController;
 use App\Http\Controllers\Admin\SitioController as AdminSitioController;
 use App\Http\Controllers\Admin\SitioPanelController as AdminSitioPanelController;
+use App\Http\Controllers\Admin\ZonaController as AdminZonaController;
 use App\Http\Controllers\Auth\AzureController;
 
 // Route::get('/', function () {
@@ -225,6 +226,15 @@ Route::middleware(['auth', 'can:acceso_monitoreo'])->prefix('admin')->name('admi
 
 // ── Monitoreo: fichas de sitios (plantas, campos, datacenter, oficinas) ──────
 Route::middleware(['auth', 'can:acceso_sitios'])->prefix('admin')->name('admin.')->group(function () {
+    // Mantenedor de zonas. Vive fuera de /sitios porque no cuelga de ninguna
+    // ficha: se usa desde el listado y desde la edición, siempre por JSON.
+    Route::prefix('zonas')->name('zonas.')->group(function () {
+        Route::get('/',           [AdminZonaController::class, 'index'])->name('index');
+        Route::post('/',          [AdminZonaController::class, 'store'])->name('store');
+        Route::put('/{zona}',     [AdminZonaController::class, 'update'])->name('update');
+        Route::delete('/{zona}',  [AdminZonaController::class, 'destroy'])->name('destroy');
+    });
+
     Route::prefix('sitios')->name('sitios.')->group(function () {
         // Panel de levantamiento (antes del {sitio} para no chocar con el binding)
         Route::get('/dashboard',            [AdminSitioPanelController::class, 'dashboard'])->name('dashboard');

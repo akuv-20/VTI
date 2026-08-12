@@ -11,6 +11,7 @@ use App\Models\SitioEquipo;
 use App\Models\SitioFoto;
 use App\Models\SitioHost;
 use App\Models\User;
+use App\Models\Zona;
 use App\Services\CheckMkClient;
 use App\Services\GaleriaFotos;
 use App\Services\SitiosCheckMk;
@@ -31,23 +32,27 @@ class SitioController extends Controller
         $sitios = Sitio::activos()
             ->tipo($request->input('tipo'))
             ->estadoEnlace($request->input('estado'))
+            ->zona($request->input('zona'))
             ->buscar($request->input('q'))
-            ->with(['fotos', 'tecnico:id,name'])
+            ->with(['fotos', 'tecnico:id,name', 'zona:id,nombre'])
             ->withCount('equipos')
             ->ordenados()
             ->get();
 
-        $todos = Sitio::activos()->get(['tipo', 'estado_enlace']);
+        $todos = Sitio::activos()->get(['tipo', 'estado_enlace', 'zona_id']);
 
         return view('admin.sitios.index', [
             'sitios'  => $sitios,
             'tipo'    => $request->input('tipo'),
             'estado'  => $request->input('estado'),
+            'zona'    => $request->input('zona'),
             'q'       => $request->input('q'),
+            'zonas'   => Zona::withCount('sitios')->ordenadas()->get(),
             'conteos' => [
                 'total'  => $todos->count(),
                 'tipos'  => collect(Sitio::TIPOS)->map(fn($_, $k) => $todos->where('tipo', $k)->count()),
                 'estados' => collect(Sitio::ESTADOS_ENLACE)->map(fn($_, $k) => $todos->where('estado_enlace', $k)->count()),
+                'sin_zona' => $todos->whereNull('zona_id')->count(),
             ],
         ]);
     }
@@ -56,7 +61,7 @@ class SitioController extends Controller
 
     public function show(Sitio $sitio)
     {
-        $sitio->load(['equipos.fotos', 'hosts', 'fotos', 'tecnico', 'levantadoPor', 'mapa', 'empresa', 'isp']);
+        $sitio->load(['equipos.fotos', 'hosts', 'fotos', 'tecnico', 'levantadoPor', 'mapa', 'empresa', 'isp', 'zona']);
 
         return view('admin.sitios.show', [
             'sitio'        => $sitio,
@@ -66,15 +71,17 @@ class SitioController extends Controller
             'hostsCheckMk' => $this->listaHosts(),
             'empresas'     => Empresa::orderBy('nombre')->get(['id', 'nombre']),
             'companias'    => Compania::orderBy('nombre')->get(['id', 'nombre']),
+            'zonas'        => Zona::withCount('sitios')->ordenadas()->get(),
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'nombre' => ['required', 'string', 'max:255'],
-            'tipo'   => ['required', 'in:' . implode(',', array_keys(Sitio::TIPOS))],
-            'codigo' => ['nullable', 'string', 'max:30'],
+            'nombre'  => ['required', 'string', 'max:255'],
+            'tipo'    => ['required', 'in:' . implode(',', array_keys(Sitio::TIPOS))],
+            'codigo'  => ['nullable', 'string', 'max:30'],
+            'zona_id' => ['nullable', 'integer', 'exists:zonas,id'],
         ]);
 
         $sitio = Sitio::create($data);
@@ -92,6 +99,24 @@ class SitioController extends Controller
             'tipo'              => ['required', 'in:' . implode(',', array_keys(Sitio::TIPOS))],
             'estado_enlace'     => ['required', 'in:' . implode(',', array_keys(Sitio::ESTADOS_ENLACE))],
             'empresa_id'        => ['nullable', 'integer', 'exists:empresas,id'],
+            'zona_id'           => ['nullable', 'integer', 'exists:zonas,id'],
+
+            // Evaluación de factibilidad. Vive acá y no en el formulario móvil:
+            // son datos que no se contestan parado en el campo. Sin estas reglas
+            // los campos se pintarían pero `update()` los descartaría en silencio.
+            'eval_internet_particular' => ['nullable', 'in:0,1'],
+            'eval_internet_detalle'    => ['nullable', 'string', 'max:255'],
+            'eval_infra_existente'     => ['nullable', 'string', 'max:2000'],
+            'eval_linea_vista'         => ['nullable', 'in:' . implode(',', array_keys(Sitio::EVAL_LINEA_VISTA))],
+            'eval_linea_vista_hacia'   => ['nullable', 'string', 'max:255'],
+            'eval_distancia_km'        => ['nullable', 'numeric', 'min:0', 'max:9999'],
+            'eval_necesita_camaras'    => ['nullable', 'in:0,1'],
+            'eval_necesita_wifi'       => ['nullable', 'in:0,1'],
+            'eval_uso_previsto'        => ['nullable', 'string', 'max:2000'],
+            'solucion_propuesta'       => ['nullable', 'in:' . implode(',', array_keys(Sitio::SOLUCIONES))],
+            'orden_ejecucion'          => ['nullable', 'integer', 'min:0', 'max:999'],
+            'costo_estimado'           => ['nullable', 'integer', 'min:0', 'max:999999999'],
+            'acciones'                 => ['nullable', 'string', 'max:2000'],
             'region'            => ['nullable', 'string', 'max:255'],
             'comuna'            => ['nullable', 'string', 'max:255'],
             'maps_url'          => ['nullable', 'string', 'max:2000'],
@@ -108,6 +133,7 @@ class SitioController extends Controller
             'subred'            => ['nullable', 'string', 'max:60'],
             'vlan'              => ['nullable', 'string', 'max:60'],
             'gateway'           => ['nullable', 'string', 'max:60'],
+            'vpn'               => ['nullable', 'in:0,1'],
             'vpn_detalle'       => ['nullable', 'string', 'max:255'],
             'gabinete'          => ['nullable', 'string', 'max:255'],
             'ups_modelo'        => ['nullable', 'string', 'max:255'],
@@ -128,7 +154,10 @@ class SitioController extends Controller
             'notas'             => ['nullable', 'string', 'max:5000'],
         ]);
 
-        foreach (['vpn', 'generador', 'puesta_tierra', 'climatizacion', 'estacional'] as $flag) {
+        // `vpn` queda fuera a propósito: es tri-estado. Pasarlo por `boolean()`
+        // convertiría «no lo he revisado» en «no tiene», que es justo la
+        // diferencia que el informe necesita conservar.
+        foreach (['generador', 'puesta_tierra', 'climatizacion', 'estacional'] as $flag) {
             $data[$flag] = $request->boolean($flag);
         }
 

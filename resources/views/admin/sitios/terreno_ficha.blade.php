@@ -25,6 +25,12 @@
        48 px de alto es el mínimo que recomienda Android para tocar con el dedo;
        esto se usa de pie en un campo, a veces con guantes. */
     .tf-opts { display:flex; gap:.35rem; flex-wrap:wrap; }
+    /* Texto libre con un atajo al valor más repetido. El botón no achica el
+       campo por debajo de lo escribible en un teléfono. */
+    .tf-nohay { display:flex; gap:.35rem; }
+    .tf-nohay input { flex:1 1 auto; min-width:0; }
+    .tf-nohay button { flex:0 0 auto; font-size:.8rem; white-space:nowrap; }
+    .tf-nohay button.puesto { background:#e2e8f0; border-color:#cbd5e1; color:#334155; }
     .tf-opts .btn { flex:1 1 auto; min-height:48px; min-width:52px; font-size:.85rem;
                     padding:.45rem .3rem; display:flex; align-items:center; justify-content:center; }
     .tf-opts .btn-check:checked + .btn { background:#7c3aed; border-color:#7c3aed; color:#fff; }
@@ -70,12 +76,42 @@
                 </div>
                 <div class="tf-f">
                     <label>Tipo de enlace</label>
-                    <select name="enlace_tipo" class="form-select">
+                    <select name="enlace_tipo" id="selTipoEnlace" class="form-select">
                         <option value="">— No definido —</option>
                         @foreach(Sitio::ENLACE_TIPOS as $k => $l)
                             <option value="{{ $k }}" @selected($sitio->enlace_tipo === $k)>{{ $l }}</option>
                         @endforeach
                     </select>
+                </div>
+
+                {{-- Ancho de banda y proveedor solo tienen sentido si llega algo:
+                     preguntarlos en un campo sin enlace es ruido, y contarlos como
+                     faltantes castigaría una visita bien hecha. Se muestran y se
+                     exigen únicamente cuando el tipo no es «Sin enlace». --}}
+                <div id="bloqueEnlace" @if(!$sitio->tieneEnlace()) hidden @endif>
+                    <div class="tf-f">
+                        <label>Ancho de banda (Internet)</label>
+                        <input type="text" name="ancho_banda" class="form-control"
+                               value="{{ $sitio->ancho_banda }}" placeholder="100/100 Mbps">
+                    </div>
+                    <div class="tf-f mb-0">
+                        <label>Proveedor</label>
+                        <select name="isp_id" class="form-select">
+                            <option value="">— Sin definir —</option>
+                            @foreach($companias as $c)
+                                <option value="{{ $c->id }}" @selected($sitio->isp_id === $c->id)>{{ $c->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tf-card">
+                <h6><i class="bi bi-shield-lock me-1"></i>VPN al datacenter</h6>
+                @include('admin.sitios._tri', ['name' => 'vpn', 'label' => '¿Tiene VPN al datacenter?', 'valor' => $sitio->vpn])
+                <div class="tf-f mb-0" style="font-size:.74rem;color:#64748b">
+                    Responde «No» explícitamente cuando no la tenga: sin eso, en el informe
+                    no se distingue de un sitio que nadie revisó.
                 </div>
             </div>
 
@@ -123,29 +159,21 @@
                     </div>
                 </div>
                 <div id="geoMsg" style="font-size:.72rem;color:#64748b;margin:-.4rem 0 .8rem"></div>
-
-                <div class="tf-f mb-0">
-                    <label>Cómo llegar (portón, referencias)</label>
-                    <textarea name="acceso" class="form-control" rows="3">{{ $sitio->acceso }}</textarea>
-                </div>
             </div>
 
+            {{-- «Cómo llegar», el encargado y su teléfono salieron de acá: en los
+                 12 levantamientos reales el acceso se escribió 0 veces y el
+                 teléfono 0 veces. La ruta la cuenta mejor una foto de categoría
+                 «Entorno / acceso», y el contacto se llena en el escritorio. --}}
+
             <div class="tf-card">
-                <h6><i class="bi bi-person me-1"></i>Contacto y tamaño</h6>
-                <div class="tf-f">
-                    <label>Encargado del sitio</label>
-                    <input type="text" name="encargado_nombre" class="form-control" value="{{ $sitio->encargado_nombre }}">
-                </div>
-                <div class="tf-f">
-                    <label>Teléfono</label>
-                    <input type="tel" name="encargado_telefono" class="form-control" value="{{ $sitio->encargado_telefono }}" inputmode="tel">
-                </div>
+                <h6><i class="bi bi-people me-1"></i>Tamaño</h6>
                 <div class="row g-2">
-                    <div class="col-6 tf-f">
+                    <div class="col-6 tf-f mb-0">
                         <label>Usuarios</label>
                         <input type="number" name="usuarios_cant" class="form-control" value="{{ $sitio->usuarios_cant }}" inputmode="numeric">
                     </div>
-                    <div class="col-6 tf-f">
+                    <div class="col-6 tf-f mb-0">
                         <label>PCs / equipos</label>
                         <input type="number" name="pcs_cant" class="form-control" value="{{ $sitio->pcs_cant }}" inputmode="numeric">
                     </div>
@@ -185,14 +213,14 @@
             </div>
 
             <div class="tf-card">
-                <h6><i class="bi bi-lightning-charge me-1"></i>Qué hay hoy</h6>
+                <h6><i class="bi bi-lightning-charge me-1"></i>Energía</h6>
 
                 <div class="tf-f">
-                    <label>Energía eléctrica</label>
+                    <label>¿Hay energía eléctrica?</label>
                     <div class="tf-opts">
-                        <input type="radio" class="btn-check" name="eval_energia" id="ene_na" value=""
-                               @checked(!$sitio->eval_energia)>
-                        <label class="btn btn-outline-secondary" for="ene_na">—</label>
+                        {{-- El «—» ya no viene marcado: antes era el estado inicial y
+                             pasarlo por alto no se notaba. De 12 visitas, 9 salieron
+                             sin responder esta pregunta teniéndola al frente. --}}
                         @foreach(Sitio::EVAL_ENERGIA as $k => $l)
                             <input type="radio" class="btn-check" name="eval_energia" id="ene_{{ $k }}" value="{{ $k }}"
                                    @checked($sitio->eval_energia === $k)>
@@ -202,50 +230,15 @@
                 </div>
 
                 @include('admin.sitios._tri', ['name' => 'eval_energia_estable', 'label' => '¿La energía es estable? (según el encargado)', 'valor' => $sitio->eval_energia_estable])
-                @include('admin.sitios._tri', ['name' => 'eval_internet_particular', 'label' => '¿Tienen algún internet hoy?', 'valor' => $sitio->eval_internet_particular])
-
-                <div class="tf-f">
-                    <label>¿De quién / qué tipo?</label>
-                    <input type="text" name="eval_internet_detalle" class="form-control"
-                           value="{{ $sitio->eval_internet_detalle }}" placeholder="ej: Starlink del administrador, 4G particular">
-                </div>
-
-                <div class="tf-f mb-0">
-                    <label>Infraestructura aprovechable</label>
-                    <textarea name="eval_infra_existente" class="form-control" rows="2"
-                              placeholder="Postes, ductos, torre, cableado, gabinete…">{{ $sitio->eval_infra_existente }}</textarea>
-                </div>
             </div>
+
+            {{-- «¿Tienen algún internet hoy?» se fue: lo dice el estado del enlace
+                 de arriba —«Solo Internet» más el tipo— sin preguntarlo dos veces.
+                 La línea de vista hacia otro sitio también salió: rara vez aplica
+                 y en 12 visitas nadie escribió hacia dónde ni a qué distancia. --}}
 
             <div class="tf-card">
                 <h6><i class="bi bi-broadcast-pin me-1"></i>Viabilidad del enlace</h6>
-
-                <div class="tf-f">
-                    <label>Línea de vista hacia otro sitio</label>
-                    <div class="tf-opts">
-                        <input type="radio" class="btn-check" name="eval_linea_vista" id="lv_na" value=""
-                               @checked(!$sitio->eval_linea_vista)>
-                        <label class="btn btn-outline-secondary" for="lv_na">—</label>
-                        @foreach(Sitio::EVAL_LINEA_VISTA as $k => $l)
-                            <input type="radio" class="btn-check" name="eval_linea_vista" id="lv_{{ $k }}" value="{{ $k }}"
-                                   @checked($sitio->eval_linea_vista === $k)>
-                            <label class="btn btn-outline-secondary" for="lv_{{ $k }}">{{ $l }}</label>
-                        @endforeach
-                    </div>
-                </div>
-
-                <div class="row g-2">
-                    <div class="col-7 tf-f">
-                        <label>¿Hacia dónde?</label>
-                        <input type="text" name="eval_linea_vista_hacia" class="form-control"
-                               value="{{ $sitio->eval_linea_vista_hacia }}" placeholder="Planta Rapel, cerro…">
-                    </div>
-                    <div class="col-5 tf-f">
-                        <label>Distancia (km)</label>
-                        <input type="text" name="eval_distancia_km" class="form-control"
-                               value="{{ $sitio->eval_distancia_km }}" inputmode="decimal">
-                    </div>
-                </div>
 
                 @include('admin.sitios._tri', ['name' => 'eval_cielo_despejado', 'label' => '¿Cielo despejado? (para Starlink)', 'valor' => $sitio->eval_cielo_despejado])
 
@@ -293,51 +286,33 @@
                         </select>
                     </div>
                 </div>
-            </div>
 
-            <div class="tf-card">
-                <h6><i class="bi bi-list-check me-1"></i>Qué se necesita</h6>
-                @include('admin.sitios._tri', ['name' => 'eval_necesita_camaras', 'label' => '¿Necesita cámaras?', 'valor' => $sitio->eval_necesita_camaras])
-                @include('admin.sitios._tri', ['name' => 'eval_necesita_wifi', 'label' => '¿Necesita WiFi en el campo?', 'valor' => $sitio->eval_necesita_wifi])
-                <div class="tf-f mb-0">
-                    <label>Uso previsto</label>
-                    <textarea name="eval_uso_previsto" class="form-control" rows="2"
-                              placeholder="Balanza, oficina, packing, control de riego…">{{ $sitio->eval_uso_previsto }}</textarea>
-                </div>
-            </div>
-
-            <div class="tf-card">
-                <h6><i class="bi bi-flag me-1"></i>Conclusión de la visita</h6>
-
+                {{-- Siguen siendo texto libre —"Gabinete mural 9U", "Grupo
+                     Electrogeno"— pero el caso más común en estos campos es que no
+                     haya nada: en 10 de 15 fichas está escrito «No hay» a mano. El
+                     botón lo pone de un toque y el campo se puede editar igual. --}}
                 <div class="tf-f">
-                    <label>Solución propuesta</label>
-                    <select name="solucion_propuesta" class="form-select">
-                        <option value="">— Por definir —</option>
-                        @foreach(Sitio::SOLUCIONES as $k => $l)
-                            <option value="{{ $k }}" @selected($sitio->solucion_propuesta === $k)>{{ $l }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="row g-2">
-                    <div class="col-5 tf-f">
-                        <label>Orden</label>
-                        <input type="number" name="orden_ejecucion" class="form-control"
-                               value="{{ $sitio->orden_ejecucion }}" inputmode="numeric" placeholder="1, 2, 3…">
-                    </div>
-                    <div class="col-7 tf-f">
-                        <label>Costo estimado (CLP)</label>
-                        <input type="number" name="costo_estimado" class="form-control"
-                               value="{{ $sitio->costo_estimado }}" inputmode="numeric">
+                    <label>Gabinete / rack</label>
+                    <div class="tf-nohay">
+                        <input type="text" name="gabinete" class="form-control"
+                               value="{{ $sitio->gabinete }}" placeholder="Gabinete mural 9U…">
+                        <button type="button" class="btn btn-outline-secondary" data-nohay="gabinete">No hay</button>
                     </div>
                 </div>
-
                 <div class="tf-f mb-0">
-                    <label>Qué hay que hacer</label>
-                    <textarea name="acciones" class="form-control" rows="3"
-                              placeholder="Cotizar PTP a Planta Rapel, pedir factibilidad de fibra…">{{ $sitio->acciones }}</textarea>
+                    <label>UPS</label>
+                    <div class="tf-nohay">
+                        <input type="text" name="ups_modelo" class="form-control"
+                               value="{{ $sitio->ups_modelo }}" placeholder="APC 1500VA…">
+                        <button type="button" class="btn btn-outline-secondary" data-nohay="ups_modelo">No hay</button>
+                    </div>
                 </div>
             </div>
+
+            {{-- Fuera del móvil, a la ficha de escritorio: «qué se necesita» y la
+                 conclusión de la visita —solución, orden, costo, acciones— son
+                 decisiones que se toman después, con los presupuestos a la vista.
+                 Parado en el campo se llenaron entre 0 y 2 veces de 12. --}}
 
             <div class="tf-card">
                 <h6><i class="bi bi-camera me-1"></i>Fotos</h6>
@@ -405,6 +380,40 @@
      con una URL estable y siga estando ahí sin conexión. --}}
 <script src="/js/terreno-offline.js?v={{ filemtime(public_path('js/terreno-offline.js')) }}"></script>
 <script>
+// ── Ancho de banda y proveedor solo si hay enlace ────────────────────────────
+// Se ocultan en vez de deshabilitarse: un input deshabilitado no se envía y en
+// terreno el formulario se guarda en IndexedDB tal cual, así que un campo que
+// desaparece del envío se leería como "lo borró" al sincronizar.
+(() => {
+    const tipo   = document.getElementById('selTipoEnlace');
+    const bloque = document.getElementById('bloqueEnlace');
+    if (!tipo || !bloque) return;
+
+    const refrescar = () => {
+        bloque.hidden = (tipo.value === '' || tipo.value === 'ninguno');
+    };
+    tipo.addEventListener('change', refrescar);
+    refrescar();
+})();
+
+// ── Atajo «No hay» para los campos de texto libre ────────────────────────────
+document.querySelectorAll('[data-nohay]').forEach(btn => {
+    const campo = document.querySelector('[name="' + btn.dataset.nohay + '"]');
+    if (!campo) return;
+
+    const marcar = () => btn.classList.toggle('puesto', campo.value.trim().toLowerCase() === 'no hay');
+
+    btn.addEventListener('click', () => {
+        // Segundo toque: se arrepintió y quiere escribir el modelo de verdad.
+        campo.value = campo.value.trim().toLowerCase() === 'no hay' ? '' : 'No hay';
+        campo.dispatchEvent(new Event('input', { bubbles: true }));
+        marcar();
+        if (!campo.value) campo.focus();
+    });
+    campo.addEventListener('input', marcar);
+    marcar();
+});
+
 // ── GPS del navegador (requiere HTTPS) ───────────────────────────────────────
 const inpLat = document.getElementById('lat');
 const inpLon = document.getElementById('lon');
