@@ -113,7 +113,14 @@ class InformeController extends Controller
             'usuario' => $request->user()?->name,
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->download('estado_conectividad_' . now()->format('Y-m-d') . '.pdf');
+        $nombre = 'estado_conectividad_' . now()->format('Y-m-d') . '.pdf';
+
+        // Por defecto se sirve en línea (Content-Disposition: inline) para poder
+        // verlo dentro de la aplicación antes de bajarlo. `?descargar=1` lo manda
+        // como adjunto, que es lo que hace el botón de descarga del modal.
+        return $request->boolean('descargar')
+            ? $pdf->download($nombre)
+            : $pdf->stream($nombre);
     }
 
     /** Cómo se describe el filtro en la portada del informe. */
