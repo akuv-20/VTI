@@ -51,9 +51,43 @@ echo "==> migraciones"
 $PHP artisan migrate --force
 
 # --- Frontend (Vite) ----------------------------------------------------
-echo "==> build de assets (npm)"
-npm ci
-npm run build
+# Los assets compilados VIAJAN EN EL REPO porque este servidor no tiene Node. Si
+# igual hay npm (por ejemplo desplegando desde una máquina con el entorno
+# completo) se recompilan, que nunca está de más.
+if command -v npm >/dev/null 2>&1; then
+    echo "==> build de assets (npm)"
+    npm ci
+    npm run build
+else
+    echo "==> sin npm en el servidor: se usan los assets versionados del repo"
+fi
+
+# Y se comprueba que existan. Este chequeo está porque ya pasó: el manifest
+# apuntaba a un .js que no estaba, el CSS sí llegaba desde git, y el sitio se
+# veía perfecto sin una sola línea de JavaScript. Ningún modal abría y no había
+# ningún error a la vista.
+echo "==> verificando assets compilados"
+$PHP -r '
+    $dir = "public/build";
+    $man = "$dir/manifest.json";
+    if (!is_file($man)) {
+        fwrite(STDERR, "    !! falta $man: el sitio quedaria sin CSS ni JS\n");
+        exit(1);
+    }
+    $faltan = [];
+    foreach (json_decode(file_get_contents($man), true) as $entrada) {
+        foreach (array_merge([$entrada["file"] ?? null], $entrada["css"] ?? []) as $f) {
+            if ($f && !is_file("$dir/$f")) $faltan[] = $f;
+        }
+    }
+    if ($faltan) {
+        fwrite(STDERR, "    !! el manifest apunta a archivos que no existen:\n");
+        foreach ($faltan as $f) fwrite(STDERR, "       $dir/$f\n");
+        fwrite(STDERR, "    Compila con: npm ci && npm run build\n");
+        exit(1);
+    }
+    echo "    ok: todo lo que pide el manifest esta en disco\n";
+'
 
 # --- Archivos subidos ---------------------------------------------------
 # El enlace public/storage está en .gitignore, así que no viaja en el repo:

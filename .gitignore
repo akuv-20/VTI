@@ -1,6 +1,7 @@
 /.phpunit.cache
 /node_modules
-/public/build
+# public/build SI se versiona: el servidor de produccion no tiene Node, asi que
+# los assets compilados tienen que viajar en el repo. Ver deploy/update.sh.
 /public/hot
 /public/storage
 /storage/*.key
