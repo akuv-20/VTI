@@ -176,13 +176,18 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
 
-            <div class="modal-body p-0 position-relative" style="background:#f1f5f9">
-                <div id="pdfCargando" class="d-flex align-items-center justify-content-center h-100"
-                     style="font-size:.85rem;color:#94a3b8">
+            {{-- El aviso va SUPERPUESTO al iframe, no encima en el flujo: si los
+                 dos ocupan alto, el modal muestra el spinner arriba y el informe
+                 abajo, cada uno con la mitad. --}}
+            <div class="modal-body p-0" style="background:#f1f5f9;position:relative;overflow:hidden">
+                <iframe id="pdfMarco" title="Vista previa del informe"
+                        style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>
+                <div id="pdfCargando"
+                     style="position:absolute;inset:0;z-index:2;background:#f1f5f9;
+                            display:flex;align-items:center;justify-content:center;
+                            font-size:.85rem;color:#94a3b8">
                     <span class="spinner-border spinner-border-sm me-2"></span>Generando el informe…
                 </div>
-                <iframe id="pdfMarco" title="Vista previa del informe"
-                        style="width:100%;height:100%;border:0;display:none"></iframe>
             </div>
 
             <div class="modal-footer py-2">
@@ -214,16 +219,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const cargando = document.getElementById('pdfCargando');
         const url = @json(route('admin.informes.sitios.pdf', request()->only('zonas', 'filtrado')));
 
+        // El `load` de un iframe con PDF no es confiable: segun el navegador y el
+        // visor, puede no dispararse nunca. Por eso el aviso se quita por evento
+        // O por tiempo, lo que ocurra primero, y nunca se queda pegado tapando el
+        // informe ya renderizado.
+        let reloj = null;
+        const listo = () => {
+            clearTimeout(reloj);
+            marco.dataset.cargado = '1';
+            cargando.style.display = 'none';
+        };
+
         modalPdf.addEventListener('show.bs.modal', () => {
             if (marco.dataset.cargado) return;      // ya está, no se regenera
+            cargando.style.display = 'flex';
             marco.src = url;
+            reloj = setTimeout(listo, 8000);
         });
 
         marco.addEventListener('load', () => {
-            if (!marco.src) return;
-            marco.dataset.cargado = '1';
-            cargando.style.display = 'none';
-            marco.style.display = 'block';
+            if (marco.src) listo();
         });
 
         // Si cambia el filtro, la próxima apertura tiene que regenerarlo. Como el
