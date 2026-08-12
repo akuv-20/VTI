@@ -33,6 +33,7 @@ use App\Http\Controllers\Admin\KpiDisponibilidadController as AdminKpiDisponibil
 use App\Http\Controllers\Admin\MonitoreoMapaController as AdminMonitoreoMapaController;
 use App\Http\Controllers\Admin\SitioController as AdminSitioController;
 use App\Http\Controllers\Admin\SitioPanelController as AdminSitioPanelController;
+use App\Http\Controllers\Admin\MapaGeograficoController as AdminMapaGeograficoController;
 use App\Http\Controllers\Admin\ZonaController as AdminZonaController;
 use App\Http\Controllers\Auth\AzureController;
 
@@ -222,6 +223,11 @@ Route::middleware(['auth', 'can:acceso_monitoreo'])->prefix('admin')->name('admi
         Route::put('enlaces/{enlace}',          [AdminMonitoreoMapaController::class, 'enlaceUpdate'])->name('mapas.enlaces.update');
         Route::delete('enlaces/{enlace}',       [AdminMonitoreoMapaController::class, 'enlaceDestroy'])->name('mapas.enlaces.destroy');
     });
+});
+
+// ── Monitoreo: mapa geográfico de los sitios ─────────────────────────────────
+Route::middleware(['auth', 'can:acceso_mapa_geografico'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/mapa-geografico', [AdminMapaGeograficoController::class, 'index'])->name('mapa-geografico');
 });
 
 // ── Monitoreo: fichas de sitios (plantas, campos, datacenter, oficinas) ──────

@@ -117,7 +117,8 @@ class SitioPanelController extends Controller
             'porTipoEquipo' => $porTipoEquipo,
             'porMarca'      => $porMarca,
             'garantias'     => $garantias,
-            'conGeo'        => $sitios->filter(fn($s) => $s->latitud && $s->longitud)->values(),
+            // El mapa se fue a su propio módulo, así que acá ya no se calculan
+            // los sitios con coordenadas.
         ]);
     }
 

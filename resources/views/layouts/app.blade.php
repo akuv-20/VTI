@@ -803,7 +803,7 @@
             @endif
 
             {{-- ── Monitoreo ── --}}
-            @if(auth()->user()->can('acceso_monitoreo') || auth()->user()->can('acceso_sitios'))
+            @if(auth()->user()->can('acceso_monitoreo') || auth()->user()->can('acceso_sitios') || auth()->user()->can('acceso_mapa_geografico'))
             <div class="vti-nav-group" data-group="monitoreo">
                 <button type="button" class="vti-nav-group-toggle">
                     <i class="bi bi-broadcast-pin"></i><span class="sb-text">Monitoreo</span>
@@ -830,6 +830,11 @@
                     </a>
                     <a href="{{ route('admin.sitios.terreno') }}" class="vti-nav-link {{ request()->routeIs('admin.sitios.terreno*') ? 'active' : '' }}">
                         <i class="bi bi-phone"></i>Terreno
+                    </a>
+                    @endcan
+                    @can('acceso_mapa_geografico')
+                    <a href="{{ route('admin.mapa-geografico') }}" class="vti-nav-link {{ request()->routeIs('admin.mapa-geografico') ? 'active' : '' }}">
+                        <i class="bi bi-geo-alt-fill"></i>Mapa geográfico
                     </a>
                     @endcan
                 </div>

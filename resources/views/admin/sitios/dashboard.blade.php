@@ -20,8 +20,8 @@
     .sd-table th { font-size:.66rem; text-transform:uppercase; color:#94a3b8; letter-spacing:.04em; }
     .sd-mini { height:5px; background:#f1f5f9; border-radius:3px; overflow:hidden; width:80px; display:inline-block; vertical-align:middle; }
     .sd-mini span { display:block; height:100%; }
-    .sd-mapa { position:relative; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; height:330px; overflow:hidden; }
-    .sd-pin { position:absolute; width:12px; height:12px; border-radius:50%; border:2px solid #fff; transform:translate(-50%,-50%); cursor:help; }
+    {{-- El mapa se fue a su propio módulo (admin.mapa-geografico): acá vivía
+         apretado en una tarjeta y no aportaba al avance. --}}
 </style>
 
 <div class="container-fluid vti-page">
@@ -182,36 +182,6 @@
         </div>
     </div>
 
-    {{-- ── Mapa geográfico ────────────────────────────────────────────────── --}}
-    @if($conGeo->isNotEmpty())
-    @php
-        $lats = $conGeo->pluck('latitud'); $lons = $conGeo->pluck('longitud');
-        $minLat = $lats->min(); $maxLat = $lats->max();
-        $minLon = $lons->min(); $maxLon = $lons->max();
-        $spanLat = max(0.05, $maxLat - $minLat); $spanLon = max(0.05, $maxLon - $minLon);
-    @endphp
-    <div class="sd-card">
-        <h6><i class="bi bi-geo-alt me-1"></i>Distribución geográfica <span class="text-muted" style="text-transform:none;letter-spacing:0;font-weight:400">— {{ $conGeo->count() }} sitios con coordenadas</span></h6>
-        <div class="sd-mapa">
-            @foreach($conGeo as $s)
-                @php
-                    $x = 6 + (($s->longitud - $minLon) / $spanLon) * 88;
-                    $y = 92 - (($s->latitud - $minLat) / $spanLat) * 84;
-                @endphp
-                <a href="{{ route('admin.sitios.show', $s) }}" class="sd-pin"
-                   style="left:{{ $x }}%;top:{{ $y }}%;background:{{ $s->estado_enlace_color }}"
-                   title="{{ $s->titulo }} — {{ $s->estado_enlace_label }}"></a>
-            @endforeach
-        </div>
-        <div class="sd-leg">
-            @foreach(Sitio::ESTADOS_ENLACE as $k => $l)
-                <span><i style="background:{{ Sitio::COLORES_ENLACE[$k] }}"></i>{{ $l }}</span>
-            @endforeach
-            <span class="ms-auto text-muted">Posición relativa (norte arriba). Clic en un punto para abrir su ficha.</span>
-        </div>
-    </div>
-    @endif
-
     <div class="row g-3">
         {{-- ── Equipamiento ───────────────────────────────────────────────── --}}
         <div class="col-lg-6">
@@ -268,4 +238,5 @@
         </div>
     </div>
 </div>
+
 @endsection
