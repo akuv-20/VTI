@@ -172,6 +172,11 @@ class AppServiceProvider extends ServiceProvider
             return $user->tieneAcceso('admin.mapa-geografico');
         });
 
+        Gate::define('acceso_informes', function ($user) {
+            if (!$user->activo) return false;
+            return $user->tieneAcceso('admin.informes.sitios');
+        });
+
         // Compartir configuraciones globales con todas las vistas
         View::composer('*', function ($view) {
             try {

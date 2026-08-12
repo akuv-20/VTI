@@ -841,6 +841,21 @@
             </div>
             @endif
 
+            {{-- ── Informes ── --}}
+            @can('acceso_informes')
+            <div class="vti-nav-group" data-group="informes">
+                <button type="button" class="vti-nav-group-toggle">
+                    <i class="bi bi-table"></i><span class="sb-text">Informes</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="vti-nav-group-items">
+                    <a href="{{ route('admin.informes.sitios') }}" class="vti-nav-link {{ request()->routeIs('admin.informes.sitios*') ? 'active' : '' }}">
+                        <i class="bi bi-pin-map-fill"></i>Sitios
+                    </a>
+                </div>
+            </div>
+            @endcan
+
             {{-- ── KPIs ── --}}
             @can('acceso_kpi')
             <div class="vti-nav-group" data-group="kpi">

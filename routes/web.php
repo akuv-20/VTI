@@ -33,6 +33,7 @@ use App\Http\Controllers\Admin\KpiDisponibilidadController as AdminKpiDisponibil
 use App\Http\Controllers\Admin\MonitoreoMapaController as AdminMonitoreoMapaController;
 use App\Http\Controllers\Admin\SitioController as AdminSitioController;
 use App\Http\Controllers\Admin\SitioPanelController as AdminSitioPanelController;
+use App\Http\Controllers\Admin\InformeController as AdminInformeController;
 use App\Http\Controllers\Admin\MapaGeograficoController as AdminMapaGeograficoController;
 use App\Http\Controllers\Admin\ZonaController as AdminZonaController;
 use App\Http\Controllers\Auth\AzureController;
@@ -222,6 +223,14 @@ Route::middleware(['auth', 'can:acceso_monitoreo'])->prefix('admin')->name('admi
         Route::post('mapas/{mapa}/enlaces',     [AdminMonitoreoMapaController::class, 'enlaceStore'])->name('mapas.enlaces.store');
         Route::put('enlaces/{enlace}',          [AdminMonitoreoMapaController::class, 'enlaceUpdate'])->name('mapas.enlaces.update');
         Route::delete('enlaces/{enlace}',       [AdminMonitoreoMapaController::class, 'enlaceDestroy'])->name('mapas.enlaces.destroy');
+    });
+});
+
+// ── Informes ─────────────────────────────────────────────────────────────────
+Route::middleware(['auth', 'can:acceso_informes'])->prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('informes')->name('informes.')->group(function () {
+        Route::get('/sitios',       [AdminInformeController::class, 'sitios'])->name('sitios');
+        Route::get('/sitios/excel', [AdminInformeController::class, 'sitiosExcel'])->name('sitios.excel');
     });
 });
 
