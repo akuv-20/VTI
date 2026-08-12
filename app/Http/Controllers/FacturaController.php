@@ -26,9 +26,13 @@ class FacturaController extends Controller
             'cuentaContable',
         ]);
 
-        // Filtro tipo
+        // Filtro tipo. «Nota de crédito» no es un valor de `tipo` sino de
+        // `tipo_documento`, pero comparte el selector: para quien filtra es una
+        // sola pregunta, «qué quiero ver».
         if ($request->filled('tipo') && $request->input('tipo') !== 'Todas') {
-            $query->where('tipo', $request->input('tipo'));
+            $request->input('tipo') === Factura::NOTA_CREDITO
+                ? $query->where('tipo_documento', Factura::NOTA_CREDITO)
+                : $query->where('tipo', $request->input('tipo'));
         }
 
         // Filtro período
@@ -107,13 +111,15 @@ class FacturaController extends Controller
         ]);
 
         $rules = [
-            'tipo'          => 'required|in:Mensual,Esporádica',
-            'factura'       => 'required|string|max:100',
-            'oc'            => 'nullable|string|max:100',
-            'valor_neto'    => 'required|numeric|min:0',
-            'valor_iva'     => 'required|numeric|min:0',
-            'fecha_emision' => 'required|date',
-            'descripcion'   => 'nullable|string|max:500',
+            'tipo'           => 'required|in:Mensual,Esporádica',
+            'tipo_documento' => 'required|in:' . implode(',', Factura::TIPOS_DOCUMENTO),
+            'factura'        => 'required|string|max:100',
+            'oc'             => 'nullable|string|max:100',
+            // Se escriben en positivo siempre; el signo lo pone `conSigno()`.
+            'valor_neto'     => 'required|numeric|min:0',
+            'valor_iva'      => 'required|numeric|min:0',
+            'fecha_emision'  => 'required|date',
+            'descripcion'    => 'nullable|string|max:500',
         ];
 
         if ($tipo === 'Mensual') {
@@ -137,7 +143,7 @@ class FacturaController extends Controller
             $validated['id_servicio'] = null;
         }
 
-        Factura::create($validated);
+        Factura::create($this->conSigno($validated));
 
         return redirect()->route('facturas.index')->with('success', 'Factura registrada exitosamente.');
     }
@@ -163,13 +169,15 @@ class FacturaController extends Controller
         ]);
 
         $rules = [
-            'tipo'          => 'required|in:Mensual,Esporádica',
-            'factura'       => 'required|string|max:100',
-            'oc'            => 'nullable|string|max:100',
-            'valor_neto'    => 'required|numeric|min:0',
-            'valor_iva'     => 'required|numeric|min:0',
-            'fecha_emision' => 'required|date',
-            'descripcion'   => 'nullable|string|max:500',
+            'tipo'           => 'required|in:Mensual,Esporádica',
+            'tipo_documento' => 'required|in:' . implode(',', Factura::TIPOS_DOCUMENTO),
+            'factura'        => 'required|string|max:100',
+            'oc'             => 'nullable|string|max:100',
+            // Se escriben en positivo siempre; el signo lo pone `conSigno()`.
+            'valor_neto'     => 'required|numeric|min:0',
+            'valor_iva'      => 'required|numeric|min:0',
+            'fecha_emision'  => 'required|date',
+            'descripcion'    => 'nullable|string|max:500',
         ];
 
         if ($tipo === 'Mensual') {
@@ -188,9 +196,34 @@ class FacturaController extends Controller
             $validated['id_servicio'] = null;
         }
 
-        $factura->update($validated);
+        $factura->update($this->conSigno($validated));
 
-        return redirect()->route('facturas.index')->with('success', 'Factura actualizada exitosamente.');
+        $que = $validated['tipo_documento'] === Factura::NOTA_CREDITO ? 'Nota de crédito' : 'Factura';
+
+        return redirect()->route('facturas.index')->with('success', "{$que} actualizada exitosamente.");
+    }
+
+    /**
+     * Aplica el signo según la clase de documento.
+     *
+     * Los montos se escriben en positivo —nadie tiene que acordarse del menos— y
+     * una nota de crédito se guarda negativa. Ese es el truco que hace que el
+     * listado, los dos resúmenes y las entregas resten sin tocar una sola suma.
+     *
+     * Se usa `abs()` y no una negación a secas para que reeditar una nota de
+     * crédito no la invierta de vuelta a positiva.
+     */
+    private function conSigno(array $datos): array
+    {
+        $signo = ($datos['tipo_documento'] ?? 'Factura') === Factura::NOTA_CREDITO ? -1 : 1;
+
+        foreach (['valor_neto', 'valor_iva'] as $campo) {
+            if (isset($datos[$campo])) {
+                $datos[$campo] = $signo * abs((float) $datos[$campo]);
+            }
+        }
+
+        return $datos;
     }
 
     public function destroy(Factura $factura)
@@ -294,6 +327,11 @@ class FacturaController extends Controller
             $facturaPendiente = true;
             $facturaDelMes    = null;
             foreach ($servicio->facturas as $factura) {
+                // Una nota de crédito no acredita el mes: si el servicio solo
+                // tiene la NC, la factura de verdad sigue faltando y tiene que
+                // seguir apareciendo como pendiente.
+                if ($factura->esNotaCredito()) continue;
+
                 $fe = Carbon::parse($factura->fecha_emision);
                 if ($fe->month === $mes && $fe->year === $anio) {
                     $facturaPendiente = false;

@@ -30,6 +30,9 @@
                     <option value="Todas"      {{ request('tipo','Todas') === 'Todas'      ? 'selected' : '' }}>Todas</option>
                     <option value="Mensual"    {{ request('tipo') === 'Mensual'    ? 'selected' : '' }}>Mensual</option>
                     <option value="Esporádica" {{ request('tipo') === 'Esporádica' ? 'selected' : '' }}>Esporádica</option>
+                    {{-- Va en el mismo selector aunque sea otra columna: para quien
+                         filtra es «qué quiero ver», no dos preguntas distintas. --}}
+                    <option value="Nota de crédito" {{ request('tipo') === 'Nota de crédito' ? 'selected' : '' }}>— Solo notas de crédito</option>
                 </select>
             </div>
 
@@ -154,6 +157,11 @@
                         @else
                             <span class="badge bg-warning text-dark">Esporádica</span>
                         @endif
+                        @if($factura->esNotaCredito())
+                            <br><span class="badge bg-danger mt-1" title="Descuenta de los totales">
+                                <i class="bi bi-arrow-counterclockwise"></i> Nota de crédito
+                            </span>
+                        @endif
                     </td>
                     <td><strong>{{ $factura->factura }}</strong>
                         @if($factura->oc)
@@ -179,9 +187,10 @@
                         @endif
                     </td>
                     <td>{{ $factura->fecha_emision->format('d/m/Y') }}</td>
-                    <td class="text-end">$ {{ number_format($factura->valor_neto, 0, ',', '.') }}</td>
-                    <td class="text-end text-muted small">$ {{ number_format($factura->valor_iva, 0, ',', '.') }}</td>
-                    <td class="text-end fw-semibold">$ {{ number_format($factura->total, 0, ',', '.') }}</td>
+                    @php $rojo = $factura->esNotaCredito() ? 'text-danger' : ''; @endphp
+                    <td class="text-end {{ $rojo }}">$ {{ number_format($factura->valor_neto, 0, ',', '.') }}</td>
+                    <td class="text-end small {{ $rojo ?: 'text-muted' }}">$ {{ number_format($factura->valor_iva, 0, ',', '.') }}</td>
+                    <td class="text-end fw-semibold {{ $rojo }}">$ {{ number_format($factura->total, 0, ',', '.') }}</td>
                     <td>
                         <div class="vti-actions">
                             <a href="{{ route('facturas.edit', $factura->id) }}" class="vti-btn-edit" title="Editar">

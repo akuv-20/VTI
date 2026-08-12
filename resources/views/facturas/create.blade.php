@@ -45,6 +45,37 @@
                     </div>
                 </div>
 
+                {{-- 1b. Clase de documento ────────────────────────────────────────
+                     Independiente de lo de arriba: eso dice cada cuánto se gasta,
+                     esto qué papel llegó. Una NC puede ser de cualquiera de los dos.
+                     El monto se escribe SIEMPRE en positivo; el signo lo pone el
+                     servidor al guardar. --}}
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Documento</label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="tipo_documento" id="docFactura"
+                                   value="Factura" {{ old('tipo_documento', 'Factura') !== 'Nota de crédito' ? 'checked' : '' }}>
+                            <label class="form-check-label" for="docFactura">
+                                <i class="bi bi-file-earmark-text me-1 text-secondary"></i> Factura
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="tipo_documento" id="docNc"
+                                   value="Nota de crédito" {{ old('tipo_documento') === 'Nota de crédito' ? 'checked' : '' }}>
+                            <label class="form-check-label" for="docNc">
+                                <i class="bi bi-arrow-counterclockwise me-1 text-danger"></i> Nota de crédito
+                            </label>
+                        </div>
+                    </div>
+                    <div id="avisoNc" class="alert alert-danger py-2 px-3 mt-2 mb-0 d-none" style="font-size:.82rem">
+                        <i class="bi bi-dash-circle me-1"></i>
+                        Escribe los montos <strong>en positivo</strong>. Se van a descontar de los
+                        totales, del resumen por cuenta contable y del resumen por servicio.
+                    </div>
+                    @error('tipo_documento')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                </div>
+
                 <hr class="my-3">
 
                 {{-- 2a. Mensual: Servicio ─────────────────────────────────────── --}}
@@ -227,6 +258,20 @@
         this.classList.remove('is-invalid');
         recalcular();
     });
+
+    // ── Nota de crédito ───────────────────────────────────────────────────
+    // Solo el aviso: el signo lo pone el servidor, para que no dependa de que el
+    // JavaScript haya corrido ni de que alguien recuerde escribir el menos.
+    var avisoNc = document.getElementById('avisoNc');
+    function aplicarDocumento() {
+        var esNc = document.getElementById('docNc').checked;
+        avisoNc.classList.toggle('d-none', !esNc);
+        totalEl.classList.toggle('text-danger', esNc);
+    }
+    document.querySelectorAll('input[name="tipo_documento"]').forEach(function (r) {
+        r.addEventListener('change', aplicarDocumento);
+    });
+    aplicarDocumento();
 
     // ── Navegación con Enter ──────────────────────────────────────────────
     function getCampos() {

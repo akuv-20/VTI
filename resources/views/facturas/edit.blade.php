@@ -47,6 +47,36 @@
                     </div>
                 </div>
 
+                {{-- 1b. Clase de documento ────────────────────────────────────────
+                     Cambiar esto invierte el signo de los montos al guardar. Los
+                     campos de abajo muestran siempre el valor absoluto. --}}
+                @php $docActual = old('tipo_documento', $factura->tipo_documento ?? 'Factura'); @endphp
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Documento</label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="tipo_documento" id="docFactura"
+                                   value="Factura" {{ $docActual !== 'Nota de crédito' ? 'checked' : '' }}>
+                            <label class="form-check-label" for="docFactura">
+                                <i class="bi bi-file-earmark-text me-1 text-secondary"></i> Factura
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="tipo_documento" id="docNc"
+                                   value="Nota de crédito" {{ $docActual === 'Nota de crédito' ? 'checked' : '' }}>
+                            <label class="form-check-label" for="docNc">
+                                <i class="bi bi-arrow-counterclockwise me-1 text-danger"></i> Nota de crédito
+                            </label>
+                        </div>
+                    </div>
+                    <div id="avisoNc" class="alert alert-danger py-2 px-3 mt-2 mb-0 d-none" style="font-size:.82rem">
+                        <i class="bi bi-dash-circle me-1"></i>
+                        Escribe los montos <strong>en positivo</strong>. Se van a descontar de los
+                        totales, del resumen por cuenta contable y del resumen por servicio.
+                    </div>
+                    @error('tipo_documento')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                </div>
+
                 <hr class="my-3">
 
                 {{-- 2a. Mensual: Servicio ─────────────────────────────────────── --}}
@@ -136,7 +166,10 @@
                             <span class="input-group-text">$</span>
                             <input type="text" name="valor_neto" id="valor_neto" inputmode="numeric"
                                    class="form-control @error('valor_neto') is-invalid @enderror"
-                                   value="{{ number_format((int) preg_replace('/\D/', '', old('valor_neto', $factura->valor_neto)), 0, ',', '.') }}"
+                                   {{-- Siempre en positivo: en la base una nota de crédito
+                                        vive en negativo, pero acá se escribe el monto y el
+                                        servidor le aplica el signo según el documento. --}}
+                                   value="{{ number_format((int) preg_replace('/\D/', '', old('valor_neto', $factura->neto_editable)), 0, ',', '.') }}"
                                    placeholder="0" autocomplete="off">
                             @error('valor_neto')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
@@ -146,7 +179,7 @@
                         <div class="input-group">
                             <span class="input-group-text">$</span>
                             <input type="text" name="valor_iva" id="valor_iva" class="form-control bg-light" readonly
-                                   value="{{ number_format((int) preg_replace('/\D/', '', old('valor_iva', $factura->valor_iva)), 0, ',', '.') }}"
+                                   value="{{ number_format((int) preg_replace('/\D/', '', old('valor_iva', $factura->iva_editable)), 0, ',', '.') }}"
                                    placeholder="0">
                         </div>
                     </div>
@@ -229,6 +262,18 @@
         this.classList.remove('is-invalid');
         recalcular();
     });
+
+    // ── Nota de crédito ───────────────────────────────────────────────────
+    var avisoNc = document.getElementById('avisoNc');
+    function aplicarDocumento() {
+        var esNc = document.getElementById('docNc').checked;
+        avisoNc.classList.toggle('d-none', !esNc);
+        totalEl.classList.toggle('text-danger', esNc);
+    }
+    document.querySelectorAll('input[name="tipo_documento"]').forEach(function (r) {
+        r.addEventListener('change', aplicarDocumento);
+    });
+    aplicarDocumento();
 
     // ── Navegación con Enter ──────────────────────────────────────────────
     function getCampos() {
