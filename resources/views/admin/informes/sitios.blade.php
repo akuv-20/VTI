@@ -51,10 +51,16 @@
                 {{ count($columnas) }} de {{ $totales }} columnas con datos
             </span>
         </h4>
-        <a href="{{ route('admin.informes.sitios.excel', request()->only('zonas', 'filtrado')) }}"
-           class="btn btn-success btn-sm">
-            <i class="bi bi-file-earmark-excel me-1"></i>Exportar a Excel
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('admin.informes.sitios.pdf', request()->only('zonas', 'filtrado')) }}"
+               class="btn btn-outline-danger btn-sm" title="Resumen ejecutivo de 12 columnas">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Informe PDF
+            </a>
+            <a href="{{ route('admin.informes.sitios.excel', request()->only('zonas', 'filtrado')) }}"
+               class="btn btn-success btn-sm" title="Todas las columnas con datos">
+                <i class="bi bi-file-earmark-excel me-1"></i>Exportar a Excel
+            </a>
+        </div>
     </div>
 
     {{-- ── Filtro por zona ─────────────────────────────────────────────────

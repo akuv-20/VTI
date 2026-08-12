@@ -231,6 +231,7 @@ Route::middleware(['auth', 'can:acceso_informes'])->prefix('admin')->name('admin
     Route::prefix('informes')->name('informes.')->group(function () {
         Route::get('/sitios',       [AdminInformeController::class, 'sitios'])->name('sitios');
         Route::get('/sitios/excel', [AdminInformeController::class, 'sitiosExcel'])->name('sitios.excel');
+        Route::get('/sitios/pdf',   [AdminInformeController::class, 'sitiosPdf'])->name('sitios.pdf');
     });
 });
 

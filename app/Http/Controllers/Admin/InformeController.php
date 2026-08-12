@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Configuracion;
 use App\Models\Sitio;
 use App\Models\Zona;
 use App\Support\ColumnasSitio;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -89,6 +92,75 @@ class InformeController extends Controller
         return response()
             ->download($tmp, 'sitios_' . now()->format('Y-m-d') . '.xlsx')
             ->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Informe ejecutivo en PDF.
+     *
+     * Deliberadamente corto: doce columnas, las que gerencia necesita para
+     * decidir. El detalle completo vive en la tabla y en el Excel.
+     */
+    public function sitiosPdf(Request $request)
+    {
+        [$zonas, $sitios] = $this->filtrar($request);
+
+        $pdf = Pdf::loadView('admin.informes.sitios_pdf', [
+            'sitios'  => $sitios,
+            'zonas'   => $this->nombresDeZonas($zonas),
+            'logo'    => $this->logoEmbebido(),
+            'resumen' => $this->resumen($sitios),
+            'emitido' => now(),
+            'usuario' => $request->user()?->name,
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download('estado_conectividad_' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    /** Cómo se describe el filtro en la portada del informe. */
+    private function nombresDeZonas(array $elegidas): string
+    {
+        if (!$elegidas) return 'Todas las zonas';
+
+        $nombres = Zona::whereIn('id', array_filter($elegidas, fn($z) => $z !== 'sin'))
+            ->ordenadas()->pluck('nombre')->all();
+
+        if (in_array('sin', $elegidas, true)) $nombres[] = 'Sin zona';
+
+        return implode(' · ', $nombres);
+    }
+
+    /** Conteos de la franja superior. */
+    private function resumen($sitios): array
+    {
+        $porEstado = [];
+        foreach (Sitio::ESTADOS_ENLACE as $k => $label) {
+            $n = $sitios->where('estado_enlace', $k)->count();
+            if ($n) $porEstado[$label] = [$n, Sitio::COLORES_ENLACE[$k]];
+        }
+
+        return [
+            'sitios'   => $sitios->count(),
+            'usuarios' => (int) $sitios->sum('usuarios_cant'),
+            'pcs'      => (int) $sitios->sum('pcs_cant'),
+            'estados'  => $porEstado,
+        ];
+    }
+
+    /**
+     * El logo como data URI.
+     *
+     * dompdf resuelve las rutas por su cuenta y desde la CLI no tiene sesión ni
+     * host: una URL de `storage` no le llegaría. Embebido siempre funciona.
+     */
+    private function logoEmbebido(): ?string
+    {
+        $path = Configuracion::get('app_logo');
+        if (!$path || !Storage::disk('public')->exists($path)) return null;
+
+        $bytes = Storage::disk('public')->get($path);
+        $mime  = Storage::disk('public')->mimeType($path) ?: 'image/png';
+
+        return 'data:' . $mime . ';base64,' . base64_encode($bytes);
     }
 
     /**
