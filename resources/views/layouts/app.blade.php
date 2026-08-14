@@ -1250,6 +1250,7 @@
                 const SKIP_SAME_PAGE = true;
 
                 let barTimer = null;
+                let guardia  = null;
 
                 function startLoader() {
                     loader.classList.add('active');
@@ -1261,9 +1262,18 @@
                         if (pct > 92) pct = 92;
                         bar.style.width = pct + '%';
                     }, 120);
+
+                    // Red de seguridad: este velo solo se apaga cuando carga otra
+                    // página. Si el clic terminó en una descarga, en un archivo
+                    // que el navegador abre aparte o en una navegación cancelada,
+                    // ese momento no llega nunca y la pantalla queda tapada. Antes
+                    // que dejarla inutilizable, se destapa sola.
+                    clearTimeout(guardia);
+                    guardia = setTimeout(stopLoader, 20000);
                 }
 
                 function stopLoader() {
+                    clearTimeout(guardia);
                     clearInterval(barTimer);
                     bar.style.width = '100%';
                     setTimeout(() => {
@@ -1280,10 +1290,24 @@
                     if (!attr || attr.startsWith('#') || attr.startsWith('javascript') || attr.startsWith('mailto')) return true;
                     if (anchor.dataset.bsToggle || anchor.dataset.bsDismiss) return true;
                     if (SKIP_SAME_PAGE && full === window.location.href) return true;
+
+                    // Descargas: el archivo baja pero la página NO se recarga, así
+                    // que nunca llega el `load` que apaga el velo y se queda
+                    // «Cargando…» para siempre. Vale para el atributo `download`,
+                    // para lo marcado a mano y para las rutas que devuelven archivo.
+                    if (anchor.hasAttribute('download')) return true;
+                    if (anchor.dataset.noLoader !== undefined) return true;
+                    if (/\/(excel|pdf|plantilla|descargar|exportar)(\/|\?|$)/i.test(full)) return true;
+                    if (/\.(xlsx?|pdf|csv|zip|docx?)(\?|$)/i.test(full)) return true;
+
                     return false;
                 }
 
                 document.addEventListener('click', function (e) {
+                    // Si otro script ya se hizo cargo del clic no va a haber
+                    // navegación, así que tampoco debe haber velo.
+                    if (e.defaultPrevented) return;
+
                     const anchor = e.target.closest('a[href]');
                     if (!anchor) return;
                     if (anchor.target === '_blank') return;
