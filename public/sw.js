@@ -9,10 +9,19 @@
  * visitaron, y servirlos cuando no hay red. Los datos que se escriben NO pasan
  * por acá — de eso se encarga IndexedDB en terreno-offline.js.
  *
- * Alcance: se sirve desde la raíz del sitio, así que controla toda la app.
+ * Alcance: se sirve desde la raíz del sitio, así que el navegador lo pone a
+ * controlar TODA la app. Pero solo se hace cargo de las navegaciones del
+ * levantamiento (ver RUTAS_TERRENO); del resto se aparta a propósito.
  */
 
-const CACHE = 'vti-terreno-v1';
+const CACHE = 'vti-terreno-v2';
+
+/* Las únicas navegaciones que este service worker tiene que poder servir sin
+   señal. Fuera de acá se aparta, y eso NO es una optimización:
+   `respondWith()` sobre una navegación que el navegador convierte en descarga
+   —un Excel, un PDF— baja el archivo pero deja la pestaña «cargando» para
+   siempre, porque la navegación nunca llega a confirmarse. */
+const RUTAS_TERRENO = /^\/admin\/sitios\/terreno(\/|$)/;
 
 /* Tiempo que se espera a la red antes de recurrir a lo guardado. En un campo
    con señal intermitente, una petición puede quedar colgada un minuto; sin este
@@ -65,6 +74,10 @@ self.addEventListener('fetch', (ev) => {
     if (url.pathname === '/sw.js' || url.pathname === '/login') return;
 
     if (req.mode === 'navigate') {
+        // Solo el levantamiento. Todo lo demás va directo a la red: si se
+        // interceptara, cualquier descarga dejaría la pestaña colgada.
+        if (!RUTAS_TERRENO.test(url.pathname)) return;
+
         ev.respondWith(redPrimeroLuegoCache(req));
         return;
     }

@@ -58,7 +58,7 @@
                 <i class="bi bi-file-earmark-pdf me-1"></i>Informe PDF
             </button>
             <a href="{{ route('admin.informes.sitios.excel', request()->only('zonas', 'filtrado')) }}"
-               class="btn btn-success btn-sm" title="Todas las columnas con datos">
+               class="btn btn-success btn-sm js-descarga" title="Todas las columnas con datos">
                 <i class="bi bi-file-earmark-excel me-1"></i>Exportar a Excel
             </a>
         </div>
@@ -201,7 +201,7 @@
                      durante todo lo que tarde el servidor en armar el PDF, sin
                      que nada en pantalla lo explique. --}}
                 <a href="{{ route('admin.informes.sitios.pdf', request()->only('zonas', 'filtrado') + ['descargar' => 1]) }}"
-                   id="pdfBajar" class="btn btn-danger btn-sm">
+                   id="pdfBajar" class="btn btn-danger btn-sm js-descarga">
                     <i class="bi bi-download me-1"></i>Descargar PDF
                 </a>
             </div>
@@ -244,34 +244,38 @@ document.addEventListener('DOMContentLoaded', () => {
         // Si cambia el filtro, la próxima apertura tiene que regenerarlo. Como el
         // filtro recarga la página entera, basta con no persistir nada acá.
 
-        /* ── Descarga sin dejar la página colgada ────────────────────────────
-           Un <a> normal navega la pestaña actual: mientras el servidor arma el
-           PDF, el navegador muestra la página «cargando» y no hay nada que diga
-           qué está pasando. Se baja por fetch y se guarda desde memoria, así la
-           pantalla nunca se mueve y el botón puede avisar que está trabajando. */
-        const bajar = document.getElementById('pdfBajar');
+    }
 
-        bajar?.addEventListener('click', async e => {
+    /* ── Descargas que no navegan la página ──────────────────────────────────
+       Un <a> normal navega la pestaña actual y el navegador la deja «cargando»
+       mientras el servidor arma el archivo. Peor todavía: el service worker del
+       levantamiento controla todo el sitio, y al interceptar esa navegación la
+       descarga sí baja pero la pestaña no deja de girar NUNCA.
+
+       Bajando por fetch la página no se mueve, el botón avisa que trabaja y el
+       service worker ni se entera, porque esto no es una navegación. */
+    document.querySelectorAll('a.js-descarga').forEach(enlace => {
+        enlace.addEventListener('click', async e => {
             if (!window.fetch || !window.URL?.createObjectURL) return;   // sin soporte, que navegue
             e.preventDefault();
-            if (bajar.dataset.ocupado) return;
+            if (enlace.dataset.ocupado) return;
 
-            const original = bajar.innerHTML;
-            bajar.dataset.ocupado = '1';
-            bajar.classList.add('disabled');
-            bajar.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generando…';
+            const original = enlace.innerHTML;
+            enlace.dataset.ocupado = '1';
+            enlace.classList.add('disabled');
+            enlace.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generando…';
 
             try {
-                const r = await fetch(bajar.href, { headers: { 'Accept': 'application/pdf' } });
+                const r = await fetch(enlace.href, { credentials: 'same-origin' });
                 if (!r.ok) throw new Error('HTTP ' + r.status);
 
                 const blob = await r.blob();
 
-                // El nombre lo decide el servidor; si no viene, se arma uno.
+                // El nombre lo decide el servidor; si no viene, se usa el del enlace.
                 const cd = r.headers.get('content-disposition') || '';
                 const m  = cd.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
                 const nombre = m ? decodeURIComponent(m[1].replace(/"$/, ''))
-                                 : 'estado_conectividad.pdf';
+                                 : (enlace.href.split('/').pop().split('?')[0] || 'informe');
 
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -282,15 +286,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 a.remove();
                 URL.revokeObjectURL(url);
             } catch (err) {
-                // Que no se quede en silencio: si falló, se abre en pestaña nueva.
-                window.open(bajar.href, '_blank', 'noopener');
+                // Que no falle en silencio: se abre en pestaña nueva.
+                window.open(enlace.href, '_blank', 'noopener');
             } finally {
-                delete bajar.dataset.ocupado;
-                bajar.classList.remove('disabled');
-                bajar.innerHTML = original;
+                delete enlace.dataset.ocupado;
+                enlace.classList.remove('disabled');
+                enlace.innerHTML = original;
             }
         });
-    }
+    });
 
     // Marcar o desmarcar envía solo: con checkboxes, obligar a apretar "Aplicar"
     // hace que uno crea que ya filtró cuando no.
