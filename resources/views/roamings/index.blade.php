@@ -233,28 +233,67 @@ function initBuscadorLinea(cfg) {
             const data = await resp.json();
             if (!data.length) { resultados.innerHTML = '<div class="list-group-item text-muted small">Sin resultados.</div>'; return; }
             resultados.innerHTML = data.map(l => `
-                <button type="button" class="list-group-item list-group-item-action"
+                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                         data-id="${l.id}" data-linea="${esc(l.linea)}" data-usuario="${esc(l.usuario)}"
                         data-empresa="${esc(l.empresa)}" data-emisor="${esc(l.emisor)}"
-                        data-recurrente="${l.recurrente_activo ? 1 : 0}">
-                    <div class="d-flex justify-content-between">
+                        data-recurrente="${l.recurrente_activo ? 1 : 0}" style="cursor:pointer">
+                    <div class="flex-grow-1">
                         <span class="fw-semibold font-monospace">${esc(l.linea)}</span>
-                        <span class="text-muted small">${esc(l.emisor)}</span>
+                        <div class="small text-muted">${esc(l.usuario)} · ${esc(l.empresa)} · ${esc(l.emisor)}</div>
                     </div>
-                    <div class="small text-muted">${esc(l.usuario)} · ${esc(l.empresa)}</div>
-                </button>`).join('');
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2 btn-copiar-linea"
+                            data-numero="${esc(l.linea)}" title="Copiar número">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>`).join('');
         } catch (e) { resultados.innerHTML = '<div class="list-group-item text-danger small">Error al buscar.</div>'; }
     }
 
     resultados?.addEventListener('click', function (e) {
-        const btn = e.target.closest('[data-id]');
-        if (!btn) return;
+        // Botón de copiar: no selecciona la línea, solo copia el número
+        const copyBtn = e.target.closest('.btn-copiar-linea');
+        if (copyBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            copiarNumero(copyBtn);
+            return;
+        }
+        const item = e.target.closest('[data-id]');
+        if (!item) return;
         e.preventDefault();
-        try { cfg.onSelect(btn.dataset); }
+        try { cfg.onSelect(item.dataset); }
         catch (err) { console.error('[roaming] error en onSelect:', err); }
     });
 
     function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+}
+
+// Copiar número al portapapeles con feedback visual (icono → check)
+function copiarNumero(btn) {
+    const num = btn.dataset.numero || '';
+    const icon = btn.querySelector('i');
+    const ok = () => {
+        if (!icon) return;
+        icon.className = 'bi bi-check-lg';
+        btn.classList.replace('btn-outline-secondary', 'btn-success');
+        setTimeout(() => {
+            icon.className = 'bi bi-clipboard';
+            btn.classList.replace('btn-success', 'btn-outline-secondary');
+        }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(num).then(ok).catch(() => copiarFallback(num, ok));
+    } else {
+        copiarFallback(num, ok);
+    }
+}
+function copiarFallback(text, cb) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+    cb && cb();
 }
 
 // Abrir modal con fallback (por si Bootstrap JS no carga)
