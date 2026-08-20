@@ -635,7 +635,10 @@ async function sugerirComuna(lat, lon) {
 
         if (r.ok) {
             await T.borrar(sitioId);
-            window.location = '{{ route('admin.sitios.terreno') }}';
+            // Se recarga la MISMA ficha, no el listado: así queda a la vista lo
+            // que se acaba de guardar —fotos y completitud incluidas— y se puede
+            // seguir corrigiendo sin volver a buscar el sitio.
+            window.location = '{{ route('admin.sitios.terreno.ficha', $sitio) }}';
             return;
         }
 

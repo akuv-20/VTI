@@ -690,8 +690,11 @@ class SitioPanelController extends Controller
             $n++;
         }
 
+        // De vuelta a la MISMA ficha, no al listado: casi nunca se termina un
+        // sitio de una sola pasada —falta una foto, un dato que había que ir a
+        // mirar— y salir obligaba a buscarlo otra vez en la lista.
         return redirect()
-            ->route('admin.sitios.terreno')
+            ->route('admin.sitios.terreno.ficha', $sitio)
             ->with('success', "«{$sitio->nombre}» actualizado" . ($n ? " con {$n} foto" . ($n > 1 ? 's' : '') : '') . '. Completitud: ' . $sitio->fresh()->completitud . '%');
     }
 }
