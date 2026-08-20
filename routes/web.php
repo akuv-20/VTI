@@ -267,6 +267,8 @@ Route::middleware(['auth', 'can:acceso_sitios'])->prefix('admin')->name('admin.'
         Route::get('/dpa',                  [AdminSitioPanelController::class, 'dpa'])->name('dpa');
         Route::get('/geocodificar',         [AdminSitioPanelController::class, 'geocodificar'])->name('geocodificar');
         Route::get('/terreno',              [AdminSitioPanelController::class, 'terreno'])->name('terreno');
+        // Antes de /terreno/{sitio}: si no, «ping» se tomaría por un id de sitio.
+        Route::get('/terreno/ping',         [AdminSitioPanelController::class, 'terrenoPing'])->name('terreno.ping');
         Route::get('/terreno/{sitio}',      [AdminSitioPanelController::class, 'terrenoFicha'])->name('terreno.ficha');
         Route::post('/terreno/{sitio}',     [AdminSitioPanelController::class, 'terrenoGuardar'])->name('terreno.guardar');
 

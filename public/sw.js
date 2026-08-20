@@ -14,7 +14,7 @@
  * levantamiento (ver RUTAS_TERRENO); del resto se aparta a propósito.
  */
 
-const CACHE = 'vti-terreno-v2';
+const CACHE = 'vti-terreno-v3';
 
 /* Las únicas navegaciones que este service worker tiene que poder servir sin
    señal. Fuera de acá se aparta, y eso NO es una optimización:
@@ -38,28 +38,64 @@ self.addEventListener('activate', (ev) => {
     })());
 });
 
-/** Descarga y guarda una lista de URLs (lo dispara el botón "Preparar para terreno"). */
 self.addEventListener('message', (ev) => {
     const datos = ev.data || {};
-    if (datos.tipo !== 'precargar') return;
 
-    ev.waitUntil((async () => {
-        const cache = await caches.open(CACHE);
-        let ok = 0, fallos = 0;
+    if (datos.tipo === 'estado')     { ev.waitUntil(responderEstado(ev, datos)); return; }
+    if (datos.tipo === 'precargar')  { ev.waitUntil(precargar(ev, datos)); return; }
+});
 
-        for (const url of datos.urls || []) {
-            try {
-                const resp = await fetch(url, { credentials: 'same-origin' });
-                if (resp.ok) { await cache.put(url, resp.clone()); ok++; } else { fallos++; }
-            } catch { fallos++; }
+/** Cuáles de esas URLs ya están guardadas. La página lo usa para saber si
+ *  todavía falta bajar algo antes de salir a terreno. */
+async function responderEstado(ev, datos) {
+    const cache = await caches.open(CACHE);
+    const urls  = datos.urls || [];
+    const faltan = [];
 
-            // Informar avance a la pestaña que lo pidió.
-            if (ev.source) ev.source.postMessage({ tipo: 'precarga-avance', ok, fallos, total: (datos.urls || []).length });
+    for (const url of urls) {
+        if (!(await cache.match(url, { ignoreSearch: true }))) faltan.push(url);
+    }
+
+    ev.source?.postMessage({ tipo: 'estado', total: urls.length, faltan });
+}
+
+/**
+ * Descarga y guarda una lista de URLs.
+ *
+ * Salta lo que ya está guardado, salvo que se pida `forzar`. Eso es lo que
+ * permite que la precarga se dispare sola al entrar: la primera vez baja todo,
+ * y las siguientes no gasta datos móviles en algo que ya está en el teléfono.
+ */
+async function precargar(ev, datos) {
+    const cache  = await caches.open(CACHE);
+    const forzar = !!datos.forzar;
+    const urls   = datos.urls || [];
+
+    let ok = 0, fallos = 0, saltadas = 0;
+    const avisar = (tipo) => ev.source?.postMessage({
+        tipo, ok, fallos, saltadas, total: urls.length,
+    });
+
+    for (const url of urls) {
+        if (!forzar && await cache.match(url, { ignoreSearch: true })) {
+            saltadas++;
+            avisar('precarga-avance');
+            continue;
         }
 
-        if (ev.source) ev.source.postMessage({ tipo: 'precarga-fin', ok, fallos });
-    })());
-});
+        try {
+            const resp = await fetch(url, { credentials: 'same-origin' });
+            // Un redirect al login devuelve 200 y guardarlo dejaría una ficha
+            // que en el campo abre la pantalla de acceso y nada más.
+            if (resp.ok && !/\/login/.test(resp.url)) { await cache.put(url, resp.clone()); ok++; }
+            else { fallos++; }
+        } catch { fallos++; }
+
+        avisar('precarga-avance');
+    }
+
+    avisar('precarga-fin');
+}
 
 self.addEventListener('fetch', (ev) => {
     const req = ev.request;
@@ -70,8 +106,11 @@ self.addEventListener('fetch', (ev) => {
 
     const url = new URL(req.url);
 
-    // Nunca cachear el propio service worker ni el login.
+    // Nunca cachear el propio service worker ni el login. Y menos el latido:
+    // una respuesta guardada diría «hay conexión» justo en el momento en que
+    // no la hay, que es el único momento en que la pregunta importa.
     if (url.pathname === '/sw.js' || url.pathname === '/login') return;
+    if (url.pathname === '/admin/sitios/terreno/ping') return;
 
     if (req.mode === 'navigate') {
         // Solo el levantamiento. Todo lo demás va directo a la red: si se

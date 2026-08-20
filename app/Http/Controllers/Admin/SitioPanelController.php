@@ -8,11 +8,13 @@ use App\Models\Empresa;
 use App\Models\Sitio;
 use App\Models\SitioEquipo;
 use App\Models\SitioFoto;
+use App\Models\Zona;
 use App\Services\GaleriaFotos;
 use App\Services\ReferenciasCheckMk;
 use App\Services\SitiosCheckMk;
 use App\Support\DpaChile;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -502,18 +504,56 @@ class SitioPanelController extends Controller
 
     /* ── Levantamiento en terreno (móvil) ────────────────────────────────── */
 
-    public function terreno(Request $request)
+    /**
+     * Listado del levantamiento en terreno.
+     *
+     * Trae SIEMPRE todos los sitios activos, sin filtrar por servidor. El
+     * filtrado (texto y zona) ocurre en el navegador, y eso no es una
+     * preferencia de estilo: en el campo no hay red para pedir otra página, y
+     * la precarga se arma con lo que hay en el DOM. Si el servidor recortara
+     * la lista, se saldría a terreno con solo una parte de las fichas
+     * guardadas y el resto aparecería como «no está guardada» justo cuando ya
+     * no se puede hacer nada.
+     */
+    public function terreno()
     {
         $sitios = Sitio::activos()
-            ->buscar($request->input('q'))
-            ->with('fotos')
+            ->with(['fotos', 'zona'])
             ->ordenados()
             ->get();
 
         return view('admin.sitios.terreno', [
-            'sitios' => $sitios,
-            'q'      => $request->input('q'),
+            'sitios'  => $sitios,
+            // Solo las zonas que alguien va a usar como filtro: las que tienen
+            // al menos un sitio activo. Una zona recién creada y todavía vacía
+            // sería un botón que no filtra nada.
+            'zonas'   => Zona::ordenadas()
+                ->whereHas('sitios', fn ($q) => $q->where('activo', true))
+                ->get(['id', 'nombre']),
+            'sinZona' => $sitios->whereNull('zona_id')->count(),
         ]);
+    }
+
+    /**
+     * Latido para saber si hay salida real hacia la aplicación.
+     *
+     * Existe porque `navigator.onLine` miente en el campo: basta con estar
+     * pegado a una antena o a un WiFi sin salida para que diga que sí. Lo que
+     * importa no es tener señal sino poder llegar a la base de datos, así que
+     * acá se hace una consulta trivial: si responde, se puede guardar.
+     */
+    public function terrenoPing()
+    {
+        try {
+            DB::connection()->select('select 1');
+            $bd = true;
+        } catch (\Throwable $e) {
+            $bd = false;
+        }
+
+        return response()
+            ->json(['ok' => $bd, 'hora' => now()->toIso8601String()], $bd ? 200 : 503)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
     /**
