@@ -28,6 +28,8 @@ use App\Http\Controllers\Admin\UsuarioController as AdminUsuarioController;
 use App\Http\Controllers\Admin\ConfiguracionController as AdminConfiguracionController;
 use App\Http\Controllers\Admin\ActiveDirectoryController as AdminADController;
 use App\Http\Controllers\Admin\ActiveDirectory2Controller as AdminAD2Controller;
+use App\Http\Controllers\Admin\ActiveDirectory3Controller as AdminAD3Controller;
+use App\Http\Controllers\Admin\InventarioUnifruttiController as AdminInvUniController;
 use App\Http\Controllers\Admin\EntraIDController as AdminEntraIDController;
 use App\Http\Controllers\Admin\KpiDisponibilidadController as AdminKpiDisponibilidadController;
 use App\Http\Controllers\Admin\MonitoreoMapaController as AdminMonitoreoMapaController;
@@ -146,6 +148,7 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::post('configuracion',           [AdminConfiguracionController::class, 'update'])->name('configuracion.update');
     Route::post('configuracion/test-ldap', [AdminConfiguracionController::class, 'testLdap'])->name('configuracion.test-ldap');
     Route::post('configuracion/test-glpi', [AdminConfiguracionController::class, 'testGlpi'])->name('configuracion.test-glpi');
+    Route::post('configuracion/test-glpiuni', [AdminConfiguracionController::class, 'testGlpiuni'])->name('configuracion.test-glpiuni');
     Route::post('configuracion/test-checkmk', [AdminConfiguracionController::class, 'testCheckmk'])->name('configuracion.test-checkmk');
     Route::post('configuracion/test-veeam',   [AdminConfiguracionController::class, 'testVeeam'])->name('configuracion.test-veeam');
     Route::post('configuracion/test-azure',   [AdminConfiguracionController::class, 'testAzure'])->name('configuracion.test-azure');
@@ -315,7 +318,30 @@ Route::middleware(['auth', 'can:acceso_ad2'])->prefix('admin')->name('admin.')->
     });
 });
 
+// ── Inventario Unifrutti: cruce AD ↔ GLPI (permiso inventario_uni) ──────────
+Route::middleware(['auth', 'can:acceso_inventario_uni'])->prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('inventario-unifrutti')->name('inventario_unifrutti.')->group(function () {
+        Route::get('/',          [AdminInvUniController::class, 'index'])->name('index');
+        Route::post('/ajustes',  [AdminInvUniController::class, 'ajustes'])->name('ajustes');
+        Route::post('/refrescar',[AdminInvUniController::class, 'refrescar'])->name('refrescar');
+    });
+});
+
+// ── Active Directory Unifrutti (admins + usuarios con permiso AD3) ───────────
+Route::middleware(['auth', 'can:acceso_ad3'])->prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('active-directory-3')->name('active_directory3.')->group(function () {
+        Route::get('/',                           [AdminAD3Controller::class, 'index'])->name('index');
+        Route::get('/importar-correos',           [AdminAD3Controller::class, 'importarCorreos'])->name('importar_correos');
+        Route::post('/importar-correos',          [AdminAD3Controller::class, 'procesarImportacion'])->name('procesar_importacion');
+        Route::get('/{username}/editar',          [AdminAD3Controller::class, 'edit'])->name('edit');
+        Route::put('/{username}',                 [AdminAD3Controller::class, 'update'])->name('update');
+        Route::post('/{username}/toggle',         [AdminAD3Controller::class, 'toggleEnabled'])->name('toggle');
+        Route::post('/{username}/reset-password', [AdminAD3Controller::class, 'resetPassword'])->name('reset-password');
+    });
+});
+
 // Test LDAP secundario (también admin)
 Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::post('configuracion/test-ldap2', [AdminConfiguracionController::class, 'testLdap2'])->name('configuracion.test-ldap2');
+    Route::post('configuracion/test-ldap3', [AdminConfiguracionController::class, 'testLdap3'])->name('configuracion.test-ldap3');
 });

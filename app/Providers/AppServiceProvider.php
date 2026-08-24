@@ -93,6 +93,34 @@ class AppServiceProvider extends ServiceProvider
             // Segunda conexión no configurada aún
         }
 
+        // ── Conexión LDAP terciaria (Unifrutti) ──────────────────────────────
+        try {
+            $ldap3Host = Configuracion::get('ldap3_host');
+            $ldap3User = Configuracion::get('ldap3_username');
+            $ldap3Pass = Configuracion::get('ldap3_password');
+            $ldap3Base = Configuracion::get('ldap3_base_dn', '');
+            $ldap3Port = (int)(Configuracion::get('ldap3_port') ?: 389);
+
+            if ($ldap3Host && $ldap3User && $ldap3Pass) {
+                $hosts3 = array_values(array_filter(array_map('trim', explode(',', $ldap3Host))));
+                LdapContainer::addConnection(
+                    new LdapConnection([
+                        'hosts'        => $hosts3,
+                        'username'     => $ldap3User,
+                        'password'     => $ldap3Pass,
+                        'base_dn'      => $ldap3Base,
+                        'port'         => $ldap3Port,
+                        'timeout'      => 5,
+                        'use_tls'      => $ldap3Port === 636,
+                        'use_starttls' => false,
+                    ]),
+                    'tertiary'
+                );
+            }
+        } catch (\Throwable) {
+            // Tercera conexión no configurada aún
+        }
+
         // ── Conexión a la base de GLPI desde BD ──────────────────────────────
         // Lo guardado en Admin → Configuración manda sobre el .env.
         // Va aquí y no en config/database.php porque allá la base de datos
@@ -128,6 +156,36 @@ class AppServiceProvider extends ServiceProvider
             // BD no disponible (ej: primera migración) — usa .env como fallback
         }
 
+        // ── Conexión a la base del GLPI Unifrutti (Helpdesk) desde BD ────────
+        try {
+            $glpiUni = Configuracion::whereIn('clave', [
+                'glpiuni_db_host', 'glpiuni_db_port', 'glpiuni_db_database',
+                'glpiuni_db_username', 'glpiuni_db_password',
+            ])->pluck('valor', 'clave');
+
+            $camposUni = [
+                'glpiuni_db_host'     => 'host',
+                'glpiuni_db_port'     => 'port',
+                'glpiuni_db_database' => 'database',
+                'glpiuni_db_username' => 'username',
+                'glpiuni_db_password' => 'password',
+            ];
+
+            $aplicadosUni = 0;
+            foreach ($camposUni as $clave => $campo) {
+                $valor = $glpiUni[$clave] ?? null;
+                if ($valor === null || $valor === '') continue;
+                config(["database.connections.glpi_unifrutti.{$campo}" => $valor]);
+                $aplicadosUni++;
+            }
+
+            if ($aplicadosUni) {
+                DB::purge('glpi_unifrutti');
+            }
+        } catch (\Throwable) {
+            // BD no disponible (ej: primera migración) — usa .env como fallback
+        }
+
         // Registrar provider de Azure AD para Socialite
         Event::listen(function (\SocialiteProviders\Manager\SocialiteWasCalled $event) {
             $event->extendSocialite('azure', \SocialiteProviders\Azure\Provider::class);
@@ -145,6 +203,16 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('acceso_ad2', function ($user) {
             if (!$user->activo) return false;
             return $user->tieneAcceso('admin.active_directory2.index');
+        });
+
+        Gate::define('acceso_ad3', function ($user) {
+            if (!$user->activo) return false;
+            return $user->tieneAcceso('admin.active_directory3.index');
+        });
+
+        Gate::define('acceso_inventario_uni', function ($user) {
+            if (!$user->activo) return false;
+            return $user->tieneAcceso('admin.inventario_unifrutti.index');
         });
 
         Gate::define('acceso_entra', function ($user) {

@@ -86,6 +86,17 @@
                     </button>
                 </li>
                 <li class="nav-item">
+                    <button class="nav-link" id="tab-ldap3"
+                            data-bs-toggle="tab" data-bs-target="#pane-ldap3" type="button"
+                            data-cfg-test="{{ route('admin.configuracion.test-ldap3') }}"
+                            data-cfg-lista="{{ $ldap3Cfg['username'] ? '1' : '0' }}"
+                            data-cfg-panel="ldap3Estado">
+                        <i class="bi bi-diagram-3 cfg-ico"></i>
+                        <span class="cfg-txt">AD Unifrutti</span>
+                        <span class="cfg-dot" data-estado="sin"></span>
+                    </button>
+                </li>
+                <li class="nav-item">
                     <button class="nav-link" id="tab-glpi"
                             data-bs-toggle="tab" data-bs-target="#pane-glpi" type="button"
                             data-cfg-test="{{ route('admin.configuracion.test-glpi') }}"
@@ -93,6 +104,17 @@
                             data-cfg-panel="glpiEstado">
                         <i class="bi bi-pc-display cfg-ico"></i>
                         <span class="cfg-txt">BD GLPI</span>
+                        <span class="cfg-dot" data-estado="sin"></span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="tab-glpiuni"
+                            data-bs-toggle="tab" data-bs-target="#pane-glpiuni" type="button"
+                            data-cfg-test="{{ route('admin.configuracion.test-glpiuni') }}"
+                            data-cfg-lista="{{ $glpiUniCfg['username'] ? '1' : '0' }}"
+                            data-cfg-panel="glpiUniEstado">
+                        <i class="bi bi-pc-display-horizontal cfg-ico"></i>
+                        <span class="cfg-txt">GLPI Unifrutti</span>
                         <span class="cfg-dot" data-estado="sin"></span>
                     </button>
                 </li>
@@ -536,6 +558,87 @@
             </div>{{-- /pane-ldap2 --}}
 
             {{-- ══════════════════════════════════════════════════════════
+                 Tab: Active Directory — Unifrutti
+            ══════════════════════════════════════════════════════════ --}}
+            <div class="tab-pane fade" id="pane-ldap3">
+
+                <div class="cfg-estado-pane" id="ldap3Estado"></div>
+
+                <form action="{{ route('admin.configuracion.update') }}" method="POST" data-loader id="formLdap3">
+                    @csrf
+                    <input type="hidden" name="seccion" value="ldap3">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-9">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">
+                                Servidores (Domain Controllers) <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="ldap3_host"
+                                   class="form-control form-control-sm font-monospace @error('ldap3_host') is-invalid @enderror"
+                                   value="{{ old('ldap3_host', $ldap3Cfg['host']) }}"
+                                   placeholder="UFPEDC01.unifrutti.com">
+                            <div class="form-text">Separados por coma si hay más de uno.</div>
+                            @error('ldap3_host')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Puerto <span class="text-danger">*</span></label>
+                            <input type="number" name="ldap3_port"
+                                   class="form-control form-control-sm @error('ldap3_port') is-invalid @enderror"
+                                   value="{{ old('ldap3_port', $ldap3Cfg['port']) }}"
+                                   min="1" max="65535">
+                            <div class="form-text">389 LDAP · 636 LDAPS</div>
+                            @error('ldap3_port')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Base DN <span class="text-danger">*</span></label>
+                            <input type="text" name="ldap3_base_dn"
+                                   class="form-control form-control-sm font-monospace @error('ldap3_base_dn') is-invalid @enderror"
+                                   value="{{ old('ldap3_base_dn', $ldap3Cfg['base_dn']) }}"
+                                   placeholder="DC=unifrutti,DC=com">
+                            <div class="form-text">Raíz del directorio desde donde se buscarán los objetos.</div>
+                            @error('ldap3_base_dn')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Usuario de servicio <span class="text-danger">*</span></label>
+                            <input type="text" name="ldap3_username"
+                                   class="form-control form-control-sm font-monospace @error('ldap3_username') is-invalid @enderror"
+                                   value="{{ old('ldap3_username', $ldap3Cfg['username']) }}"
+                                   placeholder="usuario@unifrutti.com">
+                            <div class="form-text">Formato UPN: usuario@unifrutti.com</div>
+                            @error('ldap3_username')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Contraseña</label>
+                            <input type="password" name="ldap3_password"
+                                   class="form-control form-control-sm"
+                                   autocomplete="new-password"
+                                   placeholder="{{ $ldap3Cfg['username'] ? 'Dejar en blanco para no cambiar' : 'Ingresar contraseña' }}">
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded-2 mb-3 d-flex align-items-start gap-2"
+                         style="background:#f0f9ff;border:1px solid #bae6fd;font-size:.8rem">
+                        <i class="bi bi-info-circle-fill flex-shrink-0 mt-1" style="color:#0284c7"></i>
+                        <span>
+                            Esta es la conexión terciaria para el dominio <strong>Unifrutti</strong>.
+                            Para <strong>resetear contraseñas</strong> se requiere <strong>LDAPS (puerto 636)</strong>.
+                        </span>
+                    </div>
+
+                    <div class="d-flex gap-2 align-items-center">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-check-lg me-1"></i>Guardar configuración
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTestLdap3">
+                            <i class="bi bi-plug me-1"></i>Probar conexión
+                        </button>
+                        <span id="ldap3TestResult" class="small ms-1"></span>
+                    </div>
+                </form>
+
+            </div>{{-- /pane-ldap3 --}}
+
+            {{-- ══════════════════════════════════════════════════════════
                  Tab: Microsoft 365
             ══════════════════════════════════════════════════════════ --}}
             {{-- ══════════════════ GLPI ══════════════════════════════════ --}}
@@ -601,6 +704,73 @@
                 </form>
 
             </div>{{-- /pane-glpi --}}
+
+            {{-- ══════════════════════════════════════════════════════════
+                 Tab: BD GLPI Unifrutti (Helpdesk)
+            ══════════════════════════════════════════════════════════ --}}
+            <div class="tab-pane fade" id="pane-glpiuni">
+
+                <div class="cfg-estado-pane" id="glpiUniEstado"></div>
+
+                <form method="POST" action="{{ route('admin.configuracion.update') }}">
+                    @csrf
+                    <input type="hidden" name="seccion" value="glpiuni">
+
+                    <p class="text-muted mb-3" style="font-size:.83rem">
+                        Conexión a la base de datos del GLPI de <strong>Unifrutti</strong> (helpdesk.unifrutti.com),
+                        usada por el módulo <strong>Inventario Unifrutti</strong> y el cruce con el AD.
+                        La contraseña solo se actualiza si ingresas una nueva.
+                    </p>
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">Host / IP del servidor</label>
+                            <input type="text" name="glpiuni_db_host" class="form-control form-control-sm"
+                                   value="{{ old('glpiuni_db_host', $glpiUniCfg['host']) }}"
+                                   placeholder="192.168.2.69">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">Puerto</label>
+                            <input type="number" name="glpiuni_db_port" class="form-control form-control-sm"
+                                   value="{{ old('glpiuni_db_port', $glpiUniCfg['port']) }}"
+                                   min="1" max="65535">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">Base de datos</label>
+                            <input type="text" name="glpiuni_db_database" class="form-control form-control-sm"
+                                   value="{{ old('glpiuni_db_database', $glpiUniCfg['database']) }}"
+                                   placeholder="glpi">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">Usuario</label>
+                            <input type="text" name="glpiuni_db_username" class="form-control form-control-sm"
+                                   value="{{ old('glpiuni_db_username', $glpiUniCfg['username']) }}"
+                                   placeholder="vti_readonly" autocomplete="off">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">
+                                Contraseña <span class="text-muted fw-normal">(dejar en blanco para mantener la actual)</span>
+                            </label>
+                            <input type="password" name="glpiuni_db_password" class="form-control form-control-sm"
+                                   placeholder="••••••••" autocomplete="new-password">
+                        </div>
+                    </div>
+
+                    @error('glpiuni_db_host') <div class="text-danger mt-2" style="font-size:.8rem">{{ $message }}</div> @enderror
+
+                    <div class="mt-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-check-lg me-1"></i>Guardar configuración
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTestGlpiuni">
+                            <i class="bi bi-plug me-1"></i>Probar conexión
+                        </button>
+                    </div>
+
+                    <div id="glpiuniTestResult" class="mt-2" style="font-size:.83rem;display:none"></div>
+                </form>
+
+            </div>{{-- /pane-glpiuni --}}
 
             <div class="tab-pane fade" id="pane-azure">
 
@@ -966,7 +1136,9 @@
     var BOTONES = [
         ['btnTestLdap',    'ldapTestResult',    'tab-ldap',    null],
         ['btnTestLdap2',   'ldap2TestResult',   'tab-ldap2',   null],
+        ['btnTestLdap3',   'ldap3TestResult',   'tab-ldap3',   null],
         ['btnTestGlpi',    'glpiTestResult',    'tab-glpi',    { glpi_db_host: 'host', glpi_db_port: 'port', glpi_db_database: 'database', glpi_db_username: 'username', glpi_db_password: 'password' }],
+        ['btnTestGlpiuni', 'glpiuniTestResult', 'tab-glpiuni', { glpiuni_db_host: 'host', glpiuni_db_port: 'port', glpiuni_db_database: 'database', glpiuni_db_username: 'username', glpiuni_db_password: 'password' }],
         ['btnTestAzure',   'azureTestResult',   'tab-azure',   null],
         ['btnTestCheckmk', 'checkmkTestResult', 'tab-checkmk', null],
         ['btnTestVeeam',   'veeamTestResult',   'tab-veeam',   { veeam_url: 'url', veeam_user: 'user', veeam_password: 'password' }]

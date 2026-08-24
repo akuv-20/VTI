@@ -85,6 +85,27 @@ return [
             'engine'    => null,
         ],
 
+        /*
+         | Base de datos del GLPI de Unifrutti (Helpdesk, solo lectura).
+         |
+         | Mismo criterio que la conexión `glpi`: estos valores son el respaldo
+         | y lo guardado en Admin → Configuración manda encima, aplicado en
+         | AppServiceProvider::boot() apenas la base de datos está disponible.
+         */
+        'glpi_unifrutti' => [
+            'driver'    => 'mysql',
+            'host'      => env('GLPIUNI_DB_HOST',     '127.0.0.1'),
+            'port'      => env('GLPIUNI_DB_PORT',     3306),
+            'database'  => env('GLPIUNI_DB_DATABASE', 'glpi'),
+            'username'  => env('GLPIUNI_DB_USERNAME', 'root'),
+            'password'  => env('GLPIUNI_DB_PASSWORD', ''),
+            'charset'   => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix'    => '',
+            'strict'    => false,
+            'engine'    => null,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

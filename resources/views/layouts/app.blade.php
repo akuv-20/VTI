@@ -769,8 +769,23 @@
             </div>
             @endif
 
+            {{-- ── Inventario Unifrutti ── --}}
+            @can('acceso_inventario_uni')
+            <div class="vti-nav-group" data-group="inventario_uni">
+                <button type="button" class="vti-nav-group-toggle">
+                    <i class="bi bi-pc-display-horizontal"></i><span class="sb-text">Inventario Unifrutti</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="vti-nav-group-items">
+                    <a href="{{ route('admin.inventario_unifrutti.index') }}" class="vti-nav-link {{ request()->routeIs('admin.inventario_unifrutti.*') ? 'active' : '' }}">
+                        <i class="bi bi-diagram-3"></i>Cruce AD ↔ GLPI
+                    </a>
+                </div>
+            </div>
+            @endcan
+
             {{-- ── Active Directory ── --}}
-            @if(auth()->user()->can('acceso_ad') || auth()->user()->can('acceso_ad2') || auth()->user()->can('acceso_entra'))
+            @if(auth()->user()->can('acceso_ad') || auth()->user()->can('acceso_ad2') || auth()->user()->can('acceso_ad3') || auth()->user()->can('acceso_entra'))
             <div class="vti-nav-group" data-group="ad">
                 <button type="button" class="vti-nav-group-toggle">
                     <i class="bi bi-diagram-3-fill"></i><span class="sb-text">AD | EntraID</span>
@@ -785,6 +800,11 @@
                     @can('acceso_ad2')
                     <a href="{{ route('admin.active_directory2.index') }}" class="vti-nav-link {{ request()->routeIs('admin.active_directory2.*') ? 'active' : '' }}">
                         <i class="bi bi-diagram-3"></i>AD Grupo Verfrut (Perú)
+                    </a>
+                    @endcan
+                    @can('acceso_ad3')
+                    <a href="{{ route('admin.active_directory3.index') }}" class="vti-nav-link {{ request()->routeIs('admin.active_directory3.*') ? 'active' : '' }}">
+                        <i class="bi bi-diagram-3"></i>AD Unifrutti
                     </a>
                     @endcan
                     @can('acceso_entra')
@@ -938,9 +958,11 @@
             'roamings'                    => ['Telefonía', 'Roamings'],
             'actas_entrega_telefono'      => ['Telefonía', 'Actas de Entrega'],
             'actas_devolucion_telefono'   => ['Telefonía', 'Actas de Devolución'],
+            'admin.inventario_unifrutti'  => ['Inventario Unifrutti', 'Cruce AD ↔ GLPI'],
             'inventario_ti.dashboard'     => ['Inventario TI', 'Dashboard'],
             'inventario_ti.actas'         => ['Inventario TI', 'Actas de Entrega'],
             'inventario_ti'               => ['Inventario TI', 'Equipos'],
+            'admin.active_directory3'     => ['AD | EntraID', 'AD Unifrutti'],
             'admin.active_directory2'     => ['Active Directory', 'AD Grupo Verfrut (Perú)'],
             'admin.active_directory'      => ['Active Directory', 'AD Verfrut'],
             'admin.entra_id.dashboard'    => ['AD | EntraID', 'Salud de datos'],

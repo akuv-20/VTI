@@ -40,11 +40,25 @@ class ConfiguracionController extends Controller
             'username' => Configuracion::get('ldap2_username',''),
         ];
 
+        $ldap3Cfg = [
+            'host'     => Configuracion::get('ldap3_host',    ''),
+            'port'     => Configuracion::get('ldap3_port',    389),
+            'base_dn'  => Configuracion::get('ldap3_base_dn', ''),
+            'username' => Configuracion::get('ldap3_username',''),
+        ];
+
         $glpiCfg = [
             'host'     => Configuracion::get('glpi_db_host',     env('GLPI_DB_HOST',     '127.0.0.1')),
             'port'     => Configuracion::get('glpi_db_port',     env('GLPI_DB_PORT',     3306)),
             'database' => Configuracion::get('glpi_db_database', env('GLPI_DB_DATABASE', 'glpi')),
             'username' => Configuracion::get('glpi_db_username', env('GLPI_DB_USERNAME', '')),
+        ];
+
+        $glpiUniCfg = [
+            'host'     => Configuracion::get('glpiuni_db_host',     env('GLPIUNI_DB_HOST',     '')),
+            'port'     => Configuracion::get('glpiuni_db_port',     env('GLPIUNI_DB_PORT',     3306)),
+            'database' => Configuracion::get('glpiuni_db_database', env('GLPIUNI_DB_DATABASE', 'glpi')),
+            'username' => Configuracion::get('glpiuni_db_username', env('GLPIUNI_DB_USERNAME', '')),
         ];
 
         $checkmkCfg = [
@@ -59,7 +73,7 @@ class ConfiguracionController extends Controller
             'api_version' => Configuracion::get('veeam_api_version', ''),
         ];
 
-        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'favicon', 'azureCfg', 'ldapCfg', 'ldap2Cfg', 'glpiCfg', 'checkmkCfg', 'veeamCfg'));
+        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'favicon', 'azureCfg', 'ldapCfg', 'ldap2Cfg', 'ldap3Cfg', 'glpiCfg', 'glpiUniCfg', 'checkmkCfg', 'veeamCfg'));
     }
 
     public function update(Request $request)
@@ -238,6 +252,27 @@ class ConfiguracionController extends Controller
             return back()->with('success', 'Configuración de BD GLPI guardada.');
         }
 
+        // ── GLPI Unifrutti (Helpdesk) Base de Datos ──────────────────────────
+        if ($request->input('seccion') === 'glpiuni') {
+            $request->validate([
+                'glpiuni_db_host'     => 'required|string|max:255',
+                'glpiuni_db_port'     => 'required|integer|between:1,65535',
+                'glpiuni_db_database' => 'required|string|max:100',
+                'glpiuni_db_username' => 'required|string|max:100',
+            ]);
+
+            Configuracion::set('glpiuni_db_host',     trim($request->input('glpiuni_db_host')));
+            Configuracion::set('glpiuni_db_port',     $request->input('glpiuni_db_port'));
+            Configuracion::set('glpiuni_db_database', trim($request->input('glpiuni_db_database')));
+            Configuracion::set('glpiuni_db_username', trim($request->input('glpiuni_db_username')));
+
+            if ($request->filled('glpiuni_db_password')) {
+                Configuracion::set('glpiuni_db_password', $request->input('glpiuni_db_password'));
+            }
+
+            return back()->with('success', 'Configuración de BD GLPI Unifrutti guardada.');
+        }
+
         // ── Active Directory secundario (Grupo Verfrut Perú) ────────────────
         if ($request->input('seccion') === 'ldap2') {
             $request->validate([
@@ -257,6 +292,27 @@ class ConfiguracionController extends Controller
             }
 
             return back()->with('success', 'Configuración de Active Directory (Grupo Verfrut Perú) guardada.');
+        }
+
+        // ── Active Directory terciario (Unifrutti) ──────────────────────────
+        if ($request->input('seccion') === 'ldap3') {
+            $request->validate([
+                'ldap3_host'     => 'required|string|max:500',
+                'ldap3_port'     => 'required|integer|between:1,65535',
+                'ldap3_base_dn'  => 'required|string|max:200',
+                'ldap3_username' => 'required|string|max:200',
+            ]);
+
+            Configuracion::set('ldap3_host',    trim($request->input('ldap3_host')));
+            Configuracion::set('ldap3_port',    $request->input('ldap3_port'));
+            Configuracion::set('ldap3_base_dn', trim($request->input('ldap3_base_dn')));
+            Configuracion::set('ldap3_username', trim($request->input('ldap3_username')));
+
+            if ($request->filled('ldap3_password')) {
+                Configuracion::set('ldap3_password', $request->input('ldap3_password'));
+            }
+
+            return back()->with('success', 'Configuración de Active Directory (Unifrutti) guardada.');
         }
 
         // ── CheckMK (KPI de disponibilidad) ──────────────────────────────────
@@ -422,6 +478,35 @@ class ConfiguracionController extends Controller
         }
     }
 
+    /** Test de conexión BD GLPI Unifrutti (Helpdesk) — responde JSON */
+    public function testGlpiuni(Request $request)
+    {
+        $host     = $request->input('host')     ?: Configuracion::get('glpiuni_db_host',     env('GLPIUNI_DB_HOST', ''));
+        $port     = $request->input('port')     ?: Configuracion::get('glpiuni_db_port',     env('GLPIUNI_DB_PORT', 3306));
+        $database = $request->input('database') ?: Configuracion::get('glpiuni_db_database', env('GLPIUNI_DB_DATABASE', 'glpi'));
+        $username = $request->input('username') ?: Configuracion::get('glpiuni_db_username', env('GLPIUNI_DB_USERNAME', ''));
+        $password = $request->filled('password')
+            ? $request->input('password')
+            : Configuracion::get('glpiuni_db_password', env('GLPIUNI_DB_PASSWORD', ''));
+
+        if (!$host || !$username || !$database) {
+            return response()->json(['ok' => false, 'message' => 'Completa los datos antes de probar.']);
+        }
+
+        try {
+            $pdo = new \PDO(
+                "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4",
+                $username,
+                $password,
+                [\PDO::ATTR_TIMEOUT => 5, \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]
+            );
+            $version = $pdo->query('SELECT VERSION()')->fetchColumn();
+            return response()->json(['ok' => true, 'message' => "Conexión exitosa a {$database}@{$host} — MySQL {$version}"]);
+        } catch (\Throwable $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
     /** Test de conexión LDAP secundaria — responde JSON */
     public function testLdap2(Request $request)
     {
@@ -431,6 +516,18 @@ class ConfiguracionController extends Controller
             Configuracion::get('ldap2_password'),
             Configuracion::get('ldap2_base_dn', ''),
             (int)(Configuracion::get('ldap2_port') ?: 389)
+        );
+    }
+
+    /** Test de conexión LDAP terciaria (Unifrutti) — responde JSON */
+    public function testLdap3(Request $request)
+    {
+        return $this->probarConexionLdap(
+            Configuracion::get('ldap3_host'),
+            Configuracion::get('ldap3_username'),
+            Configuracion::get('ldap3_password'),
+            Configuracion::get('ldap3_base_dn', ''),
+            (int)(Configuracion::get('ldap3_port') ?: 389)
         );
     }
 
