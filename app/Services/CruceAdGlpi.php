@@ -67,11 +67,15 @@ class CruceAdGlpi
     /**
      * Ejecuta el cruce completo.
      *
+     * La tabla que devuelve son los equipos del AD MÁS los huérfanos: los que
+     * están inventariados en GLPI y ya no tienen cuenta de dominio, con estado
+     * `huerfano_glpi`. Por eso `resumen['total']` (el AD) y `resumen['filas']`
+     * (lo que se ve en pantalla) no son el mismo número.
+     *
      * @return array{
      *   equipos: Collection,
      *   resumen: array,
-     *   generado: Carbon,
-     *   huerfanos_glpi: int
+     *   generado: Carbon
      * }
      */
     public function analizar(): array
@@ -104,29 +108,62 @@ class CruceAdGlpi
                 'ultimo_login'    => $ultimoLogin,
                 'dias_sin_login'  => $diasSinLogin,
                 'en_glpi'         => $enGlpi,
+                'glpi_id'         => $glpi['id'] ?? null,
                 'glpi_nombre'     => $glpi['name'] ?? null,
                 'last_contact'    => $lastContact,
                 'dias_sin_reporte'=> $diasSinReporte,
                 'estado'          => $estado,
             ];
-        })->sortBy([
+        });
+
+        // Se miden antes de sumar los huérfanos: son propiedades del lado AD.
+        $totalAd  = $equiposAd->count();
+        $enGlpiAd = $equipos->where('en_glpi', true)->count();
+
+        // Huérfanos: están en el inventario de GLPI pero ya no tienen cuenta en
+        // el AD. Entran como filas más a la tabla —con las columnas del lado AD
+        // vacías, porque ese lado no existe— para que se puedan filtrar y abrir.
+        $huerfanos = $mapaGlpi
+            ->reject(fn($v, $clave) => isset($vistos[$clave]))
+            ->map(function (array $g) use ($ahora) {
+                $lastContact    = $g['last_contact'];
+                $diasSinReporte = $lastContact ? (int) floor($lastContact->diffInDays($ahora)) : null;
+
+                return [
+                    'nombre'          => $g['name'],
+                    'ou'              => null,
+                    'so'              => $g['so'],
+                    'deshabilitada'   => false,
+                    'ultimo_login'    => null,
+                    'dias_sin_login'  => null,
+                    'en_glpi'         => true,
+                    'glpi_id'         => $g['id'],
+                    'glpi_nombre'     => $g['name'],
+                    'last_contact'    => $lastContact,
+                    'dias_sin_reporte'=> $diasSinReporte,
+                    'estado'          => 'huerfano_glpi',
+                ];
+            })
+            ->values();
+
+        $equipos = $equipos->concat($huerfanos)->sortBy([
             // Primero lo que urge revisar; dentro de cada estado, lo más viejo arriba
             fn($a, $b) => $this->pesoEstado($a['estado']) <=> $this->pesoEstado($b['estado']),
             fn($a, $b) => ($b['dias_sin_login'] ?? -1) <=> ($a['dias_sin_login'] ?? -1),
         ])->values();
 
-        // Huérfanos: equipos en GLPI que no existen en el AD
-        $huerfanos = $mapaGlpi->reject(fn($v, $clave) => isset($vistos[$clave]))->count();
-
         $resumen = [
-            'total'          => $equipos->count(),
+            // `total` es el AD, la lista maestra; `filas` incluye a los huérfanos,
+            // que no salen de ahí. La tabla muestra `filas`.
+            'total'          => $totalAd,
+            'filas'          => $equipos->count(),
             'ok'             => $equipos->where('estado', 'ok')->count(),
             'falta_agente'   => $equipos->where('estado', 'falta_agente')->count(),
             'agente_mudo'    => $equipos->where('estado', 'agente_mudo')->count(),
             'posible_baja'   => $equipos->where('estado', 'posible_baja')->count(),
             'deshabilitado'  => $equipos->where('estado', 'deshabilitado')->count(),
-            'en_glpi'        => $equipos->where('en_glpi', true)->count(),
-            'huerfanos_glpi' => $huerfanos,
+            'huerfano_glpi'  => $huerfanos->count(),
+            'en_glpi'        => $enGlpiAd,
             'total_glpi'     => $mapaGlpi->count(),
         ];
 
@@ -161,10 +198,11 @@ class CruceAdGlpi
     {
         return match ($estado) {
             'posible_baja'  => 0,
-            'falta_agente'  => 1,
-            'agente_mudo'   => 2,
-            'deshabilitado' => 3,
-            'ok'            => 4,
+            'huerfano_glpi' => 1,
+            'falta_agente'  => 2,
+            'agente_mudo'   => 3,
+            'deshabilitado' => 4,
+            'ok'            => 5,
             default         => 9,
         };
     }
@@ -215,10 +253,16 @@ class CruceAdGlpi
             ->leftJoin('glpi_agents as a', function ($j) {
                 $j->on('a.items_id', '=', 'c.id')->where('a.itemtype', 'Computer');
             })
+            ->leftJoin('glpi_items_operatingsystems as ios', function ($j) {
+                $j->on('ios.items_id', '=', 'c.id')
+                  ->where('ios.itemtype', 'Computer')
+                  ->where('ios.is_deleted', 0);
+            })
+            ->leftJoin('glpi_operatingsystems as os', 'os.id', '=', 'ios.operatingsystems_id')
             ->where('c.is_deleted', 0)
             ->where('c.is_template', 0)
-            ->groupBy('c.id', 'c.name')
-            ->select('c.id', 'c.name', DB::raw('MAX(a.last_contact) as last_contact'))
+            ->groupBy('c.id', 'c.name', 'os.name')
+            ->select('c.id', 'c.name', 'os.name as so', DB::raw('MAX(a.last_contact) as last_contact'))
             ->get();
 
         $mapa = collect();
@@ -240,6 +284,7 @@ class CruceAdGlpi
             $mapa->put($clave, [
                 'id'           => $f->id,
                 'name'         => $f->name,
+                'so'           => $f->so ?: null,
                 'last_contact' => $lastContact,
             ]);
         }

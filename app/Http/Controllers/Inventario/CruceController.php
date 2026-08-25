@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Inventario;
 use App\Http\Controllers\Controller;
 use App\Models\Configuracion;
 use App\Services\CruceAdGlpi;
-use App\Services\DominioInventario;
 use Illuminate\Http\Request;
 
 /** Cruce del AD de un dominio contra el inventario de su GLPI. */
@@ -66,24 +65,5 @@ class CruceController extends BaseController
         (new CruceAdGlpi($this->dominio()))->olvidarCache();
 
         return back()->with('success', 'Datos actualizados desde AD y GLPI.');
-    }
-
-    private function mensajeError(\Throwable $e, DominioInventario $dom): string
-    {
-        $msg = $e->getMessage();
-
-        if (str_contains($msg, 'No connections exist')
-            || ($dom->ad() && str_contains($msg, $dom->ad()))) {
-            return "No se pudo conectar al Active Directory de {$dom->label()}. Revisa Admin → Configuración.";
-        }
-        if (str_contains($msg, 'Access denied') || str_contains($msg, 'getaddrinfo')
-            || str_contains($msg, 'Connection refused') || str_contains($msg, $dom->glpi())) {
-            return "No se pudo conectar al GLPI de {$dom->label()}. Revisa Admin → Configuración.";
-        }
-        if (str_contains($msg, 'Base table') || str_contains($msg, '1146')) {
-            return "La base de datos GLPI de {$dom->label()} no tiene las tablas esperadas.";
-        }
-
-        return 'Error al cruzar AD ↔ GLPI: ' . $msg;
     }
 }

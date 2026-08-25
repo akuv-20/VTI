@@ -17,26 +17,38 @@ class ExcepcionController extends BaseController
 {
     public function index()
     {
-        $dom  = $this->dominio();
-        $glpi = new InventarioGlpi($dom);
+        $dom = $this->dominio();
 
+        // Las reglas viven en la base de la aplicación, así que se pueden ver y
+        // editar aunque GLPI esté caído. Lo único que se pierde es el alcance,
+        // que sí sale de allá: se muestra la pantalla sin esos números.
         $reglas = InventarioExcepcion::delDominio($dom->clave)
             ->orderByDesc('activa')->orderBy('campo')->orderBy('valor')
             ->get();
 
-        // Cuántos equipos cubre cada regla por separado. Se calcula de a una
-        // porque lo interesante es detectar la que sobra o la que barre de más.
-        $alcance = [];
-        foreach ($reglas as $r) {
-            $alcance[$r->id] = $this->contarAlcance($glpi, collect([$r]));
+        $alcance      = [];
+        $totalActivas = null;
+        $avisoGlpi    = null;
+
+        try {
+            $glpi = new InventarioGlpi($dom);
+
+            // Cuántos equipos cubre cada regla por separado. Se calcula de a una
+            // porque lo interesante es detectar la que sobra o la que barre de más.
+            foreach ($reglas as $r) {
+                $alcance[$r->id] = $this->contarAlcance($glpi, collect([$r]));
+            }
+
+            $totalActivas = $this->contarAlcance($glpi, $glpi->excepciones());
+
+        } catch (\Throwable $e) {
+            report($e);
+            $avisoGlpi = $this->mensajeError($e, $dom);
         }
 
-        return view('inventario.excepciones', [
-            'dom'        => $dom,
-            'reglas'     => $reglas,
-            'alcance'    => $alcance,
-            'totalActivas' => $this->contarAlcance($glpi, $glpi->excepciones()),
-        ]);
+        return view('inventario.excepciones', compact(
+            'dom', 'reglas', 'alcance', 'totalActivas', 'avisoGlpi'
+        ));
     }
 
     public function store(Request $request)
@@ -95,15 +107,24 @@ class ExcepcionController extends BaseController
 
         $regla = new InventarioExcepcion($datos);
 
-        // Solo interesa el efecto real: equipos que HOY figuran sin el antivirus
-        // corporativo y que la regla dejaría de contar.
-        $q = $glpi->baseEquipos();
-        $glpi->sinAntivirusCorporativo($q);
-        InventarioExcepcion::aplicarA($q, collect([$regla]));
+        try {
+            // Solo interesa el efecto real: equipos que HOY figuran sin el antivirus
+            // corporativo y que la regla dejaría de contar.
+            $q = $glpi->baseEquipos();
+            $glpi->sinAntivirusCorporativo($q);
+            InventarioExcepcion::aplicarA($q, collect([$regla]));
 
-        $total   = (clone $q)->distinct()->count('c.id');
-        $muestra = $q->select('c.name as equipo', 'os.name as so')
-            ->orderBy('c.name')->limit(15)->get();
+            $total   = (clone $q)->distinct()->count('c.id');
+            $muestra = $q->select('c.name as equipo', 'os.name as so')
+                ->orderBy('c.name')->limit(15)->get();
+
+        } catch (\Throwable $e) {
+            report($e);
+
+            // JSON y no una página de error: quien llama es el fetch de la vista
+            // previa, que espera JSON y ya sabe mostrar el fallo.
+            return response()->json(['error' => $this->mensajeError($e, $dom)], 503);
+        }
 
         return response()->json([
             'total'   => $total,

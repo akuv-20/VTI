@@ -19,6 +19,17 @@ class DashboardController extends BaseController
     public function index()
     {
         $dom = $this->dominio();
+
+        try {
+            return $this->tablero($dom);
+        } catch (\Throwable $e) {
+            // Sin GLPI no hay tablero que mostrar: son todas consultas a su base.
+            return $this->vistaError($e, $dom, 'dashboard', 'Dashboard de inventario', 'bi-speedometer2');
+        }
+    }
+
+    private function tablero(DominioInventario $dom)
+    {
         $glpi    = DB::connection($dom->glpi());
         $excluir = $dom->excluirUser() ?? -1;   // -1 = ningun id real, no excluye a nadie
         $hoy     = Carbon::now();

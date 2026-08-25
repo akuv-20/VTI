@@ -4,6 +4,7 @@
     // Catálogo de estados: clave => [etiqueta, color, icono]
     $ESTADOS = [
         'posible_baja'  => ['Posible baja',        '#ef4444', 'bi-trash3'],
+        'huerfano_glpi' => ['En GLPI sin AD',      '#a855f7', 'bi-question-octagon'],
         'falta_agente'  => ['Falta agente',        '#eab308', 'bi-cloud-arrow-down'],
         'agente_mudo'   => ['Agente mudo',         '#f97316', 'bi-volume-mute'],
         'deshabilitado' => ['Deshabilitado en AD', '#64748b', 'bi-slash-circle'],
@@ -120,7 +121,7 @@
     <div class="iu-meta">
         <span><i class="bi bi-diagram-3 me-1"></i>Equipos en AD: <strong>{{ number_format($resumen['total']) }}</strong></span>
         <span><i class="bi bi-pc-display me-1"></i>En GLPI: <strong>{{ number_format($resumen['en_glpi']) }}</strong></span>
-        <span><i class="bi bi-question-octagon me-1"></i>En GLPI sin AD (huérfanos): <strong>{{ number_format($resumen['huerfanos_glpi']) }}</strong></span>
+        <span><i class="bi bi-pc-display-horizontal me-1"></i>Total en GLPI: <strong>{{ number_format($resumen['total_glpi']) }}</strong></span>
         @if($generado)
             <span class="ms-auto"><i class="bi bi-clock-history me-1"></i>Actualizado {{ $generado->diffForHumans() }} · caché 5 min</span>
         @endif
@@ -129,7 +130,7 @@
     {{-- Tiles / filtros --}}
     <div class="iu-tiles">
         <button class="iu-tile active" data-filtro="todos" style="border-left-color:#3b82f6">
-            <div class="iu-tile-val">{{ number_format($resumen['total']) }}</div>
+            <div class="iu-tile-val">{{ number_format($resumen['filas']) }}</div>
             <div class="iu-tile-lbl"><i class="bi bi-list-ul"></i>Todos</div>
         </button>
         @foreach($ESTADOS as $clave => [$lbl, $color, $ico])
@@ -167,11 +168,23 @@
                     @foreach($equipos as $eq)
                     @php [$lbl, $color, $ico] = $ESTADOS[$eq['estado']]; @endphp
                     <tr data-estado="{{ $eq['estado'] }}">
-                        <td class="fw-semibold font-monospace" style="font-size:.82rem">{{ $eq['nombre'] }}</td>
+                        <td class="fw-semibold font-monospace" style="font-size:.82rem">
+                            @if($eq['glpi_id'])
+                                <a href="{{ route("inventario.{$dom->clave}.equipos.show", $eq['glpi_id']) }}"
+                                   class="text-decoration-none" title="Abrir la ficha en el inventario">
+                                    {{ $eq['nombre'] }}
+                                </a>
+                            @else
+                                {{ $eq['nombre'] }}
+                            @endif
+                        </td>
                         <td class="text-muted" style="font-size:.78rem">{{ $eq['ou'] ?: '—' }}</td>
                         <td class="text-muted" style="font-size:.78rem">{{ $eq['so'] ?: '—' }}</td>
                         <td>
-                            @if($eq['ultimo_login'])
+                            @if($eq['estado'] === 'huerfano_glpi')
+                                {{-- No tiene cuenta en el AD: no hay logon que mostrar --}}
+                                <span class="text-muted fst-italic" style="font-size:.78rem">no está en el AD</span>
+                            @elseif($eq['ultimo_login'])
                                 {{ $eq['ultimo_login']->format('d/m/Y') }}
                                 <span class="{{ $eq['dias_sin_login'] > $diasBaja ? 'iu-dias-alerta' : 'iu-dias-ok' }}" style="font-size:.75rem">
                                     · hace {{ number_format($eq['dias_sin_login']) }} d

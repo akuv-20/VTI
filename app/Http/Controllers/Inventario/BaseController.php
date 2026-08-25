@@ -36,4 +36,44 @@ abstract class BaseController extends Controller
             request()->route()?->defaults['dominio'] ?? null
         );
     }
+
+    /**
+     * Traduce el fallo de un sistema externo a algo que se pueda leer.
+     *
+     * El mensaje crudo de PDO trae host, usuario y base de datos; mostrarlo tal
+     * cual delata la infraestructura a cualquiera que abra la pantalla.
+     */
+    protected function mensajeError(\Throwable $e, DominioInventario $dom): string
+    {
+        $msg = $e->getMessage();
+
+        if (str_contains($msg, 'No connections exist')
+            || ($dom->ad() && str_contains($msg, $dom->ad()))) {
+            return "No se pudo conectar al Active Directory de {$dom->label()}. Revisa Admin → Configuración.";
+        }
+        if (str_contains($msg, 'Access denied') || str_contains($msg, 'getaddrinfo')
+            || str_contains($msg, 'Connection refused') || str_contains($msg, $dom->glpi())) {
+            return "No se pudo conectar al GLPI de {$dom->label()}. Revisa Admin → Configuración.";
+        }
+        if (str_contains($msg, 'Base table') || str_contains($msg, '1146')) {
+            return "La base de datos GLPI de {$dom->label()} no tiene las tablas esperadas.";
+        }
+
+        return 'Error: ' . $msg;
+    }
+
+    /** Pantalla completa de error, para las vistas que sin datos no existen. */
+    protected function vistaError(\Throwable $e, DominioInventario $dom,
+                                  string $seccion, string $titulo, string $icono)
+    {
+        report($e);   // al log: el mensaje que se muestra ya no lleva el detalle
+
+        return response()->view('inventario.error', [
+            'dom'     => $dom,
+            'seccion' => $seccion,
+            'titulo'  => $titulo,
+            'icono'   => $icono,
+            'error'   => $this->mensajeError($e, $dom),
+        ], 503);
+    }
 }

@@ -41,6 +41,18 @@
         </div>
     @endif
 
+    @if($avisoGlpi)
+        <div class="alert alert-warning d-flex align-items-start gap-2">
+            <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+            <div>
+                <strong>{{ $avisoGlpi }}</strong><br>
+                Las reglas se pueden ver y editar igual; lo que no se puede calcular es a cuántos
+                equipos alcanza cada una.
+                <a href="{{ route('admin.configuracion.index') }}#pane-glpi" class="alert-link">Ir a Configuración</a>
+            </div>
+        </div>
+    @endif
+
     <div class="exc-ayuda">
         <i class="bi bi-info-circle-fill me-1" style="color:#0284c7"></i>
         Los equipos que cumplan alguna de estas reglas <strong>dejan de contar</strong> en el indicador
@@ -77,10 +89,14 @@
                         <td class="exc-regla">{{ $r->resumen }}</td>
                         <td class="exc-motivo">{{ $r->motivo }}</td>
                         <td class="text-center">
-                            <span class="exc-alcance" style="color:{{ ($alcance[$r->id] ?? 0) > 0 ? '#64748b' : '#cbd5e1' }}">
-                                {{ number_format($alcance[$r->id] ?? 0) }}
-                            </span>
-                            <div class="text-muted" style="font-size:.68rem">equipos</div>
+                            @if($avisoGlpi)
+                                <span class="exc-alcance" style="color:#cbd5e1" title="Sin conexión a GLPI">—</span>
+                            @else
+                                <span class="exc-alcance" style="color:{{ ($alcance[$r->id] ?? 0) > 0 ? '#64748b' : '#cbd5e1' }}">
+                                    {{ number_format($alcance[$r->id] ?? 0) }}
+                                </span>
+                                <div class="text-muted" style="font-size:.68rem">equipos</div>
+                            @endif
                         </td>
                         <td class="text-center">
                             @if($r->dominio === null)
@@ -266,6 +282,11 @@
             })
             .then(r => r.json())
             .then(d => {
+                if (d.error) {
+                    box.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>' +
+                                    d.error + '</span>';
+                    return;
+                }
                 if (d.total === 0) {
                     box.innerHTML = '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>' +
                                     'Ningún equipo sin {{ $dom->antivirus() }} coincide con esta regla.</span>';

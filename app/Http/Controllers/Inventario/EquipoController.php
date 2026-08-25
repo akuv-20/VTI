@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Inventario;
 use App\Http\Controllers\Controller;
 use App\Models\ActaEntregaEquipo;
 use App\Models\Configuracion;
-use App\Services\DominioInventario;
 use App\Services\InventarioGlpi;
 use Illuminate\Http\Request;
 
@@ -81,20 +80,5 @@ class EquipoController extends BaseController
             'actas'      => $actas,
             'diasAgente' => (int) (Configuracion::get('cruce_dias_agente', 90) ?: 90),
         ]);
-    }
-
-    private function mensajeError(\Throwable $e, DominioInventario $dom): string
-    {
-        $msg = $e->getMessage();
-
-        if (str_contains($msg, 'Access denied') || str_contains($msg, 'getaddrinfo')
-            || str_contains($msg, 'Connection refused') || str_contains($msg, $dom->glpi())) {
-            return "No se pudo conectar al GLPI de {$dom->label()}. Revisa Admin → Configuración.";
-        }
-        if (str_contains($msg, 'Base table') || str_contains($msg, '1146')) {
-            return "La base de datos GLPI de {$dom->label()} no tiene las tablas esperadas.";
-        }
-
-        return 'Error: ' . $msg;
     }
 }
