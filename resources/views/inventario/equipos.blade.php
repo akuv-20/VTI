@@ -44,6 +44,11 @@
                     </a>
                 @endif
             </form>
+            @if($dom->antivirus())
+                <a href="{{ route("inventario.{$dom->clave}.excepciones") }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-shield-slash me-1"></i>Excepciones
+                </a>
+            @endif
             <a href="{{ route("inventario.{$dom->clave}.cruce") }}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-diagram-3 me-1"></i>Cruce AD
             </a>
@@ -103,6 +108,10 @@
                     $mudo   = $dias === null || $dias > $diasAgente;
                     $avOk   = $eq->av_version !== null;
                     $avOn   = $avOk && (int) $eq->av_activo === 1;
+                    // Mismo criterio que el SQL del indicador, evaluado sobre la
+                    // fila ya cargada para no consultar una vez por equipo.
+                    $exc    = !$avOn && \App\Models\InventarioExcepcion::algunaCoincide(
+                                  $excepciones, $eq->nombre_equipo, $eq->sistema_operativo);
                 @endphp
                 <tr>
                     <td class="fw-semibold">{{ $eq->nombre_equipo }}</td>
@@ -127,6 +136,11 @@
                             <span class="iue-badge" style="background:#fef3c7;color:#b45309;border-color:#fde68a"
                                   title="Instalado pero desactivado">
                                 <i class="bi bi-shield-slash"></i>inactivo
+                            </span>
+                        @elseif($exc)
+                            <span class="iue-badge" style="background:#f1f5f9;color:#64748b;border-color:#cbd5e1"
+                                  title="Exceptuado del indicador por una regla">
+                                <i class="bi bi-shield-slash"></i>exceptuado
                             </span>
                         @else
                             <span class="iue-badge" style="background:#fee2e2;color:#dc2626;border-color:#fca5a5">

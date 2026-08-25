@@ -64,23 +64,26 @@ class DashboardController extends BaseController
             ->get();
         $cantDuplicados = $duplicados->count();
 
-        $sinAntivirusQuery = $glpi->table('glpi_computers as c')
+        // Misma definición que el listado de equipos: "sin el antivirus
+        // corporativo del dominio activo", respetando las excepciones. Antes
+        // esto contaba "sin ningún registro de antivirus", que daba por bueno
+        // a Windows Defender y hacía que las dos pantallas mostraran cifras
+        // distintas para lo que el usuario lee como la misma pregunta.
+        $inv = new \App\Services\InventarioGlpi($dom);
+
+        $sinAntivirusQuery = $inv->baseEquipos()
             ->leftJoin('glpi_users as u', 'u.id', '=', 'c.users_id')
             ->leftJoin('glpi_locations as loc', 'loc.id', '=', 'c.locations_id')
-            ->leftJoin('glpi_itemantiviruses as av', function($j) {
-                $j->on('av.items_id', '=', 'c.id')
-                  ->where('av.itemtype', 'Computer')
-                  ->where('av.is_deleted', 0);
-            })
-            ->where('c.is_deleted', 0)->where('c.is_template', 0)
-            ->where('c.users_id', '!=', $excluir)
-            ->whereNull('av.id')
             ->select('c.name as equipo',
                 DB::raw("TRIM(CONCAT(IFNULL(u.firstname,''),' ',IFNULL(u.realname,''))) as usuario"),
                 'loc.completename as ubicacion');
 
-        $sinAntivirus     = $sinAntivirusQuery->count();
+        $inv->sinAntivirusCorporativo($sinAntivirusQuery);
+        \App\Models\InventarioExcepcion::aplicarA($sinAntivirusQuery, $inv->excepciones(), negar: true);
+
+        $sinAntivirus      = (clone $sinAntivirusQuery)->distinct()->count('c.id');
         $sinAntivirusLista = (clone $sinAntivirusQuery)->orderBy('c.name')->limit(20)->get();
+        $antivirusNombre   = $dom->antivirus();
 
         // ── Distribución por Sistema Operativo ──────────────────────────────
         $porSO = $glpi->table('glpi_items_operatingsystems as ios')
@@ -204,7 +207,7 @@ class DashboardController extends BaseController
             ->orderByDesc('total')->limit(10)->get();
 
         return view('inventario.dashboard', compact(
-            'dom',
+            'dom', 'antivirusNombre',
             'totalEquipos', 'sinUsuario', 'sinUbicacion', 'sinAgente',
             'agenteInactivo', 'cantDuplicados', 'sinAntivirus',
             'porSO', 'totalConSO',

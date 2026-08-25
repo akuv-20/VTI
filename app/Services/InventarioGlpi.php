@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\InventarioExcepcion;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -32,22 +33,54 @@ class InventarioGlpi
      */
     public function filtros(): array
     {
-        $filtros = [
-            'todos'         => ['Todos',                'bi-list-ul',     '#3b82f6'],
-            'sin_ubicacion' => ['Sin ubicación',        'bi-geo-alt',     '#eab308'],
-            'sin_usuario'   => ['Sin usuario asignado', 'bi-person-dash', '#f97316'],
-        ];
+        $filtros = ['todos' => ['Todos', 'bi-list-ul', '#3b82f6']];
 
         if ($av = $this->dominio->antivirus()) {
-            $filtros = array_merge(
-                ['todos' => $filtros['todos']],
-                ['sin_antivirus' => ["Sin {$av}", 'bi-shield-exclamation', '#ef4444']],
-                array_diff_key($filtros, ['todos' => null]),
-            );
+            $filtros['sin_antivirus'] = ["Sin {$av}", 'bi-shield-exclamation', '#ef4444'];
+
+            // El indicador de exceptuados solo aparece si hay reglas: un tile
+            // en cero permanente es ruido, y de paso deja ver de un vistazo
+            // cuando alguien agrega una excepción.
+            if ($this->excepciones()->isNotEmpty()) {
+                $filtros['exceptuados'] = ['Exceptuados', 'bi-shield-slash', '#94a3b8'];
+            }
         }
+
+        $filtros['sin_ubicacion'] = ['Sin ubicación',        'bi-geo-alt',     '#eab308'];
+        $filtros['sin_usuario']   = ['Sin usuario asignado', 'bi-person-dash', '#f97316'];
 
         return $filtros;
     }
+
+    /**
+     * Consulta base de equipos vivos del dominio, con el join del sistema
+     * operativo ya puesto para que las reglas de excepción puedan mirarlo.
+     */
+    public function baseEquipos()
+    {
+        $q = $this->db()->table('glpi_computers as c')
+            ->leftJoin('glpi_items_operatingsystems as ios', function ($j) {
+                $j->on('ios.items_id', '=', 'c.id')
+                  ->where('ios.itemtype', 'Computer')
+                  ->where('ios.is_deleted', 0);
+            })
+            ->leftJoin('glpi_operatingsystems as os', 'os.id', '=', 'ios.operatingsystems_id')
+            ->where('c.is_deleted', 0)
+            ->where('c.is_template', 0);
+
+        return $this->dominio->sinUsuarioExcluido($q);
+    }
+
+    /** Reglas de excepción vigentes para este dominio (se resuelven una vez). */
+    public function excepciones(): Collection
+    {
+        return $this->excepciones ??= InventarioExcepcion::activas()
+            ->delDominio($this->dominio->clave)
+            ->orderBy('campo')->orderBy('valor')
+            ->get();
+    }
+
+    private ?Collection $excepciones = null;
 
     /** Aplica la condición de un indicador sobre una consulta aliasada como `c`. */
     private function aplicarFiltro($query, string $filtro)
@@ -61,18 +94,53 @@ class InventarioGlpi
             // desactivado. Se busca el del dominio y no "cualquier antivirus",
             // porque Windows Defender queda registrado en casi todos los
             // equipos y el chequeo genérico daría siempre cero.
-            'sin_antivirus' => $query->whereNotExists(function ($q) {
-                $q->select(DB::raw(1))
-                  ->from('glpi_itemantiviruses as av')
-                  ->whereColumn('av.items_id', 'c.id')
-                  ->where('av.itemtype', 'Computer')
-                  ->where('av.is_deleted', 0)
-                  ->where('av.is_active', 1)
-                  ->where('av.name', 'like', '%' . $this->dominio->antivirus() . '%');
-            }),
+            //
+            // Los equipos exceptuados quedan fuera: macOS, Linux o servidores
+            // que nunca van a llevar el antivirus corporativo ensucian el
+            // indicador de forma permanente.
+            'sin_antivirus' => InventarioExcepcion::aplicarA(
+                $this->sinAntivirusCorporativo($query),
+                $this->excepciones(),
+                negar: true,
+            ),
+
+            // Los exceptuados: se muestran aparte en vez de esconderse, para
+            // poder auditar qué se dejó fuera y por qué.
+            //
+            // Solo cuentan los que SIN la excepción figurarían como "sin
+            // antivirus". Si no, el indicador incluiría equipos que sí lo
+            // tienen instalado y dejaría de cuadrar: la suma de "sin
+            // antivirus" + "exceptuados" tiene que dar el total original.
+            'exceptuados' => InventarioExcepcion::aplicarA(
+                $this->sinAntivirusCorporativo($query),
+                $this->excepciones(),
+            ),
 
             default => $query,   // 'todos'
         };
+    }
+
+    /**
+     * Condición "no tiene el antivirus corporativo activo".
+     *
+     * Vive aparte porque la comparte el dashboard: tener dos definiciones de
+     * "sin antivirus" hacía que las dos pantallas mostraran números distintos.
+     */
+    public function sinAntivirusCorporativo($query, string $alias = 'c')
+    {
+        $av = $this->dominio->antivirus();
+
+        if (!$av) return $query;
+
+        return $query->whereNotExists(function ($q) use ($av, $alias) {
+            $q->select(DB::raw(1))
+              ->from('glpi_itemantiviruses as av')
+              ->whereColumn('av.items_id', "{$alias}.id")
+              ->where('av.itemtype', 'Computer')
+              ->where('av.is_deleted', 0)
+              ->where('av.is_active', 1)
+              ->where('av.name', 'like', "%{$av}%");
+        });
     }
 
     /** Filtro de texto libre, compartido por listado y conteos. */
@@ -94,8 +162,16 @@ class InventarioGlpi
         $conteos = [];
 
         foreach (array_keys($this->filtros()) as $clave) {
+            // El join del sistema operativo va siempre: las reglas de excepción
+            // pueden mirar `os.name`, y sin él la condición no compila.
             $q = $this->db()->table('glpi_computers as c')
                 ->leftJoin('glpi_users as u', 'u.id', '=', 'c.users_id')
+                ->leftJoin('glpi_items_operatingsystems as ios', function ($j) {
+                    $j->on('ios.items_id', '=', 'c.id')
+                      ->where('ios.itemtype', 'Computer')
+                      ->where('ios.is_deleted', 0);
+                })
+                ->leftJoin('glpi_operatingsystems as os', 'os.id', '=', 'ios.operatingsystems_id')
                 ->where('c.is_deleted', 0)
                 ->where('c.is_template', 0);
 

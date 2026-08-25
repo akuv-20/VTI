@@ -27,6 +27,7 @@ use App\Http\Controllers\Inventario\EquipoController as InvEquipoController;
 use App\Http\Controllers\Inventario\DashboardController as InvDashboardController;
 use App\Http\Controllers\Inventario\CruceController as InvCruceController;
 use App\Http\Controllers\Inventario\ActaController as InvActaController;
+use App\Http\Controllers\Inventario\ExcepcionController as InvExcepcionController;
 use App\Http\Controllers\Admin\UsuarioController as AdminUsuarioController;
 use App\Http\Controllers\Admin\ConfiguracionController as AdminConfiguracionController;
 use App\Http\Controllers\Admin\ActiveDirectoryController as AdminADController;
@@ -153,6 +154,13 @@ foreach (array_keys(config('inventario.dominios', [])) as $claveDominio) {
             $d(Route::get("inventario/cruce/{$claveDominio}",            [InvCruceController::class, 'index']))->name('cruce');
             $d(Route::post("inventario/cruce/{$claveDominio}/ajustes",   [InvCruceController::class, 'ajustes']))->name('cruce.ajustes');
             $d(Route::post("inventario/cruce/{$claveDominio}/refrescar", [InvCruceController::class, 'refrescar']))->name('cruce.refrescar');
+
+            $d(Route::get("inventario/excepciones/{$claveDominio}",                  [InvExcepcionController::class, 'index']))->name('excepciones');
+            $d(Route::post("inventario/excepciones/{$claveDominio}",                 [InvExcepcionController::class, 'store']))->name('excepciones.store');
+            $d(Route::post("inventario/excepciones/{$claveDominio}/previsualizar",   [InvExcepcionController::class, 'previsualizar']))->name('excepciones.preview');
+            $d(Route::put("inventario/excepciones/{$claveDominio}/{excepcion}",      [InvExcepcionController::class, 'update']))->name('excepciones.update');
+            $d(Route::post("inventario/excepciones/{$claveDominio}/{excepcion}/toggle", [InvExcepcionController::class, 'toggle']))->name('excepciones.toggle');
+            $d(Route::delete("inventario/excepciones/{$claveDominio}/{excepcion}",   [InvExcepcionController::class, 'destroy']))->name('excepciones.destroy');
 
             $d(Route::get("inventario/actas/{$claveDominio}",                    [InvActaController::class, 'index']))->name('actas');
             $d(Route::post("inventario/actas/{$claveDominio}/equipo/{id}",       [InvActaController::class, 'store']))->name('actas.store');

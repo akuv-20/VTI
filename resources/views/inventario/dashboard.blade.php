@@ -23,7 +23,7 @@
             ['label'=>'Sin Agente',            'value'=>$sinAgente,       'icon'=>'bi-plugin',                'color'=>'danger',   'bg'=>'#fee2e2','ic'=>'#dc2626'],
             ['label'=>'Agente Inactivo +90d',  'value'=>$agenteInactivo,  'icon'=>'bi-wifi-off',              'color'=>'danger',   'bg'=>'#fee2e2','ic'=>'#dc2626'],
             ['label'=>'Duplicados por Serial', 'value'=>$cantDuplicados,  'icon'=>'bi-copy',                  'color'=>'danger',   'bg'=>'#fee2e2','ic'=>'#dc2626'],
-            ['label'=>'Sin Antivirus',         'value'=>$sinAntivirus,    'icon'=>'bi-shield-x',              'color'=>'warning',  'bg'=>'#fef3c7','ic'=>'#d97706'],
+            ['label'=>'Sin '.($antivirusNombre ?: 'Antivirus'), 'value'=>$sinAntivirus,    'icon'=>'bi-shield-x',              'color'=>'warning',  'bg'=>'#fef3c7','ic'=>'#d97706'],
         ];
         @endphp
         @foreach($kpis as $k)
@@ -217,7 +217,7 @@
         {{-- Sin antivirus --}}
         <div class="col-lg-6">
             @include('inventario._tabla_alerta', [
-                'titulo'  => 'Equipos sin antivirus registrado',
+                'titulo'  => 'Equipos sin ' . ($antivirusNombre ?: 'antivirus') . ' activo',
                 'icono'   => 'bi-shield-x',
                 'color'   => 'warning',
                 'columnas'=> ['Equipo','Usuario','Ubicación'],
