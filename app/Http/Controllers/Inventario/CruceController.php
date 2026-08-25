@@ -9,16 +9,11 @@ use App\Services\DominioInventario;
 use Illuminate\Http\Request;
 
 /** Cruce del AD de un dominio contra el inventario de su GLPI. */
-class CruceController extends Controller
+class CruceController extends BaseController
 {
-    public function __construct()
+    public function index()
     {
-        $this->middleware('auth');
-    }
-
-    public function index(string $dominio)
-    {
-        $dom   = DominioInventario::oFalla($dominio);
+        $dom = $this->dominio();
         $cruce = new CruceAdGlpi($dom);
 
         try {
@@ -47,9 +42,9 @@ class CruceController extends Controller
     }
 
     /** Umbrales configurables (compartidos por todos los dominios). */
-    public function ajustes(Request $request, string $dominio)
+    public function ajustes(Request $request)
     {
-        DominioInventario::oFalla($dominio);
+        $this->dominio();
 
         $request->validate([
             'cruce_dias_baja'   => 'required|integer|min:1|max:3650',
@@ -66,9 +61,9 @@ class CruceController extends Controller
     }
 
     /** Fuerza la recarga desde AD y GLPI de este dominio. */
-    public function refrescar(string $dominio)
+    public function refrescar()
     {
-        (new CruceAdGlpi(DominioInventario::oFalla($dominio)))->olvidarCache();
+        (new CruceAdGlpi($this->dominio()))->olvidarCache();
 
         return back()->with('success', 'Datos actualizados desde AD y GLPI.');
     }

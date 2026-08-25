@@ -15,16 +15,11 @@ use Illuminate\Http\Request;
  * El dominio llega como parámetro de ruta (lo inyectan los grupos que arma
  * routes/web.php con ->defaults()), y de él salen las conexiones.
  */
-class EquipoController extends Controller
+class EquipoController extends BaseController
 {
-    public function __construct()
+    public function index(Request $request)
     {
-        $this->middleware('auth');
-    }
-
-    public function index(Request $request, string $dominio)
-    {
-        $dom    = DominioInventario::oFalla($dominio);
+        $dom = $this->dominio();
         $glpi   = new InventarioGlpi($dom);
         $search = trim((string) $request->input('q', ''));
         $filtro = (string) $request->input('filtro', 'todos');
@@ -60,9 +55,9 @@ class EquipoController extends Controller
         }
     }
 
-    public function show(string $dominio, $id)
+    public function show($id)
     {
-        $dom  = DominioInventario::oFalla($dominio);
+        $dom = $this->dominio();
         $glpi = new InventarioGlpi($dom);
 
         $equipo = $glpi->equipo((int) $id);

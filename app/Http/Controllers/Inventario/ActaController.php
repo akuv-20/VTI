@@ -18,17 +18,12 @@ use Illuminate\Support\Facades\Storage;
  * `dominio`: sin él, el `glpi_computer_id` deja de ser único entre bases y el
  * historial de una ficha mostraría actas de otro GLPI.
  */
-class ActaController extends Controller
+class ActaController extends BaseController
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
-
     /** Listado de actas del dominio. */
-    public function index(string $dominio)
+    public function index()
     {
-        $dom = DominioInventario::oFalla($dominio);
+        $dom = $this->dominio();
 
         return view('inventario.actas', [
             'dom'   => $dom,
@@ -37,9 +32,9 @@ class ActaController extends Controller
     }
 
     /** Genera el acta de un equipo. */
-    public function store(Request $request, string $dominio, $id)
+    public function store(Request $request, $id)
     {
-        $dom    = DominioInventario::oFalla($dominio);
+        $dom = $this->dominio();
         $glpi   = new InventarioGlpi($dom);
         $equipo = $glpi->equipo((int) $id);
 
@@ -104,9 +99,9 @@ class ActaController extends Controller
         return redirect()->route("inventario.{$dom->clave}.actas.imprimir", $acta);
     }
 
-    public function imprimir(string $dominio, ActaEntregaEquipo $acta)
+    public function imprimir(ActaEntregaEquipo $acta)
     {
-        $dom = $this->actaDelDominio($dominio, $acta);
+        $dom = $this->actaDelDominio($acta);
 
         $logoPath = Configuracion::get('app_logo');
         $appLogo  = $logoPath ? Storage::url($logoPath) : null;
@@ -114,9 +109,9 @@ class ActaController extends Controller
         return view('inventario.acta_imprimir', compact('acta', 'appLogo', 'dom'));
     }
 
-    public function edit(string $dominio, ActaEntregaEquipo $acta)
+    public function edit(ActaEntregaEquipo $acta)
     {
-        $dom = $this->actaDelDominio($dominio, $acta);
+        $dom = $this->actaDelDominio($acta);
 
         if ($acta->bloqueadaParaEdicion()) {
             return redirect()->route("inventario.{$dom->clave}.actas")
@@ -126,9 +121,9 @@ class ActaController extends Controller
         return view('inventario.acta_editar', compact('acta', 'dom'));
     }
 
-    public function update(Request $request, string $dominio, ActaEntregaEquipo $acta)
+    public function update(Request $request, ActaEntregaEquipo $acta)
     {
-        $dom = $this->actaDelDominio($dominio, $acta);
+        $dom = $this->actaDelDominio($acta);
 
         if ($acta->bloqueadaParaEdicion()) {
             return redirect()->route("inventario.{$dom->clave}.actas")
@@ -178,9 +173,9 @@ class ActaController extends Controller
     }
 
     /** Eliminar acta (solo admin). */
-    public function destroy(string $dominio, ActaEntregaEquipo $acta)
+    public function destroy(ActaEntregaEquipo $acta)
     {
-        $this->actaDelDominio($dominio, $acta);
+        $this->actaDelDominio($acta);
         $this->authorize('admin');
 
         $acta->delete();
@@ -194,9 +189,9 @@ class ActaController extends Controller
      * Sin esto, quien tenga permiso sobre un dominio podría abrir por URL las
      * actas del otro: el permiso está en la ruta, pero el id del acta no.
      */
-    private function actaDelDominio(string $dominio, ActaEntregaEquipo $acta): DominioInventario
+    private function actaDelDominio(ActaEntregaEquipo $acta): DominioInventario
     {
-        $dom = DominioInventario::oFalla($dominio);
+        $dom = $this->dominio();
         abort_unless($acta->dominio === $dom->clave, 404);
 
         return $dom;

@@ -14,16 +14,11 @@ use Carbon\Carbon;
  * config/inventario.php, porque ese id pertenece a una base de GLPI concreta
  * y en la otra corresponde a otra persona.
  */
-class DashboardController extends Controller
+class DashboardController extends BaseController
 {
-    public function __construct()
+    public function index()
     {
-        $this->middleware('auth');
-    }
-
-    public function index(string $dominio)
-    {
-        $dom     = DominioInventario::oFalla($dominio);
+        $dom = $this->dominio();
         $glpi    = DB::connection($dom->glpi());
         $excluir = $dom->excluirUser() ?? -1;   // -1 = ningun id real, no excluye a nadie
         $hoy     = Carbon::now();
