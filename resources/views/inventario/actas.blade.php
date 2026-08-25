@@ -4,8 +4,9 @@
 <div class="container-fluid vti-page">
 
     <div class="vti-page-header">
-        <h4>
-            <i class="bi bi-file-earmark-text-fill me-2"></i>Actas de Entrega — Equipos TI
+        <h4 class="d-flex align-items-center gap-2 flex-wrap">
+            <span><i class="bi bi-file-earmark-text-fill me-2" style="color:{{ $dom->color() }}"></i>Actas de Entrega</span>
+            @include('inventario._dominio', ['seccion' => 'actas'])
         </h4>
     </div>
 
@@ -48,7 +49,7 @@
                                 <td style="font-size:.82rem">{{ $acta->entregado_por ?? '—' }}</td>
                                 <td class="text-end">
                                     <div class="d-flex gap-1 justify-content-end">
-                                        <a href="{{ route('inventario_ti.actas.imprimir', $acta) }}"
+                                        <a href="{{ route("inventario.{$dom->clave}.actas.imprimir", $acta) }}"
                                            class="btn btn-outline-primary btn-sm" target="_blank" title="Reimprimir">
                                             <i class="bi bi-printer-fill"></i>
                                         </a>
@@ -58,14 +59,14 @@
                                             <i class="bi bi-lock-fill"></i>
                                         </button>
                                         @else
-                                        <a href="{{ route('inventario_ti.actas.edit', $acta) }}"
+                                        <a href="{{ route("inventario.{$dom->clave}.actas.edit", $acta) }}"
                                            class="btn btn-outline-warning btn-sm" title="Editar">
                                             <i class="bi bi-pencil-fill"></i>
                                         </a>
                                         @endif
                                         @can('admin')
                                         <form method="POST"
-                                              action="{{ route('inventario_ti.actas.destroy', $acta) }}"
+                                              action="{{ route("inventario.{$dom->clave}.actas.destroy", $acta) }}"
                                               onsubmit="return confirm('¿Eliminar esta acta?')">
                                             @csrf @method('DELETE')
                                             <button class="btn btn-outline-danger btn-sm">

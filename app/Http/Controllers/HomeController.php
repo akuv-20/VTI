@@ -264,27 +264,39 @@ class HomeController extends Controller
 
     /* ── Inventario TI (GLPI) ────────────────────────────────────────────── */
 
+    /**
+     * Tarjeta del inventario de Verfrut.
+     *
+     * Sigue mirando solo ese dominio a propósito: mezclar los conteos de dos
+     * GLPI en un número daría un total que no se corresponde con ninguna
+     * pantalla. El enlace lleva al listado de Verfrut.
+     */
     private function inventario(User $user): ?array
     {
-        if (!$user->tieneAcceso('inventario_ti.index')) return null;
+        $dom = \App\Services\DominioInventario::de('verfrut');
 
-        $d = Cache::remember('home_inventario_glpi', self::CACHE_GLPI, function () {
+        if (!$dom || !$user->tieneAcceso('inventario.verfrut.equipos')) return null;
+
+        $d = Cache::remember('home_inventario_glpi', self::CACHE_GLPI, function () use ($dom) {
             try {
-                $base = fn() => DB::connection('glpi')->table('glpi_computers')
-                    ->where('is_deleted', 0)->where('is_template', 0)
-                    ->where('users_id', '!=', InventarioTiController::EXCLUIR_USER);
+                $base = function () use ($dom) {
+                    $q = DB::connection($dom->glpi())->table('glpi_computers as c')
+                        ->where('c.is_deleted', 0)->where('c.is_template', 0);
+
+                    return $dom->sinUsuarioExcluido($q);
+                };
 
                 return [
                     'ok'        => true,
                     'total'     => $base()->count(),
-                    'sin_dueno' => $base()->where('users_id', 0)->count(),
+                    'sin_dueno' => $base()->where('c.users_id', 0)->count(),
                 ];
             } catch (\Throwable) {
                 return ['ok' => false];
             }
         });
 
-        return $d + ['url' => route('inventario_ti.index')];
+        return $d + ['url' => route('inventario.verfrut.equipos')];
     }
 
     /* ── Admin ───────────────────────────────────────────────────────────── */

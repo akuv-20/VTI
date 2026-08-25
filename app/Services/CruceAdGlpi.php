@@ -10,8 +10,9 @@ use Illuminate\Support\Facades\DB;
 use LdapRecord\Models\ActiveDirectory\Computer;
 
 /**
- * Cruza los equipos del Active Directory de Unifrutti (conexión `tertiary`)
- * contra el inventario del GLPI de Unifrutti (conexión `glpi_unifrutti`).
+ * Cruza los equipos del Active Directory de un dominio contra el inventario
+ * de su GLPI. Ambas conexiones salen del DominioInventario, así que el mismo
+ * servicio sirve a Verfrut y a Unifrutti.
  *
  * El AD es la lista maestra: se recorren TODOS sus equipos y a cada uno se le
  * asigna un estado según si está inventariado, si el agente reporta y hace
@@ -31,12 +32,7 @@ use LdapRecord\Models\ActiveDirectory\Computer;
  */
 class CruceAdGlpi
 {
-    private const CONEXION_AD   = 'tertiary';
-    private const CONEXION_GLPI = 'glpi_unifrutti';
-
-    private const CACHE_AD_KEY   = 'cruce_ad_glpi_equipos_ad';
-    private const CACHE_GLPI_KEY = 'cruce_ad_glpi_equipos_glpi';
-    private const CACHE_TTL      = 300; // segundos
+    private const CACHE_TTL = 300; // segundos
 
     /** Bandera de userAccountControl: cuenta deshabilitada. */
     private const UAC_DESHABILITADA = 0x0002;
@@ -44,7 +40,7 @@ class CruceAdGlpi
     private int $diasBaja;
     private int $diasAgente;
 
-    public function __construct()
+    public function __construct(private DominioInventario $dominio)
     {
         $this->diasBaja   = (int) (Configuracion::get('cruce_dias_baja', 90)   ?: 90);
         $this->diasAgente = (int) (Configuracion::get('cruce_dias_agente', 90) ?: 90);
@@ -53,11 +49,19 @@ class CruceAdGlpi
     public function diasBaja(): int   { return $this->diasBaja; }
     public function diasAgente(): int { return $this->diasAgente; }
 
-    /** Vacía la caché de ambos lados (para el botón "Actualizar"). */
-    public static function olvidarCache(): void
+    /* ── Caché, separada por dominio ─────────────────────────────────────── */
+    //
+    // Las claves llevan el dominio: si fueran fijas, entrar al cruce de un
+    // dominio serviría los equipos del otro desde la caché.
+
+    private function claveAd(): string   { return "cruce_ad_{$this->dominio->clave}"; }
+    private function claveGlpi(): string { return "cruce_glpi_{$this->dominio->clave}"; }
+
+    /** Vacía la caché de ambos lados para este dominio (botón "Actualizar"). */
+    public function olvidarCache(): void
     {
-        Cache::forget(self::CACHE_AD_KEY);
-        Cache::forget(self::CACHE_GLPI_KEY);
+        Cache::forget($this->claveAd());
+        Cache::forget($this->claveGlpi());
     }
 
     /**
@@ -72,8 +76,8 @@ class CruceAdGlpi
      */
     public function analizar(): array
     {
-        $equiposAd = Cache::remember(self::CACHE_AD_KEY, self::CACHE_TTL, fn() => $this->traerEquiposAd());
-        $mapaGlpi  = Cache::remember(self::CACHE_GLPI_KEY, self::CACHE_TTL, fn() => $this->traerMapaGlpi());
+        $equiposAd = Cache::remember($this->claveAd(), self::CACHE_TTL, fn() => $this->traerEquiposAd());
+        $mapaGlpi  = Cache::remember($this->claveGlpi(), self::CACHE_TTL, fn() => $this->traerMapaGlpi());
 
         $ahora = now();
         $vistos = [];   // nombres normalizados encontrados en AD (para huérfanos GLPI)
@@ -169,7 +173,12 @@ class CruceAdGlpi
 
     private function traerEquiposAd(): Collection
     {
-        $computers = Computer::on(self::CONEXION_AD)
+        // El dominio de Verfrut usa la conexión LDAP por defecto, que se pide
+        // sin ::on(); los demás declaran la suya.
+        $conexion = $this->dominio->ad();
+        $consulta = $conexion ? Computer::on($conexion) : Computer::query();
+
+        $computers = $consulta
             ->select([
                 'cn', 'dnshostname', 'operatingsystem',
                 'lastlogontimestamp', 'pwdlastset',
@@ -201,7 +210,7 @@ class CruceAdGlpi
 
     private function traerMapaGlpi(): Collection
     {
-        $filas = DB::connection(self::CONEXION_GLPI)
+        $filas = DB::connection($this->dominio->glpi())
             ->table('glpi_computers as c')
             ->leftJoin('glpi_agents as a', function ($j) {
                 $j->on('a.items_id', '=', 'c.id')->where('a.itemtype', 'Computer');

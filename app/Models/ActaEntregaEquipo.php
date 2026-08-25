@@ -9,6 +9,7 @@ class ActaEntregaEquipo extends Model
     protected $table = 'actas_entrega_equipo';
 
     protected $fillable = [
+        'dominio',
         'glpi_computer_id',
         'fecha_emision',
         'nombre_equipo',

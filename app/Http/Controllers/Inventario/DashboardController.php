@@ -1,24 +1,31 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Inventario;
 
+use App\Http\Controllers\Controller;
+use App\Services\DominioInventario;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class InventarioDashboardController extends Controller
+/**
+ * Dashboard de salud del inventario, para cualquier dominio.
+ *
+ * El usuario excluido ya no es una constante: cada dominio declara el suyo en
+ * config/inventario.php, porque ese id pertenece a una base de GLPI concreta
+ * y en la otra corresponde a otra persona.
+ */
+class DashboardController extends Controller
 {
     public function __construct()
     {
         $this->middleware('auth');
     }
 
-    // Usuario excluido de todos los indicadores (equipos sin conectividad gestionable)
-    private const EXCLUIR_USER = 138;
-
-    public function index()
+    public function index(string $dominio)
     {
-        $glpi    = DB::connection('glpi');
-        $excluir = self::EXCLUIR_USER;
+        $dom     = DominioInventario::oFalla($dominio);
+        $glpi    = DB::connection($dom->glpi());
+        $excluir = $dom->excluirUser() ?? -1;   // -1 = ningun id real, no excluye a nadie
         $hoy     = Carbon::now();
         $hace90  = $hoy->copy()->subDays(90)->toDateTimeString();
         $hace30  = $hoy->copy()->subDays(30)->toDateTimeString();
@@ -201,7 +208,8 @@ class InventarioDashboardController extends Controller
             ->groupBy('loc.id', 'loc.completename')
             ->orderByDesc('total')->limit(10)->get();
 
-        return view('inventario_ti.dashboard', compact(
+        return view('inventario.dashboard', compact(
+            'dom',
             'totalEquipos', 'sinUsuario', 'sinUbicacion', 'sinAgente',
             'agenteInactivo', 'cantDuplicados', 'sinAntivirus',
             'porSO', 'totalConSO',

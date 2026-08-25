@@ -179,10 +179,10 @@
 <body>
 
 <div class="toolbar">
-    <a href="{{ route('inventario_ti.show', $acta->glpi_computer_id) }}">
+    <a href="{{ route("inventario.{$dom->clave}.equipos.show", $acta->glpi_computer_id) }}">
         <i class="bi bi-arrow-left"></i> Volver
     </a>
-    <a href="{{ route('inventario_ti.actas') }}">
+    <a href="{{ route("inventario.{$dom->clave}.actas") }}">
         <i class="bi bi-list-ul"></i> Actas
     </a>
     <div class="ms-auto">

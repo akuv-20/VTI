@@ -210,9 +210,29 @@ class AppServiceProvider extends ServiceProvider
             return $user->tieneAcceso('admin.active_directory3.index');
         });
 
-        Gate::define('acceso_inventario_uni', function ($user) {
+        // ── Inventario: un permiso por dominio ───────────────────────────
+        //
+        // El módulo es uno solo, pero el acceso se da por dominio: así se
+        // puede habilitar Unifrutti sin dar Verfrut. El selector muestra
+        // únicamente los dominios permitidos, y con uno solo entra directo.
+        //
+        // Cada dominio declara su gate en config/inventario.php y las rutas
+        // llevan el dominio en el nombre (`inventario.verfrut.*`), que es lo
+        // que permite a tieneAcceso() distinguirlos por prefijo.
+        foreach (config('inventario.dominios', []) as $clave => $cfg) {
+            Gate::define($cfg['gate'], function ($user) use ($clave) {
+                if (!$user->activo) return false;
+                return $user->tieneAcceso("inventario.{$clave}.equipos");
+            });
+        }
+
+        // Cualquier dominio habilita la entrada del menú.
+        Gate::define('acceso_inventario', function ($user) {
             if (!$user->activo) return false;
-            return $user->tieneAcceso('admin.inventario_unifrutti.index');
+            foreach (array_keys(config('inventario.dominios', [])) as $clave) {
+                if ($user->tieneAcceso("inventario.{$clave}.equipos")) return true;
+            }
+            return false;
         });
 
         Gate::define('acceso_entra', function ($user) {

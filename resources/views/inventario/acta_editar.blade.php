@@ -5,7 +5,7 @@
 
     <div class="vti-page-header">
         <h4><i class="bi bi-pencil-square me-2"></i>Editar Acta de Entrega — Equipo</h4>
-        <a href="{{ route('inventario_ti.actas') }}" class="btn btn-outline-secondary btn-sm">
+        <a href="{{ route("inventario.{$dom->clave}.actas") }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Volver
         </a>
     </div>
@@ -18,7 +18,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('inventario_ti.actas.update', $acta) }}" style="max-width:900px">
+    <form method="POST" action="{{ route("inventario.{$dom->clave}.actas.update", $acta) }}" style="max-width:900px">
         @csrf @method('PUT')
 
         <div class="card border-0 shadow-sm rounded-3 mb-3">
@@ -137,10 +137,10 @@
             <button type="submit" class="btn btn-primary">
                 <i class="bi bi-check-lg me-1"></i>Guardar cambios
             </button>
-            <a href="{{ route('inventario_ti.actas.imprimir', $acta) }}" target="_blank" class="btn btn-outline-primary">
+            <a href="{{ route("inventario.{$dom->clave}.actas.imprimir", $acta) }}" target="_blank" class="btn btn-outline-primary">
                 <i class="bi bi-printer-fill me-1"></i>Reimprimir
             </a>
-            <a href="{{ route('inventario_ti.actas') }}" class="btn btn-outline-secondary">Cancelar</a>
+            <a href="{{ route("inventario.{$dom->clave}.actas") }}" class="btn btn-outline-secondary">Cancelar</a>
         </div>
     </form>
 

@@ -23,11 +23,12 @@
 <div class="container-fluid vti-page">
 
     <div class="vti-page-header">
-        <h4>
-            <i class="bi bi-pc-display-horizontal me-2" style="color:#0078d4"></i>Inventario Unifrutti — Equipos
+        <h4 class="d-flex align-items-center gap-2 flex-wrap">
+            <span><i class="bi bi-display-fill me-2" style="color:{{ $dom->color() }}"></i>Equipos</span>
+            @include('inventario._dominio', ['seccion' => 'equipos'])
         </h4>
         <div class="d-flex gap-2 align-items-center">
-            <form method="GET" action="{{ route('admin.inventario_unifrutti.equipos') }}" class="vti-search">
+            <form method="GET" action="{{ route("inventario.{$dom->clave}.equipos") }}" class="vti-search">
                 @if($filtro !== 'todos')
                     <input type="hidden" name="filtro" value="{{ $filtro }}">
                 @endif
@@ -37,13 +38,13 @@
                     <i class="bi bi-search"></i>
                 </button>
                 @if($search)
-                    <a href="{{ route('admin.inventario_unifrutti.equipos', ['filtro' => $filtro]) }}"
+                    <a href="{{ route("inventario.{$dom->clave}.equipos", ['filtro' => $filtro]) }}"
                        class="btn btn-outline-secondary btn-sm">
                         <i class="bi bi-x-lg"></i>
                     </a>
                 @endif
             </form>
-            <a href="{{ route('admin.inventario_unifrutti.index') }}" class="btn btn-outline-secondary btn-sm">
+            <a href="{{ route("inventario.{$dom->clave}.cruce") }}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-diagram-3 me-1"></i>Cruce AD
             </a>
         </div>
@@ -54,15 +55,15 @@
             <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
             <div>
                 <strong>No se pudo leer el inventario:</strong> {{ $error }}<br>
-                <a href="{{ route('admin.configuracion.index') }}#pane-glpiuni" class="alert-link">Ir a Configuración</a>
+                <a href="{{ route('admin.configuracion.index') }}#pane-glpi" class="alert-link">Ir a Configuración</a>
             </div>
         </div>
     @else
 
     {{-- Indicadores: muestran el conteo y al pulsarlos filtran la tabla --}}
     <div class="iue-tiles">
-        @foreach(\App\Http\Controllers\Admin\InventarioUnifruttiController::FILTROS as $clave => [$lbl, $ico, $color])
-        <a href="{{ route('admin.inventario_unifrutti.equipos', array_filter(['filtro' => $clave, 'q' => $search])) }}"
+        @foreach($filtros as $clave => [$lbl, $ico, $color])
+        <a href="{{ route("inventario.{$dom->clave}.equipos", array_filter(['filtro' => $clave, 'q' => $search])) }}"
            class="iue-tile {{ $filtro === $clave ? 'active' : '' }}"
            style="border-left-color:{{ $color }}">
             <div class="iue-tile-val" style="color:{{ $clave === 'todos' ? '#1e293b' : $color }}">
@@ -89,7 +90,7 @@
                     <th>N° Serie</th>
                     <th>Sistema Operativo</th>
                     <th>Ubicación</th>
-                    <th>ESET</th>
+                    <th>{{ $dom->antivirus() ?: "Antivirus" }}</th>
                     <th>Último reporte</th>
                     <th></th>
                 </tr>
@@ -100,8 +101,8 @@
                     $ultimo = $eq->last_contact ? \Carbon\Carbon::parse($eq->last_contact) : null;
                     $dias   = $ultimo ? (int) floor($ultimo->diffInDays(now())) : null;
                     $mudo   = $dias === null || $dias > $diasAgente;
-                    $eset   = $eq->eset_version !== null;
-                    $esetOn = $eset && (int) $eq->eset_activo === 1;
+                    $avOk   = $eq->av_version !== null;
+                    $avOn   = $avOk && (int) $eq->av_activo === 1;
                 @endphp
                 <tr>
                     <td class="fw-semibold">{{ $eq->nombre_equipo }}</td>
@@ -117,19 +118,19 @@
                     <td style="font-size:.8rem">{{ $eq->sistema_operativo ?: '—' }}</td>
                     <td style="font-size:.8rem">{{ $eq->ubicacion ?: '—' }}</td>
                     <td>
-                        @if($esetOn)
+                        @if($avOn)
                             <span class="iue-badge" style="background:#dcfce7;color:#16a34a;border-color:#86efac"
-                                  title="ESET {{ $eq->eset_version }}">
-                                <i class="bi bi-shield-check"></i>{{ $eq->eset_version }}
+                                  title="{{ $dom->antivirus() }} {{ $eq->av_version }}">
+                                <i class="bi bi-shield-check"></i>{{ $eq->av_version }}
                             </span>
-                        @elseif($eset)
+                        @elseif($avOk)
                             <span class="iue-badge" style="background:#fef3c7;color:#b45309;border-color:#fde68a"
                                   title="Instalado pero desactivado">
                                 <i class="bi bi-shield-slash"></i>inactivo
                             </span>
                         @else
                             <span class="iue-badge" style="background:#fee2e2;color:#dc2626;border-color:#fca5a5">
-                                <i class="bi bi-shield-exclamation"></i>sin ESET
+                                <i class="bi bi-shield-exclamation"></i>sin {{ $dom->antivirus() }}
                             </span>
                         @endif
                     </td>
@@ -145,7 +146,7 @@
                     </td>
                     <td class="text-end">
                         <div class="vti-actions justify-content-end">
-                            <a href="{{ route('admin.inventario_unifrutti.equipos.show', $eq->id) }}"
+                            <a href="{{ route("inventario.{$dom->clave}.equipos.show", $eq->id) }}"
                                class="vti-btn-view" title="Ver ficha">
                                 <i class="bi bi-eye-fill"></i>
                             </a>

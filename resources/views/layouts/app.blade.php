@@ -749,39 +749,26 @@
             @endif
 
             {{-- ── Inventario TI ── --}}
-            @if($ta('inventario_ti.index'))
+            {{-- Un solo módulo para los dos dominios: el dominio se elige
+                 dentro de cada sección, no en el menú. --}}
+            @can('acceso_inventario')
             <div class="vti-nav-group" data-group="inventario">
                 <button type="button" class="vti-nav-group-toggle">
                     <i class="bi bi-pc-display"></i><span class="sb-text">Inventario TI</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="vti-nav-group-items">
-                    <a href="{{ route('inventario_ti.dashboard') }}" class="vti-nav-link {{ request()->routeIs('inventario_ti.dashboard') ? 'active' : '' }}">
+                    <a href="{{ route('inventario.elegir.dashboard') }}" class="vti-nav-link {{ request()->routeIs('inventario.*.dashboard') ? 'active' : '' }}">
                         <i class="bi bi-speedometer2"></i>Dashboard
                     </a>
-                    <a href="{{ route('inventario_ti.index') }}" class="vti-nav-link {{ request()->routeIs('inventario_ti.index', 'inventario_ti.show') ? 'active' : '' }}">
+                    <a href="{{ route('inventario.elegir.equipos') }}" class="vti-nav-link {{ request()->routeIs('inventario.*.equipos*') ? 'active' : '' }}">
                         <i class="bi bi-display-fill"></i>Equipos
                     </a>
-                    <a href="{{ route('inventario_ti.actas') }}" class="vti-nav-link {{ request()->routeIs('inventario_ti.actas*') ? 'active' : '' }}">
-                        <i class="bi bi-file-earmark-text-fill"></i>Actas de Entrega
-                    </a>
-                </div>
-            </div>
-            @endif
-
-            {{-- ── Inventario Unifrutti ── --}}
-            @can('acceso_inventario_uni')
-            <div class="vti-nav-group" data-group="inventario_uni">
-                <button type="button" class="vti-nav-group-toggle">
-                    <i class="bi bi-pc-display-horizontal"></i><span class="sb-text">Inventario Unifrutti</span>
-                    <i class="bi bi-chevron-down"></i>
-                </button>
-                <div class="vti-nav-group-items">
-                    <a href="{{ route('admin.inventario_unifrutti.equipos') }}" class="vti-nav-link {{ request()->routeIs('admin.inventario_unifrutti.equipos*') ? 'active' : '' }}">
-                        <i class="bi bi-display-fill"></i>Equipos
-                    </a>
-                    <a href="{{ route('admin.inventario_unifrutti.index') }}" class="vti-nav-link {{ request()->routeIs('admin.inventario_unifrutti.index') ? 'active' : '' }}">
+                    <a href="{{ route('inventario.elegir.cruce') }}" class="vti-nav-link {{ request()->routeIs('inventario.*.cruce*') ? 'active' : '' }}">
                         <i class="bi bi-diagram-3"></i>Cruce AD ↔ GLPI
+                    </a>
+                    <a href="{{ route('inventario.elegir.actas') }}" class="vti-nav-link {{ request()->routeIs('inventario.*.actas*') ? 'active' : '' }}">
+                        <i class="bi bi-file-earmark-text-fill"></i>Actas de Entrega
                     </a>
                 </div>
             </div>
@@ -961,11 +948,22 @@
             'roamings'                    => ['Telefonía', 'Roamings'],
             'actas_entrega_telefono'      => ['Telefonía', 'Actas de Entrega'],
             'actas_devolucion_telefono'   => ['Telefonía', 'Actas de Devolución'],
-            'admin.inventario_unifrutti.equipos' => ['Inventario Unifrutti', 'Equipos'],
-            'admin.inventario_unifrutti'  => ['Inventario Unifrutti', 'Cruce AD ↔ GLPI'],
-            'inventario_ti.dashboard'     => ['Inventario TI', 'Dashboard'],
-            'inventario_ti.actas'         => ['Inventario TI', 'Actas de Entrega'],
-            'inventario_ti'               => ['Inventario TI', 'Equipos'],
+            // El módulo es uno solo; el dominio se ve dentro de la pantalla.
+            // Estas claves matchean por prefijo, así que cubren los dos
+            // dominios y el selector (inventario.verfrut.equipos,
+            // inventario.unifrutti.equipos, inventario.elegir.equipos…).
+            'inventario.verfrut.dashboard'   => ['Inventario TI', 'Dashboard'],
+            'inventario.unifrutti.dashboard' => ['Inventario TI', 'Dashboard'],
+            'inventario.elegir.dashboard'    => ['Inventario TI', 'Dashboard'],
+            'inventario.verfrut.equipos'     => ['Inventario TI', 'Equipos'],
+            'inventario.unifrutti.equipos'   => ['Inventario TI', 'Equipos'],
+            'inventario.elegir.equipos'      => ['Inventario TI', 'Equipos'],
+            'inventario.verfrut.cruce'       => ['Inventario TI', 'Cruce AD ↔ GLPI'],
+            'inventario.unifrutti.cruce'     => ['Inventario TI', 'Cruce AD ↔ GLPI'],
+            'inventario.elegir.cruce'        => ['Inventario TI', 'Cruce AD ↔ GLPI'],
+            'inventario.verfrut.actas'       => ['Inventario TI', 'Actas de Entrega'],
+            'inventario.unifrutti.actas'     => ['Inventario TI', 'Actas de Entrega'],
+            'inventario.elegir.actas'        => ['Inventario TI', 'Actas de Entrega'],
             'admin.active_directory3'     => ['AD | EntraID', 'AD Unifrutti'],
             'admin.active_directory2'     => ['Active Directory', 'AD Grupo Verfrut (Perú)'],
             'admin.active_directory'      => ['Active Directory', 'AD Verfrut'],

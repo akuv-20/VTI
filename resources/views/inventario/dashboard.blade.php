@@ -4,8 +4,13 @@
 <div class="container-fluid vti-page">
 
     <div class="vti-page-header mb-3">
-        <h4><i class="bi bi-speedometer2 me-2"></i>Dashboard — Salud del Inventario TI</h4>
-        <small class="text-muted">Datos en tiempo real desde GLPI &nbsp;·&nbsp; {{ now()->format('d/m/Y H:i') }}</small>
+        <h4 class="d-flex align-items-center gap-2 flex-wrap">
+            <span><i class="bi bi-speedometer2 me-2" style="color:{{ $dom->color() }}"></i>Salud del Inventario</span>
+            @include('inventario._dominio', ['seccion' => 'dashboard'])
+        </h4>
+        <small class="text-muted">
+            Datos en tiempo real desde el GLPI de {{ $dom->label() }} &nbsp;·&nbsp; {{ now()->format('d/m/Y H:i') }}
+        </small>
     </div>
 
     {{-- ── KPIs ── --}}
@@ -124,7 +129,7 @@
 
         {{-- Inactivos --}}
         <div class="col-lg-6">
-            @include('inventario_ti._tabla_alerta', [
+            @include('inventario._tabla_alerta', [
                 'titulo'  => 'Equipos sin comunicación +90 días',
                 'icono'   => 'bi-wifi-off',
                 'color'   => 'danger',
@@ -141,7 +146,7 @@
 
         {{-- Sin usuario --}}
         <div class="col-lg-6">
-            @include('inventario_ti._tabla_alerta', [
+            @include('inventario._tabla_alerta', [
                 'titulo'  => 'Equipos sin usuario asignado',
                 'icono'   => 'bi-person-x-fill',
                 'color'   => 'warning',
@@ -161,7 +166,7 @@
 
         {{-- Sin ubicación --}}
         <div class="col-lg-6">
-            @include('inventario_ti._tabla_alerta', [
+            @include('inventario._tabla_alerta', [
                 'titulo'  => 'Equipos sin ubicación',
                 'icono'   => 'bi-geo-alt',
                 'color'   => 'warning',
@@ -176,7 +181,7 @@
 
         {{-- Sin agente --}}
         <div class="col-lg-6">
-            @include('inventario_ti._tabla_alerta', [
+            @include('inventario._tabla_alerta', [
                 'titulo'  => 'Equipos sin agente GLPI',
                 'icono'   => 'bi-plugin',
                 'color'   => 'danger',
@@ -196,7 +201,7 @@
 
         {{-- Duplicados --}}
         <div class="col-lg-6">
-            @include('inventario_ti._tabla_alerta', [
+            @include('inventario._tabla_alerta', [
                 'titulo'  => 'Equipos duplicados por N° de Serie',
                 'icono'   => 'bi-copy',
                 'color'   => 'danger',
@@ -211,7 +216,7 @@
 
         {{-- Sin antivirus --}}
         <div class="col-lg-6">
-            @include('inventario_ti._tabla_alerta', [
+            @include('inventario._tabla_alerta', [
                 'titulo'  => 'Equipos sin antivirus registrado',
                 'icono'   => 'bi-shield-x',
                 'color'   => 'warning',
@@ -230,7 +235,7 @@
 
         {{-- Más antiguos --}}
         <div class="col-lg-6">
-            @include('inventario_ti._tabla_alerta', [
+            @include('inventario._tabla_alerta', [
                 'titulo'  => 'Top 10 equipos más antiguos',
                 'icono'   => 'bi-hourglass-split',
                 'color'   => 'secondary',
@@ -246,7 +251,7 @@
 
         {{-- Recientes --}}
         <div class="col-lg-6">
-            @include('inventario_ti._tabla_alerta', [
+            @include('inventario._tabla_alerta', [
                 'titulo'  => 'Equipos agregados último mes',
                 'icono'   => 'bi-calendar-plus-fill',
                 'color'   => 'success',

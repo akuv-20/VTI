@@ -22,14 +22,16 @@ use App\Http\Controllers\EntregaFacturaController;
 use App\Http\Controllers\ActaEntregaTelefonoController;
 use App\Http\Controllers\ActaDevolucionTelefonoController;
 use App\Http\Controllers\RoamingController;
-use App\Http\Controllers\InventarioTiController;
-use App\Http\Controllers\InventarioDashboardController;
+use App\Http\Controllers\Inventario\SelectorController as InvSelectorController;
+use App\Http\Controllers\Inventario\EquipoController as InvEquipoController;
+use App\Http\Controllers\Inventario\DashboardController as InvDashboardController;
+use App\Http\Controllers\Inventario\CruceController as InvCruceController;
+use App\Http\Controllers\Inventario\ActaController as InvActaController;
 use App\Http\Controllers\Admin\UsuarioController as AdminUsuarioController;
 use App\Http\Controllers\Admin\ConfiguracionController as AdminConfiguracionController;
 use App\Http\Controllers\Admin\ActiveDirectoryController as AdminADController;
 use App\Http\Controllers\Admin\ActiveDirectory2Controller as AdminAD2Controller;
 use App\Http\Controllers\Admin\ActiveDirectory3Controller as AdminAD3Controller;
-use App\Http\Controllers\Admin\InventarioUnifruttiController as AdminInvUniController;
 use App\Http\Controllers\Admin\EntraIDController as AdminEntraIDController;
 use App\Http\Controllers\Admin\KpiDisponibilidadController as AdminKpiDisponibilidadController;
 use App\Http\Controllers\Admin\MonitoreoMapaController as AdminMonitoreoMapaController;
@@ -114,16 +116,63 @@ Route::post('actas_devolucion_telefono/linea/{linea}', [ActaDevolucionTelefonoCo
 Route::delete('actas_devolucion_telefono/{acta}', [ActaDevolucionTelefonoController::class, 'destroy'])->name('actas_devolucion_telefono.destroy');
 Route::get('actas_devolucion_telefono', [ActaDevolucionTelefonoController::class, 'index'])->name('actas_devolucion_telefono.index');
 
-// ── Inventario TI ────────────────────────────────────────────────────────────
-Route::get('inventario_ti/dashboard',                          [InventarioDashboardController::class, 'index'])->name('inventario_ti.dashboard');
-Route::get('inventario_ti',                                    [InventarioTiController::class, 'index'])->name('inventario_ti.index');
-Route::get('inventario_ti/actas',                              [InventarioTiController::class, 'actas'])->name('inventario_ti.actas');
-Route::get('inventario_ti/actas/{acta}/imprimir',              [InventarioTiController::class, 'imprimirActa'])->name('inventario_ti.actas.imprimir');
-Route::get('inventario_ti/actas/{acta}/editar',                [InventarioTiController::class, 'editActa'])->name('inventario_ti.actas.edit');
-Route::put('inventario_ti/actas/{acta}',                       [InventarioTiController::class, 'updateActa'])->name('inventario_ti.actas.update');
-Route::delete('inventario_ti/actas/{acta}',                    [InventarioTiController::class, 'destroyActa'])->name('inventario_ti.actas.destroy');
-Route::get('inventario_ti/{id}',                               [InventarioTiController::class, 'show'])->name('inventario_ti.show');
-Route::post('inventario_ti/{id}/acta',                         [InventarioTiController::class, 'storeActa'])->name('inventario_ti.acta.store');
+// ── Inventario (multidominio) ────────────────────────────────────────────────
+//
+// Un solo módulo con selector de dominio. Cada dominio de config/inventario.php
+// recibe su propio grupo de rutas, con el dominio metido en el NOMBRE
+// (`inventario.verfrut.equipos`) y no solo en la URL: así el permiso por
+// prefijo de User::tieneAcceso() puede distinguir un dominio de otro.
+//
+// El dominio viaja al controlador con ->defaults(), que lo convierte en
+// parámetro de ruta sin ensuciar la URL.
+//
+// Ojo: este bucle se resuelve al definir las rutas. Si agregas un dominio con
+// las rutas cacheadas, hay que correr `php artisan route:clear`.
+
+// Selector: sin dominio todavía, basta con tener acceso a alguno.
+Route::middleware(['auth', 'can:acceso_inventario'])->name('inventario.elegir.')->group(function () {
+    Route::get('inventario/dashboard', [InvSelectorController::class, 'dashboard'])->name('dashboard');
+    Route::get('inventario/equipos',   [InvSelectorController::class, 'equipos'])->name('equipos');
+    Route::get('inventario/cruce',     [InvSelectorController::class, 'cruce'])->name('cruce');
+    Route::get('inventario/actas',     [InvSelectorController::class, 'actas'])->name('actas');
+});
+
+foreach (array_keys(config('inventario.dominios', [])) as $claveDominio) {
+    $gate = config("inventario.dominios.{$claveDominio}.gate");
+
+    Route::middleware(['auth', "can:{$gate}"])
+        ->name("inventario.{$claveDominio}.")
+        ->group(function () use ($claveDominio) {
+            $d = fn($ruta) => $ruta->defaults('dominio', $claveDominio);
+
+            $d(Route::get("inventario/dashboard/{$claveDominio}",  [InvDashboardController::class, 'index']))->name('dashboard');
+
+            $d(Route::get("inventario/equipos/{$claveDominio}",      [InvEquipoController::class, 'index']))->name('equipos');
+            $d(Route::get("inventario/equipos/{$claveDominio}/{id}", [InvEquipoController::class, 'show']))->name('equipos.show');
+
+            $d(Route::get("inventario/cruce/{$claveDominio}",            [InvCruceController::class, 'index']))->name('cruce');
+            $d(Route::post("inventario/cruce/{$claveDominio}/ajustes",   [InvCruceController::class, 'ajustes']))->name('cruce.ajustes');
+            $d(Route::post("inventario/cruce/{$claveDominio}/refrescar", [InvCruceController::class, 'refrescar']))->name('cruce.refrescar');
+
+            $d(Route::get("inventario/actas/{$claveDominio}",                    [InvActaController::class, 'index']))->name('actas');
+            $d(Route::post("inventario/actas/{$claveDominio}/equipo/{id}",       [InvActaController::class, 'store']))->name('actas.store');
+            $d(Route::get("inventario/actas/{$claveDominio}/{acta}/imprimir",    [InvActaController::class, 'imprimir']))->name('actas.imprimir');
+            $d(Route::get("inventario/actas/{$claveDominio}/{acta}/editar",      [InvActaController::class, 'edit']))->name('actas.edit');
+            $d(Route::put("inventario/actas/{$claveDominio}/{acta}",             [InvActaController::class, 'update']))->name('actas.update');
+            $d(Route::delete("inventario/actas/{$claveDominio}/{acta}",          [InvActaController::class, 'destroy']))->name('actas.destroy');
+        });
+}
+
+// ── Rutas viejas de Inventario TI ────────────────────────────────────────────
+// Se conservan como redirecciones para no romper los favoritos ni los enlaces
+// que ya circulan. Todas apuntan al dominio Verfrut, que es lo que servían.
+Route::middleware('auth')->group(function () {
+    Route::get('inventario_ti/dashboard', fn() => redirect()->route('inventario.verfrut.dashboard'))->name('inventario_ti.dashboard');
+    Route::get('inventario_ti/actas',     fn() => redirect()->route('inventario.verfrut.actas'))->name('inventario_ti.actas');
+    Route::get('inventario_ti',           fn() => redirect()->route('inventario.verfrut.equipos'))->name('inventario_ti.index');
+    Route::get('inventario_ti/{id}',      fn($id) => redirect()->route('inventario.verfrut.equipos.show', $id))
+        ->whereNumber('id')->name('inventario_ti.show');
+});
 
 Route::resource('importaciones_entel', ImportacionEntelController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
 Route::post('importaciones_entel/{importaciones_entel}/recruzar', [ImportacionEntelController::class, 'recruzar'])->name('importaciones_entel.recruzar');
@@ -317,17 +366,6 @@ Route::middleware(['auth', 'can:acceso_ad2'])->prefix('admin')->name('admin.')->
         Route::post('/{username}/toggle',         [AdminAD2Controller::class, 'toggleEnabled'])->name('toggle');
         Route::post('/{username}/desbloquear',    [AdminAD2Controller::class, 'desbloquear'])->name('desbloquear');
         Route::post('/{username}/reset-password', [AdminAD2Controller::class, 'resetPassword'])->name('reset-password');
-    });
-});
-
-// ── Inventario Unifrutti: cruce AD ↔ GLPI (permiso inventario_uni) ──────────
-Route::middleware(['auth', 'can:acceso_inventario_uni'])->prefix('admin')->name('admin.')->group(function () {
-    Route::prefix('inventario-unifrutti')->name('inventario_unifrutti.')->group(function () {
-        Route::get('/',              [AdminInvUniController::class, 'index'])->name('index');
-        Route::post('/ajustes',      [AdminInvUniController::class, 'ajustes'])->name('ajustes');
-        Route::post('/refrescar',    [AdminInvUniController::class, 'refrescar'])->name('refrescar');
-        Route::get('/equipos',       [AdminInvUniController::class, 'equipos'])->name('equipos');
-        Route::get('/equipos/{id}',  [AdminInvUniController::class, 'equipoShow'])->name('equipos.show');
     });
 });
 

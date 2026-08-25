@@ -48,16 +48,16 @@
 <div class="container-fluid vti-page">
 
     <div class="vti-page-header">
-        <h4>
-            <i class="bi bi-pc-display-horizontal me-2" style="color:#0078d4"></i>Inventario Unifrutti
-            <span class="text-muted fw-normal" style="font-size:.85rem">· Cruce AD ↔ GLPI</span>
+        <h4 class="d-flex align-items-center gap-2 flex-wrap">
+            <span><i class="bi bi-diagram-3 me-2" style="color:{{ $dom->color() }}"></i>Cruce AD ↔ GLPI</span>
+            @include('inventario._dominio', ['seccion' => 'cruce'])
         </h4>
         <div class="d-flex gap-2">
             <button class="btn btn-outline-secondary btn-sm" type="button"
                     data-bs-toggle="collapse" data-bs-target="#paneAjustes">
                 <i class="bi bi-sliders me-1"></i>Umbrales
             </button>
-            <form method="POST" action="{{ route('admin.inventario_unifrutti.refrescar') }}" class="d-inline">
+            <form method="POST" action="{{ route("inventario.{$dom->clave}.cruce.refrescar") }}" class="d-inline">
                 @csrf
                 <button class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
@@ -82,7 +82,7 @@
     {{-- Ajustes de umbrales --}}
     <div class="collapse" id="paneAjustes">
         <div class="iu-ajustes">
-            <form method="POST" action="{{ route('admin.inventario_unifrutti.ajustes') }}"
+            <form method="POST" action="{{ route("inventario.{$dom->clave}.cruce.ajustes") }}"
                   class="row g-3 align-items-end">
                 @csrf
                 <div class="col-auto">
@@ -111,7 +111,7 @@
             <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
             <div>
                 <strong>No se pudo generar el cruce:</strong> {{ $error }}<br>
-                <a href="{{ route('admin.configuracion.index') }}#pane-glpiuni" class="alert-link">Ir a Configuración</a>
+                <a href="{{ route('admin.configuracion.index') }}#pane-glpi" class="alert-link">Ir a Configuración</a>
             </div>
         </div>
     @else
