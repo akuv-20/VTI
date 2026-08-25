@@ -182,6 +182,41 @@ class ActiveDirectoryController extends Controller
         }
     }
 
+    // ── Desbloquear cuenta ────────────────────────────────────────────────────
+
+    /**
+     * Libera una cuenta bloqueada por intentos fallidos.
+     *
+     * En AD desbloquear es poner `lockoutTime` en 0. El contador de intentos
+     * (`badPwdCount`) no se toca: no es escribible y cada controlador lleva el
+     * suyo, que se reinicia solo al liberarse el bloqueo.
+     *
+     * Tiene que ser el entero 0 y nada más: LdapRecord trata `lockoutTime`
+     * como windows-int y su conversor traduciría un 0 a 116444736000000000
+     * (1970-01-01). No llega a hacerlo porque setAttribute() se salta la
+     * conversión cuando el valor es falsy — la misma trampa que ya obliga a
+     * leer `pwdLastSet` en crudo en EstadoCuentaAd—, así que asignar null o
+     * una fecha aquí rompería el desbloqueo en silencio.
+     */
+    public function desbloquear(string $username)
+    {
+        try {
+            $usuario = AdUser::where('samaccountname', $username)->firstOrFail();
+
+            $usuario->lockouttime = 0;
+            $usuario->save();
+
+            return back()->with('success', "Cuenta {$username} desbloqueada correctamente.");
+
+        } catch (\LdapRecord\Models\ModelNotFoundException) {
+            return back()->withErrors(['Usuario no encontrado.']);
+        } catch (\LdapRecord\Exceptions\InsufficientAccessException) {
+            return back()->withErrors(['La cuenta de servicio no tiene permisos para desbloquear cuentas.']);
+        } catch (\Throwable $e) {
+            return back()->withErrors([$this->mensajeError($e)]);
+        }
+    }
+
     // ── Resetear contraseña ───────────────────────────────────────────────────
 
     public function resetPassword(Request $request, string $username)

@@ -777,7 +777,10 @@
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="vti-nav-group-items">
-                    <a href="{{ route('admin.inventario_unifrutti.index') }}" class="vti-nav-link {{ request()->routeIs('admin.inventario_unifrutti.*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.inventario_unifrutti.equipos') }}" class="vti-nav-link {{ request()->routeIs('admin.inventario_unifrutti.equipos*') ? 'active' : '' }}">
+                        <i class="bi bi-display-fill"></i>Equipos
+                    </a>
+                    <a href="{{ route('admin.inventario_unifrutti.index') }}" class="vti-nav-link {{ request()->routeIs('admin.inventario_unifrutti.index') ? 'active' : '' }}">
                         <i class="bi bi-diagram-3"></i>Cruce AD ↔ GLPI
                     </a>
                 </div>
@@ -958,6 +961,7 @@
             'roamings'                    => ['Telefonía', 'Roamings'],
             'actas_entrega_telefono'      => ['Telefonía', 'Actas de Entrega'],
             'actas_devolucion_telefono'   => ['Telefonía', 'Actas de Devolución'],
+            'admin.inventario_unifrutti.equipos' => ['Inventario Unifrutti', 'Equipos'],
             'admin.inventario_unifrutti'  => ['Inventario Unifrutti', 'Cruce AD ↔ GLPI'],
             'inventario_ti.dashboard'     => ['Inventario TI', 'Dashboard'],
             'inventario_ti.actas'         => ['Inventario TI', 'Actas de Entrega'],

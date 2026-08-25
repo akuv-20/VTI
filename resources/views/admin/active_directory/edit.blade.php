@@ -195,7 +195,7 @@
          formulario quedaría a una pantalla de scroll, y el motivo por el que el
          usuario no puede entrar es lo primero que se busca. --}}
     <div class="col-xl-5 col-lg-5 order-first order-lg-last">
-        @include('admin.ad._estado', ['estado' => $estado ?? null])
+        @include('admin.ad._estado', ['estado' => $estado ?? null, 'rutaDesbloquear' => route('admin.active_directory.desbloquear', $sam)])
     </div>
 
     </div>

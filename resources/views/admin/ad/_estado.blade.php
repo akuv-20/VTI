@@ -59,10 +59,23 @@
     <div class="add-veredicto add-{{ $res['nivel'] }}">
         <i class="bi {{ $res['nivel'] === 'ok' ? 'bi-check-circle-fill'
                       : ($res['nivel'] === 'aviso' ? 'bi-exclamation-triangle-fill' : 'bi-x-octagon-fill') }}"></i>
-        <div>
+        <div class="flex-fill">
             <h5>{{ $res['titulo'] }}</h5>
             <p>{{ $res['detalle'] }}</p>
         </div>
+
+        {{-- Desbloquear se ofrece aquí y no en la lista de acciones porque es la
+             respuesta directa al veredicto: se lee el problema y se resuelve en
+             el mismo sitio. Al volver, la ficha se recarga con el estado nuevo. --}}
+        @if(($estado['bloqueada'] ?? false) && !empty($rutaDesbloquear))
+            <form method="POST" action="{{ $rutaDesbloquear }}" class="flex-shrink-0" data-loader>
+                @csrf
+                <button type="submit" class="btn btn-danger btn-sm text-nowrap"
+                        title="Pone lockoutTime en 0 y libera la cuenta de inmediato">
+                    <i class="bi bi-unlock-fill me-1"></i>Desbloquear
+                </button>
+            </form>
+        @endif
     </div>
 
     @if($estado['aviso'])

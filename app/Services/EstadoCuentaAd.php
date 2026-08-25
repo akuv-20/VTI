@@ -98,6 +98,10 @@ class EstadoCuentaAd
 
         return [
             'encontrado' => true,
+            // Banderas sueltas: la ficha necesita saber si ofrecer el botón de
+            // desbloquear, y deducirlo del texto del resumen sería frágil.
+            'bloqueada'     => $bloqueada,
+            'deshabilitada' => $deshabilitada,
             'usuario' => [
                 'nombre'       => $u->getFirstAttribute('displayname') ?: $u->getFirstAttribute('cn'),
                 'sam'          => $u->getFirstAttribute('samaccountname'),
@@ -359,6 +363,7 @@ class EstadoCuentaAd
     private function vacio(): array
     {
         return [
+            'bloqueada' => false, 'deshabilitada' => false,
             'usuario'  => [], 'resumen' => [], 'senales' => [], 'datos' => [],
             'politica' => ['intentos' => null, 'duracion_min' => null, 'vigencia_dias' => null, 'largo_min' => null],
             'intentos' => [], 'aviso' => null,

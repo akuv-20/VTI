@@ -163,6 +163,7 @@ Route::middleware(['auth', 'can:acceso_ad'])->prefix('admin')->name('admin.')->g
         Route::get('/{username}/editar',          [AdminADController::class, 'edit'])->name('edit');
         Route::put('/{username}',                 [AdminADController::class, 'update'])->name('update');
         Route::post('/{username}/toggle',         [AdminADController::class, 'toggleEnabled'])->name('toggle');
+        Route::post('/{username}/desbloquear',    [AdminADController::class, 'desbloquear'])->name('desbloquear');
         Route::post('/{username}/reset-password', [AdminADController::class, 'resetPassword'])->name('reset-password');
     });
 
@@ -314,6 +315,7 @@ Route::middleware(['auth', 'can:acceso_ad2'])->prefix('admin')->name('admin.')->
         Route::get('/{username}/editar',          [AdminAD2Controller::class, 'edit'])->name('edit');
         Route::put('/{username}',                 [AdminAD2Controller::class, 'update'])->name('update');
         Route::post('/{username}/toggle',         [AdminAD2Controller::class, 'toggleEnabled'])->name('toggle');
+        Route::post('/{username}/desbloquear',    [AdminAD2Controller::class, 'desbloquear'])->name('desbloquear');
         Route::post('/{username}/reset-password', [AdminAD2Controller::class, 'resetPassword'])->name('reset-password');
     });
 });
@@ -321,9 +323,11 @@ Route::middleware(['auth', 'can:acceso_ad2'])->prefix('admin')->name('admin.')->
 // ── Inventario Unifrutti: cruce AD ↔ GLPI (permiso inventario_uni) ──────────
 Route::middleware(['auth', 'can:acceso_inventario_uni'])->prefix('admin')->name('admin.')->group(function () {
     Route::prefix('inventario-unifrutti')->name('inventario_unifrutti.')->group(function () {
-        Route::get('/',          [AdminInvUniController::class, 'index'])->name('index');
-        Route::post('/ajustes',  [AdminInvUniController::class, 'ajustes'])->name('ajustes');
-        Route::post('/refrescar',[AdminInvUniController::class, 'refrescar'])->name('refrescar');
+        Route::get('/',              [AdminInvUniController::class, 'index'])->name('index');
+        Route::post('/ajustes',      [AdminInvUniController::class, 'ajustes'])->name('ajustes');
+        Route::post('/refrescar',    [AdminInvUniController::class, 'refrescar'])->name('refrescar');
+        Route::get('/equipos',       [AdminInvUniController::class, 'equipos'])->name('equipos');
+        Route::get('/equipos/{id}',  [AdminInvUniController::class, 'equipoShow'])->name('equipos.show');
     });
 });
 
@@ -336,6 +340,7 @@ Route::middleware(['auth', 'can:acceso_ad3'])->prefix('admin')->name('admin.')->
         Route::get('/{username}/editar',          [AdminAD3Controller::class, 'edit'])->name('edit');
         Route::put('/{username}',                 [AdminAD3Controller::class, 'update'])->name('update');
         Route::post('/{username}/toggle',         [AdminAD3Controller::class, 'toggleEnabled'])->name('toggle');
+        Route::post('/{username}/desbloquear',    [AdminAD3Controller::class, 'desbloquear'])->name('desbloquear');
         Route::post('/{username}/reset-password', [AdminAD3Controller::class, 'resetPassword'])->name('reset-password');
     });
 });
