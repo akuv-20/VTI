@@ -121,26 +121,62 @@ class InventarioGlpi
     }
 
     /**
-     * Condición "no tiene el antivirus corporativo activo".
+     * Condición "no tiene el antivirus corporativo".
+     *
+     * Un equipo se considera protegido si cumple CUALQUIERA de estas dos:
+     *   - tiene el antivirus activo en la sección de antivirus del inventario, o
+     *   - tiene el producto entre el software instalado.
+     *
+     * La segunda vía existe porque el agente de GLPI no siempre reporta ESET en
+     * `glpi_itemantiviruses` (depende del SecurityCenter de Windows), y quedaban
+     * equipos con ESET instalado marcados como desprotegidos. Entonces "sin
+     * antivirus" = ni activo en la tabla de AV, ni presente en el software.
      *
      * Vive aparte porque la comparte el dashboard: tener dos definiciones de
      * "sin antivirus" hacía que las dos pantallas mostraran números distintos.
      */
     public function sinAntivirusCorporativo($query, string $alias = 'c')
     {
-        $av = $this->dominio->antivirus();
+        $lista = $this->dominio->antivirusLista();
 
-        if (!$av) return $query;
+        if (!$lista) return $query;
 
-        return $query->whereNotExists(function ($q) use ($av, $alias) {
-            $q->select(DB::raw(1))
-              ->from('glpi_itemantiviruses as av')
-              ->whereColumn('av.items_id', "{$alias}.id")
-              ->where('av.itemtype', 'Computer')
-              ->where('av.is_deleted', 0)
-              ->where('av.is_active', 1)
-              ->where('av.name', 'like', "%{$av}%");
-        });
+        return $query
+            ->whereNotExists(function ($q) use ($lista, $alias) {
+                $q->select(DB::raw(1))
+                  ->from('glpi_itemantiviruses as av')
+                  ->whereColumn('av.items_id', "{$alias}.id")
+                  ->where('av.itemtype', 'Computer')
+                  ->where('av.is_deleted', 0)
+                  ->where('av.is_active', 1)
+                  ->where(fn($w) => $this->orNombres($w, 'av.name', $lista));
+            })
+            ->whereNotExists(function ($q) use ($lista, $alias) {
+                $q->select(DB::raw(1))
+                  ->from('glpi_items_softwareversions as isv')
+                  ->join('glpi_softwareversions as sv', 'sv.id', '=', 'isv.softwareversions_id')
+                  ->join('glpi_softwares as s', 's.id', '=', 'sv.softwares_id')
+                  ->whereColumn('isv.items_id', "{$alias}.id")
+                  ->where('isv.itemtype', 'Computer')
+                  ->where(fn($w) => $this->orNombres($w, 's.name', $lista));
+            });
+    }
+
+    /**
+     * Agrega el match del antivirus con OR para cada nombre, exigiendo que la
+     * marca aparezca al inicio o tras un espacio (límite de palabra).
+     *
+     * No usar `%n%` a secas: nombres como «ChineseTextConverterService»,
+     * «RemoteSetup» o «TTRFServiceSetup» contienen la subcadena "eset" y daban
+     * falsos positivos de ESET en equipos que no lo tienen.
+     */
+    private function orNombres($w, string $col, array $lista)
+    {
+        foreach ($lista as $n) {
+            $w->orWhere($col, 'like', "{$n}%")     // empieza con la marca
+              ->orWhere($col, 'like', "% {$n}%");  // …o precedida de espacio
+        }
+        return $w;
     }
 
     /** Filtro de texto libre, compartido por listado y conteos. */
@@ -187,8 +223,16 @@ class InventarioGlpi
 
     /* ── Listado de equipos ──────────────────────────────────────────────── */
 
-    public function equipos(string $search = '', string $filtro = 'todos', int $porPagina = 25)
-    {
+    public function equipos(
+        string $search = '',
+        string $filtro = 'todos',
+        int $porPagina = 25,
+        ?string $versionAgente = null,
+        ?string $so = null,
+        ?string $ubicacion = null,
+        array $drills = [],
+        int $diasAgente = 90,
+    ) {
         $query = $this->db()
             ->table('glpi_computers as c')
             ->leftJoin('glpi_users as u', 'u.id', '=', 'c.users_id')
@@ -207,13 +251,21 @@ class InventarioGlpi
             ->leftJoin('glpi_itemantiviruses as av', function ($j) {
                 $j->on('av.items_id', '=', 'c.id')
                   ->where('av.itemtype', 'Computer')
-                  ->where('av.is_deleted', 0)
-                  ->where('av.name', 'like', '%' . $this->dominio->antivirus() . '%');
+                  ->where('av.is_deleted', 0);
+
+                // Un equipo cuenta como protegido si tiene CUALQUIERA de los
+                // antivirus corporativos del dominio (Verfrut acepta Bitdefender
+                // o ESET durante la migración).
+                $lista = $this->dominio->antivirusLista();
+                if ($lista) {
+                    $j->where(fn($w) => $this->orNombres($w, 'av.name', $lista));
+                }
             })
             ->select([
                 'c.id',
                 'c.name as nombre_equipo',
                 'c.serial as numero_serie',
+                'c.contact as usuario_alternativo',
                 DB::raw("TRIM(CONCAT(IFNULL(u.firstname,''), ' ', IFNULL(u.realname,''))) as nombre_usuario"),
                 'man.name as marca',
                 'cm.name as modelo',
@@ -222,15 +274,71 @@ class InventarioGlpi
                 DB::raw('MAX(a.last_contact) as last_contact'),
                 DB::raw('MAX(av.antivirus_version) as av_version'),
                 DB::raw('MAX(av.is_active) as av_activo'),
+                DB::raw('MAX(av.name) as av_nombre'),
             ])
             ->where('c.is_deleted', 0)
             ->where('c.is_template', 0)
-            ->groupBy('c.id', 'c.name', 'c.serial', 'u.firstname', 'u.realname',
+            ->groupBy('c.id', 'c.name', 'c.serial', 'c.contact', 'u.firstname', 'u.realname',
                      'man.name', 'cm.name', 'loc.completename', 'os.name');
+
+        // Respaldo: nombre del antivirus corporativo hallado entre el software
+        // instalado (null si no hay), para cuando el agente no lo reporta en la
+        // tabla de AV. Sirve además para distinguir Bitdefender de ESET.
+        if ($avLista = $this->dominio->antivirusLista()) {
+            // Mismo límite de palabra que orNombres(): inicio o tras espacio.
+            $parts = [];
+            $bindSw = [];
+            foreach ($avLista as $n) {
+                $parts[]  = 's.name LIKE ?';  $bindSw[] = "{$n}%";
+                $parts[]  = 's.name LIKE ?';  $bindSw[] = "% {$n}%";
+            }
+            $condSw = implode(' OR ', $parts);
+            $query->selectRaw(
+                "(SELECT s.name FROM glpi_items_softwareversions isv
+                    JOIN glpi_softwareversions sv ON sv.id = isv.softwareversions_id
+                    JOIN glpi_softwares s ON s.id = sv.softwares_id
+                    WHERE isv.items_id = c.id AND isv.itemtype = 'Computer'
+                      AND ({$condSw})
+                    ORDER BY s.name LIMIT 1) as av_software",
+                $bindSw
+            );
+        }
 
         $this->dominio->sinUsuarioExcluido($query);
         $this->aplicarFiltro($query, $filtro);
         $this->aplicarBusqueda($query, $search);
+
+        // Drill-down desde el dashboard: equipos cuyo agente reporta esta versión.
+        if ($versionAgente !== null && $versionAgente !== '') {
+            $query->where('a.version', $versionAgente);
+        }
+
+        // Drill-down por sistema operativo y por ubicación (mismos textos que el
+        // dashboard: os.name y loc.completename).
+        if ($so !== null && $so !== '') {
+            $query->where('os.name', $so);
+        }
+        if ($ubicacion !== null && $ubicacion !== '') {
+            $query->where('loc.completename', $ubicacion);
+        }
+
+        // Drill-downs booleanos desde los KPI del dashboard.
+        if (!empty($drills['sin_agente'])) {
+            $query->whereNull('a.items_id');   // ningún agente vinculado
+        }
+        if (!empty($drills['agente_inactivo'])) {
+            $fecha = now()->subDays($diasAgente)->toDateTimeString();
+            $query->havingRaw('MAX(a.last_contact) < ?', [$fecha]);
+        }
+        if (!empty($drills['duplicados'])) {
+            $dupSeriales = $this->db()->table('glpi_computers')
+                ->where('is_deleted', 0)->where('is_template', 0)
+                ->whereNotNull('serial')->where('serial', '!=', '')
+                ->select('serial')
+                ->groupBy('serial')
+                ->havingRaw('COUNT(*) > 1');
+            $query->whereIn('c.serial', $dupSeriales);
+        }
 
         return $query->orderBy('c.name')->paginate($porPagina)->withQueryString();
     }
@@ -323,6 +431,30 @@ class InventarioGlpi
             ->orderBy('name')
             ->select('name', 'antivirus_version', 'signature_version',
                      'is_active', 'is_uptodate', 'date_expiration')
+            ->get();
+    }
+
+    /**
+     * Software instalado que corresponde al antivirus corporativo del dominio.
+     *
+     * Sirve de respaldo en la ficha: cuando el agente no reportó el AV en
+     * `glpi_itemantiviruses`, esto confirma que el producto igual está instalado.
+     */
+    public function antivirusSoftwareDe(int $computerId): Collection
+    {
+        $lista = $this->dominio->antivirusLista();
+
+        if (!$lista) return collect();
+
+        return $this->db()
+            ->table('glpi_items_softwareversions as isv')
+            ->join('glpi_softwareversions as sv', 'sv.id', '=', 'isv.softwareversions_id')
+            ->join('glpi_softwares as s', 's.id', '=', 'sv.softwares_id')
+            ->where('isv.items_id', $computerId)
+            ->where('isv.itemtype', 'Computer')
+            ->where(fn($w) => $this->orNombres($w, 's.name', $lista))
+            ->orderBy('s.name')
+            ->select('s.name', 'sv.name as version')
             ->get();
     }
 

@@ -146,9 +146,20 @@
                 <div class="card-body" style="font-size:.86rem">
                     @php
                         $avNombre = $dom->antivirus();
-                        $avOk = $avNombre && $antivirus->first(
-                            fn($a) => str_contains(strtoupper($a->name), strtoupper($avNombre)) && (int) $a->is_active === 1
-                        );
+                        $avLista  = $dom->antivirusLista();
+                        // Protegido si tiene activo CUALQUIERA de los antivirus
+                        // corporativos del dominio (Bitdefender o ESET en Verfrut).
+                        $avActivo = !empty($avLista) && $antivirus->first(function ($a) use ($avLista) {
+                            if ((int) $a->is_active !== 1) return false;
+                            foreach ($avLista as $n) {
+                                if (str_contains(strtoupper($a->name), strtoupper($n))) return true;
+                            }
+                            return false;
+                        });
+                        // Respaldo: el producto está entre el software instalado
+                        // aunque el agente no lo haya reportado en la tabla de AV.
+                        $avPorSoftware = !empty($avLista) && $avSoftware->isNotEmpty();
+                        $avOk = $avActivo || $avPorSoftware;
                     @endphp
 
                     @if($avNombre && !$avOk)
@@ -157,6 +168,22 @@
                             <div>
                                 <strong>Sin {{ $avNombre }} activo.</strong>
                                 Este equipo no tiene {{ $avNombre }} instalado o está desactivado.
+                            </div>
+                        </div>
+                    @endif
+
+                    @if(!$avActivo && $avPorSoftware)
+                        <div class="alert alert-warning no-autodismiss d-flex gap-2 mb-3" style="font-size:.85rem">
+                            <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+                            <div>
+                                <strong>Detectado por software instalado.</strong>
+                                El agente no reportó el antivirus en la sección de AV, pero el
+                                producto figura entre el software instalado:
+                                <ul class="mb-0 mt-1">
+                                    @foreach($avSoftware as $s)
+                                        <li>{{ $s->name }} @if($s->version)<span class="text-muted">· {{ $s->version }}</span>@endif</li>
+                                    @endforeach
+                                </ul>
                             </div>
                         </div>
                     @endif

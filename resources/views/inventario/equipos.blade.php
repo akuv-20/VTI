@@ -1,6 +1,28 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    // Filtros de drill-down que llegan del dashboard. Se preservan en el
+    // buscador y los tiles, y cada uno muestra su chip para quitarlo.
+    $drills = array_merge(
+        array_filter([
+            'version_agente' => $versionAgente ?? null,
+            'so'             => $so ?? null,
+            'ubicacion'      => $ubicacion ?? null,
+        ]),
+        $boolDrills ?? []
+    );
+    // Los booleanos muestran su etiqueta completa; los demás, prefijo + valor.
+    $boolDrillKeys = ['sin_agente', 'agente_inactivo', 'duplicados'];
+    $drillLabels = [
+        'version_agente'  => ['Agente GLPI v',                          'bi-hdd-network'],
+        'so'              => ['SO: ',                                   'bi-windows'],
+        'ubicacion'       => ['Ubicación: ',                            'bi-geo-alt-fill'],
+        'sin_agente'      => ['Sin agente',                             'bi-plugin'],
+        'agente_inactivo' => ['Agente inactivo +' . ($diasAgente ?? 90) . 'd', 'bi-wifi-off'],
+        'duplicados'      => ['Duplicados por serial',                  'bi-copy'],
+    ];
+@endphp
 <style>
     .iue-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:.6rem; margin-bottom:1rem; }
     .iue-tile {
@@ -18,6 +40,13 @@
         font-size:.72rem; font-weight:600; padding:1px 7px; border-radius:20px;
         border:1px solid transparent; white-space:nowrap;
     }
+    /* Círculo con la inicial del antivirus (B = Bitdefender, E = ESET) */
+    .av-letra {
+        display:inline-flex; align-items:center; justify-content:center;
+        width:15px; height:15px; border-radius:50%;
+        background:#16a34a; color:#fff; font-size:.62rem; font-weight:700;
+        line-height:1; flex-shrink:0;
+    }
 </style>
 
 <div class="container-fluid vti-page">
@@ -32,13 +61,16 @@
                 @if($filtro !== 'todos')
                     <input type="hidden" name="filtro" value="{{ $filtro }}">
                 @endif
+                @foreach($drills as $k => $v)
+                    <input type="hidden" name="{{ $k }}" value="{{ $v }}">
+                @endforeach
                 <input type="text" name="q" value="{{ $search }}"
                        class="form-control" placeholder="Buscar equipo, serial o usuario…" style="width:250px">
                 <button class="btn btn-primary btn-sm">
                     <i class="bi bi-search"></i>
                 </button>
                 @if($search)
-                    <a href="{{ route("inventario.{$dom->clave}.equipos", ['filtro' => $filtro]) }}"
+                    <a href="{{ route("inventario.{$dom->clave}.equipos", array_merge(array_filter(['filtro' => $filtro === 'todos' ? null : $filtro]), $drills)) }}"
                        class="btn btn-outline-secondary btn-sm">
                         <i class="bi bi-x-lg"></i>
                     </a>
@@ -68,7 +100,7 @@
     {{-- Indicadores: muestran el conteo y al pulsarlos filtran la tabla --}}
     <div class="iue-tiles">
         @foreach($filtros as $clave => [$lbl, $ico, $color])
-        <a href="{{ route("inventario.{$dom->clave}.equipos", array_filter(['filtro' => $clave, 'q' => $search])) }}"
+        <a href="{{ route("inventario.{$dom->clave}.equipos", array_merge(array_filter(['filtro' => $clave, 'q' => $search]), $drills)) }}"
            class="iue-tile {{ $filtro === $clave ? 'active' : '' }}"
            style="border-left-color:{{ $color }}">
             <div class="iue-tile-val" style="color:{{ $clave === 'todos' ? '#1e293b' : $color }}">
@@ -85,12 +117,30 @@
         </p>
     @endif
 
+    @if(count($drills))
+        <div class="mb-2 d-flex flex-wrap gap-2">
+            @foreach($drills as $k => $v)
+            @php [$prefijo, $icono] = $drillLabels[$k] ?? ['', 'bi-funnel']; @endphp
+            <span class="badge rounded-pill d-inline-flex align-items-center gap-2"
+                  style="background:#dcfce7;color:#166534;font-size:.78rem;padding:.4rem .7rem">
+                <i class="bi {{ $icono }}"></i>
+                {{ $prefijo }}@if(!in_array($k, $boolDrillKeys, true)){{ $v }}@endif
+                <a href="{{ route("inventario.{$dom->clave}.equipos", array_merge(array_filter(['filtro' => $filtro === 'todos' ? null : $filtro, 'q' => $search ?: null]), collect($drills)->except($k)->all())) }}"
+                   class="text-decoration-none" style="color:#166534" title="Quitar filtro">
+                    <i class="bi bi-x-circle-fill"></i>
+                </a>
+            </span>
+            @endforeach
+        </div>
+    @endif
+
     <div class="vti-table-wrapper">
         <table class="vti-table">
             <thead>
                 <tr>
                     <th>Nombre</th>
                     <th>Usuario Asignado</th>
+                    <th>Usuario Alternativo</th>
                     <th>Marca / Modelo</th>
                     <th>N° Serie</th>
                     <th>Sistema Operativo</th>
@@ -108,14 +158,24 @@
                     $mudo   = $dias === null || $dias > $diasAgente;
                     $avOk   = $eq->av_version !== null;
                     $avOn   = $avOk && (int) $eq->av_activo === 1;
+                    $avSw   = !empty($eq->av_software);             // nombre del producto en el software, o null
+                    $prot   = $avOn || $avSw;                       // protegido por cualquiera de las dos vías
+                    // Letra distintiva: B = Bitdefender, E = ESET.
+                    $avLetra = function ($nombre) {
+                        $n = strtoupper((string) $nombre);
+                        if (str_contains($n, 'ESET'))        return 'E';
+                        if (str_contains($n, 'BITDEFENDER'))  return 'B';
+                        return '';
+                    };
                     // Mismo criterio que el SQL del indicador, evaluado sobre la
                     // fila ya cargada para no consultar una vez por equipo.
-                    $exc    = !$avOn && \App\Models\InventarioExcepcion::algunaCoincide(
-                                  $excepciones, $eq->nombre_equipo, $eq->sistema_operativo);
+                    $exc    = !$prot && \App\Models\InventarioExcepcion::algunaCoincide(
+                                  $excepciones, $eq->nombre_equipo, $eq->sistema_operativo, $eq->usuario_alternativo);
                 @endphp
                 <tr>
                     <td class="fw-semibold">{{ $eq->nombre_equipo }}</td>
                     <td>{{ trim($eq->nombre_usuario ?? '') ?: '—' }}</td>
+                    <td style="font-size:.82rem">{{ $eq->usuario_alternativo ?: '—' }}</td>
                     <td>
                         @if($eq->marca || $eq->modelo)
                             {{ $eq->marca }} {{ $eq->modelo }}
@@ -128,9 +188,16 @@
                     <td style="font-size:.8rem">{{ $eq->ubicacion ?: '—' }}</td>
                     <td>
                         @if($avOn)
+                            @php $letra = $avLetra($eq->av_nombre); @endphp
                             <span class="iue-badge" style="background:#dcfce7;color:#16a34a;border-color:#86efac"
-                                  title="{{ $dom->antivirus() }} {{ $eq->av_version }}">
-                                <i class="bi bi-shield-check"></i>{{ $eq->av_version }}
+                                  title="{{ $eq->av_nombre }} {{ $eq->av_version }}">
+                                @if($letra)<span class="av-letra">{{ $letra }}</span>@else<i class="bi bi-shield-check"></i>@endif{{ $eq->av_version }}
+                            </span>
+                        @elseif($avSw)
+                            @php $letra = $avLetra($eq->av_software); @endphp
+                            <span class="iue-badge" style="background:#dcfce7;color:#16a34a;border-color:#86efac"
+                                  title="{{ $eq->av_software }} — detectado en el software instalado (el agente no lo reportó en la sección de antivirus)">
+                                @if($letra)<span class="av-letra">{{ $letra }}</span>@else<i class="bi bi-shield-check"></i>@endif instalado
                             </span>
                         @elseif($avOk)
                             <span class="iue-badge" style="background:#fef3c7;color:#b45309;border-color:#fde68a"
@@ -169,7 +236,7 @@
                 </tr>
                 @empty
                 <tr class="vti-empty">
-                    <td colspan="9">
+                    <td colspan="10">
                         <i class="bi bi-inbox" style="font-size:1.4rem"></i>
                         <div class="mt-1">No se encontraron equipos con este filtro.</div>
                     </td>

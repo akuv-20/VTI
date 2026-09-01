@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git push *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "PowerShell(php \"C:\\\\Users\\\\FHENRI~1.VER\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--LARAVEL-VTI\\\\9a1c5f93-998b-4950-84f7-af1da22220bd\\\\scratchpad\\\\render_enlaces.php\")"
     ]
   }
 }

@@ -79,7 +79,30 @@ class DominioInventario
      * No es cosmético: cada dominio despliega el suyo, y buscar el equivocado
      * daría "sin antivirus" en el 100% de los equipos.
      */
-    public function antivirus(): ?string { return $this->config['antivirus'] ?? null; }
+    /**
+     * Nombres de antivirus corporativo a validar, ya normalizados a lista.
+     *
+     * Un dominio puede aceptar varios durante una transición: Verfrut migra de
+     * Bitdefender a ESET, así que mientras convivan los dos, un equipo con
+     * cualquiera de ellos cuenta como protegido. En config puede venir como
+     * string ('ESET') o como arreglo (['Bitdefender', 'ESET']).
+     */
+    public function antivirusLista(): array
+    {
+        $av = $this->config['antivirus'] ?? null;
+
+        if ($av === null || $av === '') return [];
+
+        return array_values(array_filter(array_map('trim', (array) $av)));
+    }
+
+    /** Etiqueta para mostrar: los nombres unidos con « / » (o null si no hay). */
+    public function antivirus(): ?string
+    {
+        $lista = $this->antivirusLista();
+
+        return $lista ? implode(' / ', $lista) : null;
+    }
 
     /** Usuario de GLPI a excluir de los indicadores, si el dominio define uno. */
     public function excluirUser(): ?int

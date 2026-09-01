@@ -32,6 +32,7 @@ class InventarioExcepcion extends Model
     public const CAMPOS = [
         'sistema_operativo' => 'Sistema operativo',
         'nombre_equipo'     => 'Nombre del equipo',
+        'contact'           => 'Usuario alternativo',
     ];
 
     public const OPERADORES = [
@@ -44,6 +45,7 @@ class InventarioExcepcion extends Model
     private const COLUMNAS = [
         'sistema_operativo' => 'os.name',
         'nombre_equipo'     => 'c.name',
+        'contact'           => 'c.contact',
     ];
 
     /* ── Scopes ─────────────────────────────────────────────────────────── */
@@ -94,9 +96,13 @@ class InventarioExcepcion extends Model
     }
 
     /** Evalúa la regla contra una fila ya cargada. */
-    public function coincide(?string $nombreEquipo, ?string $sistemaOperativo): bool
+    public function coincide(?string $nombreEquipo, ?string $sistemaOperativo, ?string $contact = null): bool
     {
-        $sujeto = $this->campo === 'nombre_equipo' ? $nombreEquipo : $sistemaOperativo;
+        $sujeto = match ($this->campo) {
+            'nombre_equipo' => $nombreEquipo,
+            'contact'       => $contact,
+            default         => $sistemaOperativo,
+        };
         $sujeto = (string) $sujeto;
 
         // MySQL compara sin distinguir mayúsculas con la collation del proyecto;
@@ -114,10 +120,10 @@ class InventarioExcepcion extends Model
     }
 
     /** Si alguna de las reglas dadas cubre a este equipo. */
-    public static function algunaCoincide($reglas, ?string $nombreEquipo, ?string $so): bool
+    public static function algunaCoincide($reglas, ?string $nombreEquipo, ?string $so, ?string $contact = null): bool
     {
         foreach ($reglas as $r) {
-            if ($r->coincide($nombreEquipo, $so)) return true;
+            if ($r->coincide($nombreEquipo, $so, $contact)) return true;
         }
         return false;
     }

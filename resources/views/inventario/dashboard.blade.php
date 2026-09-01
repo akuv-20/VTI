@@ -1,6 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+    .kpi-card { color:inherit; transition:box-shadow .12s, transform .08s; }
+    .kpi-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.12); transform:translateY(-2px); color:inherit; }
+</style>
 <div class="container-fluid vti-page">
 
     <div class="vti-page-header mb-3">
@@ -17,18 +21,21 @@
     <div class="row g-3 mb-4">
         @php
         $kpis = [
-            ['label'=>'Equipos Activos',      'value'=>$totalEquipos,    'icon'=>'bi-display-fill',          'color'=>'primary',  'bg'=>'#dbeafe','ic'=>'#2563eb'],
-            ['label'=>'Sin Usuario',           'value'=>$sinUsuario,      'icon'=>'bi-person-x-fill',         'color'=>'warning',  'bg'=>'#fef3c7','ic'=>'#d97706'],
-            ['label'=>'Sin Ubicación',         'value'=>$sinUbicacion,    'icon'=>'bi-geo-alt',               'color'=>'warning',  'bg'=>'#fef3c7','ic'=>'#d97706'],
-            ['label'=>'Sin Agente',            'value'=>$sinAgente,       'icon'=>'bi-plugin',                'color'=>'danger',   'bg'=>'#fee2e2','ic'=>'#dc2626'],
-            ['label'=>'Agente Inactivo +90d',  'value'=>$agenteInactivo,  'icon'=>'bi-wifi-off',              'color'=>'danger',   'bg'=>'#fee2e2','ic'=>'#dc2626'],
-            ['label'=>'Duplicados por Serial', 'value'=>$cantDuplicados,  'icon'=>'bi-copy',                  'color'=>'danger',   'bg'=>'#fee2e2','ic'=>'#dc2626'],
-            ['label'=>'Sin '.($antivirusNombre ?: 'Antivirus'), 'value'=>$sinAntivirus,    'icon'=>'bi-shield-x',              'color'=>'warning',  'bg'=>'#fef3c7','ic'=>'#d97706'],
+            ['label'=>'Equipos Activos',      'value'=>$totalEquipos,    'icon'=>'bi-display-fill',          'bg'=>'#dbeafe','ic'=>'#2563eb', 'params'=>[]],
+            ['label'=>'Sin Usuario',           'value'=>$sinUsuario,      'icon'=>'bi-person-x-fill',         'bg'=>'#fef3c7','ic'=>'#d97706', 'params'=>['filtro'=>'sin_usuario']],
+            ['label'=>'Sin Ubicación',         'value'=>$sinUbicacion,    'icon'=>'bi-geo-alt',               'bg'=>'#fef3c7','ic'=>'#d97706', 'params'=>['filtro'=>'sin_ubicacion']],
+            ['label'=>'Sin Agente',            'value'=>$sinAgente,       'icon'=>'bi-plugin',                'bg'=>'#fee2e2','ic'=>'#dc2626', 'params'=>['sin_agente'=>1]],
+            ['label'=>'Agente Inactivo +90d',  'value'=>$agenteInactivo,  'icon'=>'bi-wifi-off',              'bg'=>'#fee2e2','ic'=>'#dc2626', 'params'=>['agente_inactivo'=>1]],
+            ['label'=>'Duplicados por Serial', 'value'=>$cantDuplicados,  'icon'=>'bi-copy',                  'bg'=>'#fee2e2','ic'=>'#dc2626', 'params'=>['duplicados'=>1]],
+            ['label'=>'Sin '.($antivirusNombre ?: 'Antivirus'), 'value'=>$sinAntivirus, 'icon'=>'bi-shield-x', 'bg'=>'#fef3c7','ic'=>'#d97706', 'params'=>['filtro'=>'sin_antivirus']],
         ];
         @endphp
         @foreach($kpis as $k)
         <div class="col-6 col-md-4 col-xl-3">
-            <div class="card border-0 shadow-sm rounded-3 h-100" style="border-left: 4px solid {{ $k['ic'] }} !important;">
+            <a href="{{ route("inventario.{$dom->clave}.equipos", $k['params']) }}"
+               class="card border-0 shadow-sm rounded-3 h-100 text-decoration-none kpi-card"
+               style="border-left: 4px solid {{ $k['ic'] }} !important;"
+               title="Ver equipos: {{ $k['label'] }}">
                 <div class="card-body d-flex align-items-center gap-3 py-3">
                     <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
                          style="width:48px;height:48px;background:{{ $k['bg'] }}">
@@ -39,7 +46,7 @@
                         <div class="text-muted" style="font-size:.75rem;margin-top:2px">{{ $k['label'] }}</div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
         @endforeach
     </div>
@@ -61,8 +68,16 @@
                         @foreach($porSO as $so)
                         @php $pct = $totalConSO > 0 ? round($so->total * 100 / $totalConSO, 1) : 0; @endphp
                         <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
-                            <span class="text-truncate" style="max-width:200px" title="{{ $so->name }}">{{ $so->name }}</span>
-                            <span class="fw-semibold ms-2">{{ $so->total }} <span class="text-muted">({{ $pct }}%)</span></span>
+                            <span class="text-truncate" style="max-width:170px" title="{{ $so->name }}">{{ $so->name }}</span>
+                            <span class="d-inline-flex align-items-center gap-2 ms-2">
+                                <span class="fw-semibold">{{ $so->total }} <span class="text-muted">({{ $pct }}%)</span></span>
+                                <a href="{{ route("inventario.{$dom->clave}.equipos", ['so' => $so->name]) }}"
+                                   class="btn btn-outline-secondary btn-sm py-0 px-1"
+                                   title="Ver equipos con {{ $so->name }}"
+                                   style="font-size:.7rem;line-height:1.4">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                            </span>
                         </div>
                         @endforeach
                     </div>
@@ -92,7 +107,15 @@
                                     <span class="badge text-bg-warning ms-1" style="font-size:.65rem">desactualizado</span>
                                 @endif
                             </span>
-                            <span class="fw-semibold">{{ $va->total }}</span>
+                            <span class="d-inline-flex align-items-center gap-2">
+                                <span class="fw-semibold">{{ $va->total }}</span>
+                                <a href="{{ route("inventario.{$dom->clave}.equipos", ['version_agente' => $va->version]) }}"
+                                   class="btn btn-outline-secondary btn-sm py-0 px-1"
+                                   title="Ver equipos con agente v{{ $va->version }}"
+                                   style="font-size:.7rem;line-height:1.4">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                            </span>
                         </div>
                         @endforeach
                     </div>
@@ -112,9 +135,17 @@
                     </div>
                     <div class="mt-3" style="font-size:.78rem">
                         @foreach($porUbicacion as $ub)
-                        <div class="d-flex justify-content-between py-1 border-bottom">
-                            <span class="text-truncate" style="max-width:200px" title="{{ $ub->ubicacion }}">{{ $ub->ubicacion }}</span>
-                            <span class="fw-semibold ms-2">{{ $ub->total }}</span>
+                        <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                            <span class="text-truncate" style="max-width:170px" title="{{ $ub->ubicacion }}">{{ $ub->ubicacion }}</span>
+                            <span class="d-inline-flex align-items-center gap-2 ms-2">
+                                <span class="fw-semibold">{{ $ub->total }}</span>
+                                <a href="{{ route("inventario.{$dom->clave}.equipos", ['ubicacion' => $ub->ubicacion]) }}"
+                                   class="btn btn-outline-secondary btn-sm py-0 px-1"
+                                   title="Ver equipos en {{ $ub->ubicacion }}"
+                                   style="font-size:.7rem;line-height:1.4">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                            </span>
                         </div>
                         @endforeach
                     </div>

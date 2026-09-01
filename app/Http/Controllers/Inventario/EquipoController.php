@@ -22,6 +22,19 @@ class EquipoController extends BaseController
         $glpi   = new InventarioGlpi($dom);
         $search = trim((string) $request->input('q', ''));
         $filtro = (string) $request->input('filtro', 'todos');
+        $versionAgente = trim((string) $request->input('version_agente', '')) ?: null;
+        $so            = trim((string) $request->input('so', '')) ?: null;
+        $ubicacion     = trim((string) $request->input('ubicacion', '')) ?: null;
+
+        // Drill-downs booleanos que llegan de los KPI del dashboard.
+        $boolDrills = [];
+        foreach (['sin_agente', 'agente_inactivo', 'duplicados'] as $d) {
+            if ($request->boolean($d)) {
+                $boolDrills[$d] = 1;
+            }
+        }
+
+        $diasAgente = (int) (Configuracion::get('cruce_dias_agente', 90) ?: 90);
 
         $filtros = $glpi->filtros();
 
@@ -31,27 +44,35 @@ class EquipoController extends BaseController
 
         try {
             return view('inventario.equipos', [
-                'dom'          => $dom,
-                'computadores' => $glpi->equipos($search, $filtro),
-                'filtros'      => $filtros,
-                'conteos'      => $glpi->conteosFiltros($search),
-                'excepciones'  => $glpi->excepciones(),
-                'search'       => $search,
-                'filtro'       => $filtro,
-                'diasAgente'   => (int) (Configuracion::get('cruce_dias_agente', 90) ?: 90),
+                'dom'           => $dom,
+                'computadores'  => $glpi->equipos($search, $filtro, 25, $versionAgente, $so, $ubicacion, $boolDrills, $diasAgente),
+                'filtros'       => $filtros,
+                'conteos'       => $glpi->conteosFiltros($search),
+                'excepciones'   => $glpi->excepciones(),
+                'search'        => $search,
+                'filtro'        => $filtro,
+                'versionAgente' => $versionAgente,
+                'so'            => $so,
+                'ubicacion'     => $ubicacion,
+                'boolDrills'    => $boolDrills,
+                'diasAgente'    => $diasAgente,
             ]);
 
         } catch (\Throwable $e) {
             return view('inventario.equipos', [
-                'dom'          => $dom,
-                'computadores' => null,
-                'filtros'      => $filtros,
-                'conteos'      => [],
-                'excepciones'  => collect(),
-                'search'       => $search,
-                'filtro'       => $filtro,
-                'diasAgente'   => 90,
-                'error'        => $this->mensajeError($e, $dom),
+                'dom'           => $dom,
+                'computadores'  => null,
+                'filtros'       => $filtros,
+                'conteos'       => [],
+                'excepciones'   => collect(),
+                'search'        => $search,
+                'filtro'        => $filtro,
+                'versionAgente' => $versionAgente,
+                'so'            => $so,
+                'ubicacion'     => $ubicacion,
+                'boolDrills'    => $boolDrills,
+                'diasAgente'    => $diasAgente,
+                'error'         => $this->mensajeError($e, $dom),
             ]);
         }
     }
@@ -74,9 +95,10 @@ class EquipoController extends BaseController
         return view('inventario.equipo', [
             'dom'        => $dom,
             'equipo'     => $equipo,
-            'hardware'   => $glpi->hardwareDe((int) $equipo->id),
-            'agente'     => $glpi->agenteDe((int) $equipo->id),
-            'antivirus'  => $glpi->antivirusDe((int) $equipo->id),
+            'hardware'    => $glpi->hardwareDe((int) $equipo->id),
+            'agente'      => $glpi->agenteDe((int) $equipo->id),
+            'antivirus'   => $glpi->antivirusDe((int) $equipo->id),
+            'avSoftware'  => $glpi->antivirusSoftwareDe((int) $equipo->id),
             'actas'      => $actas,
             'diasAgente' => (int) (Configuracion::get('cruce_dias_agente', 90) ?: 90),
         ]);

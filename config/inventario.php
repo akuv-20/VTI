@@ -36,7 +36,11 @@ return [
             // parcial sobre el nombre que reporta el agente, porque cada
             // producto se registra con variantes ("Endpoint Security",
             // "Endpoint Security Tools Antimalware"…).
-            'antivirus' => 'Bitdefender',
+            //
+            // Puede ser una lista: Verfrut está migrando de Bitdefender a ESET,
+            // así que durante la transición un equipo con cualquiera de los dos
+            // cuenta como protegido.
+            'antivirus' => ['Bitdefender', 'ESET'],
 
             // Usuario de GLPI que no cuenta como equipo asignado. Es un id
             // propio de ESTA base: en la de Unifrutti el mismo número es otra
