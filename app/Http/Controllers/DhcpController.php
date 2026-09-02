@@ -40,11 +40,17 @@ class DhcpController extends Controller
             })
             ->count();
 
+        // Vivas por ping pero sin lease DHCP (probables IP estáticas)
+        $vivasPorPing = DhcpReserva::where('activa', true)
+            ->where('visto_ping', true)
+            ->where('visto_activa', false)
+            ->count();
+
         // Datos "frescos" si el último snapshot llegó hace < 12h
         $datosFrescos = $ultimaImp && $ultimaImp->recibido_at->gt(now()->subHours(12));
 
         return view('dhcp.dashboard', compact(
-            'scopes', 'ultimaImp', 'totalReservas', 'inactivas', 'umbral', 'datosFrescos'
+            'scopes', 'ultimaImp', 'totalReservas', 'inactivas', 'vivasPorPing', 'umbral', 'datosFrescos'
         ));
     }
 

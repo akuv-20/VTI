@@ -63,6 +63,16 @@
             </a>
         </div>
         <div class="col-sm-6 col-lg-3">
+            <a href="{{ route('dhcp.reservas', ['estado' => 'todas']) }}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm text-center py-3">
+                    <div class="card-body py-1">
+                        <div class="text-muted small mb-1">Vivas por ping (sin lease)</div>
+                        <div class="fs-4 fw-bold text-info">{{ number_format($vivasPorPing, 0, ',', '.') }}</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-3">
             <div class="card border-0 shadow-sm text-center py-3">
                 <div class="card-body py-1">
                     <div class="text-muted small mb-1">Scopes (rangos)</div>

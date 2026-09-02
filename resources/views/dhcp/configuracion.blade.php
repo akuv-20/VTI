@@ -120,6 +120,25 @@
 $Endpoint = "{{ $endpoint }}"
 $Token    = "{{ $token ?: 'PEGA-AQUI-EL-TOKEN' }}"
 
+# Scopes a los que SÍ se les hace ping (por sufijo del ScopeId).
+$PingScopes  = @('32.0','24.0','8.0','2.0')   # Planta Rapel, Oro Verde, Planta Nevado, Datacenter
+$PingTimeout = 800
+
+function Test-IPsParallel {
+    param([string[]]$Ips, [int]$TimeoutMs = 800)
+    $resultado = @{}
+    if (-not $Ips -or $Ips.Count -eq 0) { return $resultado }
+    $pingers = @(); $tareas = @{}
+    foreach ($ip in $Ips) {
+        try { $p = New-Object System.Net.NetworkInformation.Ping; $pingers += $p; $tareas[$ip] = $p.SendPingAsync($ip, $TimeoutMs) }
+        catch { $resultado[$ip] = $false }
+    }
+    try { [System.Threading.Tasks.Task]::WaitAll($tareas.Values) } catch {}
+    foreach ($ip in $tareas.Keys) { try { $resultado[$ip] = ($tareas[$ip].Result.Status -eq 'Success') } catch { $resultado[$ip] = $false } }
+    foreach ($p in $pingers) { $p.Dispose() }
+    return $resultado
+}
+
 $scopes = Get-DhcpServerv4Scope
 $payloadScopes = @()
 
@@ -127,6 +146,11 @@ foreach ($sc in $scopes) {
     $stats = Get-DhcpServerv4ScopeStatistics -ScopeId $sc.ScopeId
     $reservas = Get-DhcpServerv4Reservation -ScopeId $sc.ScopeId
     $leases   = Get-DhcpServerv4Lease -ScopeId $sc.ScopeId
+
+    $scopeStr = "$($sc.ScopeId)"; $hacePing = $false
+    foreach ($seg in $PingScopes) { if ($scopeStr.EndsWith(".$seg") -or $scopeStr -eq $seg) { $hacePing = $true; break } }
+    $pingMap = @{}
+    if ($hacePing) { $pingMap = Test-IPsParallel -Ips @($reservas | ForEach-Object { "$($_.IPAddress)" }) -TimeoutMs $PingTimeout }
 
     $listaReservas = @()
     foreach ($r in $reservas) {
@@ -137,7 +161,7 @@ foreach ($sc in $scopes) {
             $activa = @('Active','ActiveReservation') -contains "$($lease.AddressState)"
             if ($lease.LeaseExpiryTime) { $expira = $lease.LeaseExpiryTime.ToString("s") }
         }
-        $listaReservas += [ordered]@{
+        $item = [ordered]@{
             ip           = "$($r.IPAddress)"
             mac          = "$($r.ClientId)"
             nombre       = "$($r.Name)"
@@ -145,6 +169,8 @@ foreach ($sc in $scopes) {
             activa       = $activa
             lease_expira = $expira
         }
+        if ($hacePing) { $item.ping_ok = [bool]$pingMap["$($r.IPAddress)"] }
+        $listaReservas += $item
     }
 
     $payloadScopes += [ordered]@{

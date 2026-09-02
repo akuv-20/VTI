@@ -68,6 +68,7 @@
                     <th>Scope</th>
                     <th>Última actividad</th>
                     <th class="text-end">Inactiva</th>
+                    <th class="text-center">Ping</th>
                     <th class="text-center">Estado</th>
                 </tr>
             </thead>
@@ -107,10 +108,26 @@
                         @endif
                     </td>
                     <td class="text-center">
+                        @if($r->visto_ping)
+                            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle"
+                                  title="Respondió al ping {{ $r->ultimo_ping_at ? $r->ultimo_ping_at->format('d/m/Y H:i') : '' }}">
+                                <i class="bi bi-broadcast-pin me-1"></i>OK
+                            </span>
+                        @elseif($r->ultimo_ping_at)
+                            <span class="text-muted" title="No respondió al último ping ({{ $r->ultimo_ping_at->format('d/m/Y H:i') }})">
+                                <i class="bi bi-dash-circle"></i>
+                            </span>
+                        @else
+                            <span class="text-muted" title="Scope sin ping">—</span>
+                        @endif
+                    </td>
+                    <td class="text-center">
                         @if(!$r->activa)
                             <span class="badge bg-dark" title="Ya no existe en el DHCP">Eliminada</span>
                         @elseif($r->visto_activa)
                             <span class="badge bg-success">Conectada</span>
+                        @elseif($r->visto_ping)
+                            <span class="badge bg-info" title="Sin lease DHCP pero responde al ping (probable IP estática)">Viva (ping)</span>
                         @elseif($esInactiva)
                             <span class="badge bg-danger-subtle text-danger border border-danger-subtle">A depurar</span>
                         @else
@@ -119,7 +136,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr class="vti-empty"><td colspan="7">No hay reservas que coincidan con los filtros.</td></tr>
+                <tr class="vti-empty"><td colspan="8">No hay reservas que coincidan con los filtros.</td></tr>
                 @endforelse
             </tbody>
         </table>

@@ -10,15 +10,17 @@ class DhcpReserva extends Model
 
     protected $fillable = [
         'scope_id', 'ip', 'mac', 'nombre', 'descripcion',
-        'ultima_actividad', 'visto_activa', 'lease_expira',
-        'primera_vez_visto', 'activa',
+        'ultima_actividad', 'visto_activa', 'visto_ping', 'ultimo_ping_at',
+        'lease_expira', 'primera_vez_visto', 'activa',
     ];
 
     protected $casts = [
         'ultima_actividad'  => 'datetime',
+        'ultimo_ping_at'    => 'datetime',
         'lease_expira'      => 'datetime',
         'primera_vez_visto' => 'datetime',
         'visto_activa'      => 'boolean',
+        'visto_ping'        => 'boolean',
         'activa'            => 'boolean',
     ];
 

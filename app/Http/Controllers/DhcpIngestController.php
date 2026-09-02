@@ -98,8 +98,12 @@ class DhcpIngestController extends Controller
                     $ipsVistas[] = $ip;
                     $activa      = (bool) ($r['activa'] ?? false);
                     $leaseExp    = !empty($r['lease_expira']) ? Carbon::parse($r['lease_expira']) : null;
+                    // ping_ok solo viene si el colector pingeó ese scope; null = no se pingeó
+                    $pingOk      = array_key_exists('ping_ok', $r) ? (bool) $r['ping_ok'] : null;
+                    // "Vivo" = tiene lease activo O respondió al ping (el ping solo suma, nunca resta)
+                    $vivo        = $activa || ($pingOk === true);
                     $totalReservas++;
-                    if ($activa) $totalActivas++;
+                    if ($vivo) $totalActivas++;
 
                     $reserva = DhcpReserva::firstOrNew(['ip' => $ip]);
                     $esNueva = !$reserva->exists;
@@ -112,14 +116,20 @@ class DhcpIngestController extends Controller
                     $reserva->lease_expira = $leaseExp;
                     $reserva->activa       = true;
 
+                    // Estado de ping: solo se actualiza si el scope fue pingeado
+                    if ($pingOk !== null) {
+                        $reserva->visto_ping = $pingOk;
+                        if ($pingOk) $reserva->ultimo_ping_at = $now;
+                    }
+
                     if ($esNueva) {
                         $reserva->primera_vez_visto = $now;
-                        // Semilla de última actividad: ahora si activa, si no el lease_expira conocido
-                        $reserva->ultima_actividad = $activa ? $now : $leaseExp;
-                    } elseif ($activa) {
+                        // Semilla de última actividad: ahora si está vivo, si no el lease_expira conocido
+                        $reserva->ultima_actividad = $vivo ? $now : $leaseExp;
+                    } elseif ($vivo) {
                         $reserva->ultima_actividad = $now;
                     }
-                    // Si existe e inactiva: se conserva la última_actividad previa
+                    // Si existe e inactivo (ni lease ni ping): se conserva la última_actividad previa
 
                     $reserva->save();
                 }
