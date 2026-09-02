@@ -16,3 +16,12 @@ Schedule::command('kpi:capturar-disponibilidad')
     ->timezone('America/Santiago')
     ->onOneServer()
     ->withoutOverlapping();
+
+// ── DHCP · Revisión de reservas inactivas ─────────────────────────────────────
+// Todos los días a las 08:00 revisa reservas sin actividad sobre el umbral y,
+// si hay un correo configurado, envía el listado para depurar.
+Schedule::command('dhcp:revisar-inactivas')
+    ->dailyAt('08:00')
+    ->timezone('America/Santiago')
+    ->onOneServer()
+    ->withoutOverlapping();

@@ -42,6 +42,8 @@ use App\Http\Controllers\Admin\InformeController as AdminInformeController;
 use App\Http\Controllers\Admin\MapaGeograficoController as AdminMapaGeograficoController;
 use App\Http\Controllers\Admin\ZonaController as AdminZonaController;
 use App\Http\Controllers\Auth\AzureController;
+use App\Http\Controllers\DhcpController;
+use App\Http\Controllers\DhcpIngestController;
 
 // Route::get('/', function () {
 //     return view('home');
@@ -116,6 +118,17 @@ Route::put('actas_devolucion_telefono/{acta}', [ActaDevolucionTelefonoController
 Route::post('actas_devolucion_telefono/linea/{linea}', [ActaDevolucionTelefonoController::class, 'store'])->name('actas_devolucion_telefono.store');
 Route::delete('actas_devolucion_telefono/{acta}', [ActaDevolucionTelefonoController::class, 'destroy'])->name('actas_devolucion_telefono.destroy');
 Route::get('actas_devolucion_telefono', [ActaDevolucionTelefonoController::class, 'index'])->name('actas_devolucion_telefono.index');
+
+// ── DHCP / Reservas ──────────────────────────────────────────────────────────
+// Endpoint de ingesta: token propio, sin sesión (excluido de CSRF en bootstrap/app.php)
+Route::post('api/dhcp/importar', [DhcpIngestController::class, 'store'])->name('dhcp.importar');
+
+Route::middleware('auth')->prefix('dhcp')->name('dhcp.')->group(function () {
+    Route::get('/',              [DhcpController::class, 'dashboard'])->name('dashboard');
+    Route::get('reservas',       [DhcpController::class, 'reservas'])->name('reservas');
+    Route::get('configuracion',  [DhcpController::class, 'configuracion'])->name('configuracion');
+    Route::post('configuracion', [DhcpController::class, 'guardarConfig'])->name('configuracion.guardar');
+});
 
 // ── Inventario (multidominio) ────────────────────────────────────────────────
 //

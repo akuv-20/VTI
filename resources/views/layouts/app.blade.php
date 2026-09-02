@@ -774,6 +774,27 @@
             </div>
             @endcan
 
+            {{-- ── Redes / DHCP ── --}}
+            @if($ta('dhcp.dashboard'))
+            <div class="vti-nav-group" data-group="dhcp">
+                <button type="button" class="vti-nav-group-toggle">
+                    <i class="bi bi-hdd-network"></i><span class="sb-text">Redes / DHCP</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="vti-nav-group-items">
+                    <a href="{{ route('dhcp.dashboard') }}" class="vti-nav-link {{ request()->routeIs('dhcp.dashboard') ? 'active' : '' }}">
+                        <i class="bi bi-speedometer2"></i>Panel
+                    </a>
+                    <a href="{{ route('dhcp.reservas') }}" class="vti-nav-link {{ request()->routeIs('dhcp.reservas') ? 'active' : '' }}">
+                        <i class="bi bi-list-ul"></i>Reservas
+                    </a>
+                    <a href="{{ route('dhcp.configuracion') }}" class="vti-nav-link {{ request()->routeIs('dhcp.configuracion') ? 'active' : '' }}">
+                        <i class="bi bi-gear"></i>Configuración
+                    </a>
+                </div>
+            </div>
+            @endif
+
             {{-- ── Active Directory ── --}}
             @if(auth()->user()->can('acceso_ad') || auth()->user()->can('acceso_ad2') || auth()->user()->can('acceso_ad3') || auth()->user()->can('acceso_entra'))
             <div class="vti-nav-group" data-group="ad">

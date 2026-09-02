@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'check.modulo' => \App\Http\Middleware\CheckModulo::class,
         ]);
         $middleware->appendToGroup('web', \App\Http\Middleware\CheckModulo::class);
+
+        // El endpoint de ingesta DHCP usa token propio (máquina a máquina), sin CSRF
+        $middleware->validateCsrfTokens(except: [
+            'api/dhcp/importar',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
