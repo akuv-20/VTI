@@ -9,7 +9,9 @@ use Symfony\Component\HttpFoundation\Response;
 class CheckModulo
 {
     /** Prefijos de ruta que no requieren comprobación de módulo */
-    private const BYPASS = ['admin.', 'login', 'logout', 'register', 'password.', 'verification.'];
+    // 'inventario.elegir.' es el selector de dominio: se protege con el gate
+    // can:acceso_inventario, no por prefijo de módulo (ningún módulo lo declara).
+    private const BYPASS = ['admin.', 'inventario.elegir.', 'login', 'logout', 'register', 'password.', 'verification.'];
 
     public function handle(Request $request, Closure $next): Response
     {
