@@ -5,6 +5,9 @@
     <div class="vti-page-header">
         <h4><i class="bi bi-hdd-network me-2"></i>DHCP · Panel</h4>
         <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ route('dhcp.dashboard') }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-arrow-clockwise me-1"></i>Recargar
+            </a>
             <a href="{{ route('dhcp.reservas') }}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-list-ul me-1"></i>Ver reservas
             </a>

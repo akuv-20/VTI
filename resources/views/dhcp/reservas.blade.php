@@ -4,9 +4,14 @@
 
     <div class="vti-page-header">
         <h4><i class="bi bi-hdd-network me-2"></i>Reservas DHCP</h4>
-        <a href="{{ route('dhcp.dashboard') }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-1"></i>Panel
-        </a>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ route('dhcp.reservas', request()->query()) }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-arrow-clockwise me-1"></i>Recargar
+            </a>
+            <a href="{{ route('dhcp.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Panel
+            </a>
+        </div>
     </div>
 
     {{-- Filtros --}}
