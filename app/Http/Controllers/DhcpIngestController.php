@@ -19,8 +19,14 @@ class DhcpIngestController extends Controller
         $tokenConfig = Configuracion::get('dhcp_token');
         $tokenHeader = $request->header('X-DHCP-Token') ?: $request->input('token');
 
-        if (!$tokenConfig || !$tokenHeader || !hash_equals($tokenConfig, $tokenHeader)) {
-            return response()->json(['ok' => false, 'error' => 'Token inválido.'], 401);
+        if (!$tokenConfig) {
+            return response()->json(['ok' => false, 'error' => 'No hay token configurado en VTI. Genéralo en Redes → DHCP → Configuración.'], 401);
+        }
+        if (!$tokenHeader) {
+            return response()->json(['ok' => false, 'error' => 'Falta la cabecera X-DHCP-Token en la petición.'], 401);
+        }
+        if (!hash_equals($tokenConfig, trim($tokenHeader))) {
+            return response()->json(['ok' => false, 'error' => 'El token no coincide con el configurado en VTI.'], 401);
         }
 
         try {
