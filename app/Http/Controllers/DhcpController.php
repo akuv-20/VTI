@@ -101,13 +101,16 @@ class DhcpController extends Controller
 
         $scopes = DhcpScope::orderBy('nombre')->get();
 
-        // Conteos para los filtros
-        $countTodas      = DhcpReserva::where('activa', true)->count();
-        $countInactivas  = DhcpReserva::where('activa', true)
+        // Conteos para los filtros (respetan el scope seleccionado)
+        $scopeSel = $request->input('scope');
+        $base = fn() => DhcpReserva::when($scopeSel, fn($q) => $q->where('scope_id', $scopeSel));
+
+        $countTodas      = $base()->where('activa', true)->count();
+        $countInactivas  = $base()->where('activa', true)
             ->where(fn($q) => $q->where('ultima_actividad', '<', $limite)->orWhereNull('ultima_actividad'))
             ->count();
-        $countActivas    = DhcpReserva::where('activa', true)->where('visto_activa', true)->count();
-        $countEliminadas = DhcpReserva::where('activa', false)->count();
+        $countActivas    = $base()->where('activa', true)->where('visto_activa', true)->count();
+        $countEliminadas = $base()->where('activa', false)->count();
 
         return view('dhcp.reservas', compact(
             'reservas', 'scopes', 'estado', 'umbral',
