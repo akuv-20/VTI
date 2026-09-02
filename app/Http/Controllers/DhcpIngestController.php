@@ -23,35 +23,60 @@ class DhcpIngestController extends Controller
             return response()->json(['ok' => false, 'error' => 'Token inválido.'], 401);
         }
 
-        $data = $request->validate([
-            'generado_at'          => 'nullable|date',
-            'scopes'               => 'required|array|min:1',
-            'scopes.*.scope_id'    => 'required|string|max:20',
-            'scopes.*.reservas'    => 'nullable|array',
-        ]);
+        try {
+            return $this->procesar($request);
+        } catch (\Throwable $e) {
+            // Devolver el mensaje real al script (en vez de un 500 genérico)
+            \Illuminate\Support\Facades\Log::error('DHCP ingesta: ' . $e->getMessage(), [
+                'file' => $e->getFile(), 'line' => $e->getLine(),
+            ]);
+            return response()->json([
+                'ok'    => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /** Normaliza un valor de PowerShell a lista (PS 5.1 colapsa arrays de 1 elemento en objeto) */
+    private function comoLista($valor): array
+    {
+        if (empty($valor)) return [];                 // null o "" (array vacío de PS)
+        if (array_is_list($valor)) return $valor;     // ya es lista
+        return [$valor];                              // objeto único → envolver
+    }
+
+    private function procesar(Request $request)
+    {
+        $scopesRaw = $this->comoLista($request->input('scopes'));
+
+        if (empty($scopesRaw)) {
+            return response()->json(['ok' => false, 'error' => 'No se recibieron scopes.'], 422);
+        }
 
         $now       = now();
-        $generado  = !empty($data['generado_at']) ? Carbon::parse($data['generado_at']) : $now;
+        $genRaw    = $request->input('generado_at');
+        $generado  = !empty($genRaw) ? Carbon::parse($genRaw) : $now;
         $ipsVistas = [];
         $scopeIds  = [];
         $totalReservas = 0;
         $totalActivas  = 0;
 
-        DB::transaction(function () use ($request, $now, $generado, &$ipsVistas, &$scopeIds, &$totalReservas, &$totalActivas) {
-            foreach ($request->input('scopes') as $scope) {
-                $scopeId    = $scope['scope_id'];
+        DB::transaction(function () use ($scopesRaw, $now, &$ipsVistas, &$scopeIds, &$totalReservas, &$totalActivas) {
+            foreach ($scopesRaw as $scope) {
+                $scopeId    = (string) ($scope['scope_id'] ?? '');
+                if ($scopeId === '') continue;
                 $scopeIds[] = $scopeId;
-                $reservas   = $scope['reservas'] ?? [];
+                $reservas   = $this->comoLista($scope['reservas'] ?? []);
 
                 DhcpScope::updateOrCreate(
                     ['scope_id' => $scopeId],
                     [
-                        'nombre'            => $scope['nombre']            ?? null,
-                        'descripcion'       => $scope['descripcion']       ?? null,
+                        'nombre'            => isset($scope['nombre'])      ? mb_substr((string) $scope['nombre'], 0, 150)      : null,
+                        'descripcion'       => isset($scope['descripcion']) ? mb_substr((string) $scope['descripcion'], 0, 255) : null,
                         'subnet_mask'       => $scope['subnet_mask']       ?? null,
                         'rango_inicio'      => $scope['rango_inicio']      ?? null,
                         'rango_fin'         => $scope['rango_fin']         ?? null,
-                        'estado'            => $scope['estado']            ?? 'Active',
+                        'estado'            => isset($scope['estado']) ? mb_substr((string) $scope['estado'], 0, 20) : 'Active',
                         'total_direcciones' => (int) ($scope['total_direcciones'] ?? 0),
                         'en_uso'            => (int) ($scope['en_uso']     ?? 0),
                         'libres'            => (int) ($scope['libres']     ?? 0),
@@ -74,9 +99,9 @@ class DhcpIngestController extends Controller
                     $esNueva = !$reserva->exists;
 
                     $reserva->scope_id     = $scopeId;
-                    $reserva->mac          = $r['mac']         ?? $reserva->mac;
-                    $reserva->nombre       = $r['nombre']      ?? null;
-                    $reserva->descripcion  = $r['descripcion'] ?? null;
+                    $reserva->mac          = $r['mac'] ? mb_substr($r['mac'], 0, 40) : $reserva->mac;
+                    $reserva->nombre       = isset($r['nombre'])      ? mb_substr((string) $r['nombre'], 0, 150)      : null;
+                    $reserva->descripcion  = isset($r['descripcion']) ? mb_substr((string) $r['descripcion'], 0, 255) : null;
                     $reserva->visto_activa = $activa;
                     $reserva->lease_expira = $leaseExp;
                     $reserva->activa       = true;
