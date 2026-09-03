@@ -828,6 +828,12 @@
                     <a href="{{ route('admin.entra_id.inspector') }}" class="vti-nav-link {{ request()->routeIs('admin.entra_id.inspector*') ? 'active' : '' }}">
                         <i class="bi bi-clipboard2-data"></i>Value Inspector
                     </a>
+                    <a href="{{ route('admin.buzones.dashboard') }}" class="vti-nav-link {{ request()->routeIs('admin.buzones.*') ? 'active' : '' }}">
+                        <i class="bi bi-envelope-exclamation"></i>Uso de buzones
+                    </a>
+                    <a href="{{ route('admin.entra_id.mfa.dashboard') }}" class="vti-nav-link {{ request()->routeIs('admin.entra_id.mfa.*') ? 'active' : '' }}">
+                        <i class="bi bi-shield-lock"></i>MFA
+                    </a>
                     @endcan
                 </div>
             </div>
@@ -988,6 +994,8 @@
             'admin.active_directory3'     => ['AD | EntraID', 'AD Unifrutti'],
             'admin.active_directory2'     => ['Active Directory', 'AD Grupo Verfrut (Perú)'],
             'admin.active_directory'      => ['Active Directory', 'AD Verfrut'],
+            'admin.entra_id.mfa'          => ['AD | EntraID', 'MFA'],
+            'admin.buzones'               => ['AD | EntraID', 'Uso de buzones'],
             'admin.entra_id.dashboard'    => ['AD | EntraID', 'Salud de datos'],
             'admin.entra_id.inspector'    => ['AD | EntraID', 'Value Inspector'],
             'admin.entra_id'              => ['AD | EntraID', 'Entra ID'],

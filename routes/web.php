@@ -34,6 +34,8 @@ use App\Http\Controllers\Admin\ActiveDirectoryController as AdminADController;
 use App\Http\Controllers\Admin\ActiveDirectory2Controller as AdminAD2Controller;
 use App\Http\Controllers\Admin\ActiveDirectory3Controller as AdminAD3Controller;
 use App\Http\Controllers\Admin\EntraIDController as AdminEntraIDController;
+use App\Http\Controllers\Admin\MfaController;
+use App\Http\Controllers\Admin\UsoBuzonesController;
 use App\Http\Controllers\Admin\KpiDisponibilidadController as AdminKpiDisponibilidadController;
 use App\Http\Controllers\Admin\MonitoreoMapaController as AdminMonitoreoMapaController;
 use App\Http\Controllers\Admin\SitioController as AdminSitioController;
@@ -253,6 +255,23 @@ Route::middleware(['auth', 'can:acceso_entra'])->prefix('admin')->name('admin.')
         Route::delete('/reglas/{regla}',         [AdminEntraIDController::class, 'reglaDestroy'])->name('reglas.destroy');
         Route::get('/inspector',                 [AdminEntraIDController::class, 'inspector'])->name('inspector');
         Route::get('/inspector/{campo}',         [AdminEntraIDController::class, 'inspectorDetalle'])->name('inspector.detalle');
+
+        Route::prefix('mfa')->name('mfa.')->group(function () {
+            Route::get('/',           [MfaController::class, 'dashboard'])->name('dashboard');
+            Route::get('/listado',    [MfaController::class, 'index'])->name('index');
+            Route::get('/excel',      [MfaController::class, 'excel'])->name('excel');
+            Route::post('/refrescar', [MfaController::class, 'refrescar'])->name('refrescar');
+        });
+    });
+
+    // Uso de buzones: mismo tenant y mismo permiso que Entra ID.
+    Route::prefix('buzones')->name('buzones.')->group(function () {
+        Route::get('/',                    [UsoBuzonesController::class, 'dashboard'])->name('dashboard');
+        Route::get('/listado',             [UsoBuzonesController::class, 'index'])->name('index');
+        Route::get('/excel',               [UsoBuzonesController::class, 'excel'])->name('excel');
+        Route::post('/refrescar',          [UsoBuzonesController::class, 'refrescar'])->name('refrescar');
+        Route::post('/excluir',            [UsoBuzonesController::class, 'excluir'])->name('excluir');
+        Route::delete('/excluir/{excluido}', [UsoBuzonesController::class, 'incluir'])->name('incluir');
     });
 });
 

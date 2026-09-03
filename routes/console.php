@@ -25,3 +25,21 @@ Schedule::command('dhcp:revisar-inactivas')
     ->timezone('America/Santiago')
     ->onOneServer()
     ->withoutOverlapping();
+
+// ── Uso de buzones (Microsoft 365) ────────────────────────────────────────────
+// Los reportes de uso de Graph se refrescan una vez al día. A las 05:00 deja el
+// análisis en caché para que nadie espere los ~40 s que toma construirlo.
+Schedule::command('buzones:analizar')
+    ->dailyAt('05:00')
+    ->timezone('America/Santiago')
+    ->onOneServer()
+    ->withoutOverlapping();
+
+// ── MFA · Estado de registro en Entra ID ──────────────────────────────────────
+// Dos veces al día: el reporte de Entra se refresca varias veces en la jornada y
+// la caché dura 6 h, así que nadie se topa con el recálculo en caliente.
+Schedule::command('mfa:analizar')
+    ->twiceDaily(5, 14)
+    ->timezone('America/Santiago')
+    ->onOneServer()
+    ->withoutOverlapping();
