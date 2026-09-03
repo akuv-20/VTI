@@ -155,6 +155,64 @@
 
     </div>
 
+    {{-- ── Correcciones: duplicados a depurar ── --}}
+    <div class="d-flex align-items-center gap-2 mb-2 mt-1">
+        <h5 class="mb-0 fw-bold" style="font-size:1.05rem">
+            <i class="bi bi-tools me-2 text-warning"></i>Correcciones
+        </h5>
+        <small class="text-muted">Equipos duplicados para revisar y depurar en GLPI</small>
+    </div>
+
+    {{-- Recambios: mismo código antes del guion (VPL156-2303 y VPL156-2603) --}}
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            @include('inventario._tabla_alerta', [
+                'titulo'  => 'Duplicados por código de recambio (antes del guion)',
+                'icono'   => 'bi-arrow-repeat',
+                'color'   => 'secondary',
+                'columnas'=> ['Código', 'Cant.', 'Equipos → usuario'],
+                'filas'   => $dupPrefijo->map(fn($r) => [$r->prefijo, $r->total, $r->equipos]),
+            ])
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        {{-- Por nombre de equipo exacto --}}
+        <div class="col-lg-6">
+            @include('inventario._tabla_alerta', [
+                'titulo'  => 'Duplicados por nombre de equipo',
+                'icono'   => 'bi-input-cursor-text',
+                'color'   => 'danger',
+                'columnas'=> ['Nombre', 'Cant.'],
+                'filas'   => $dupNombre->map(fn($r) => [$r->name, $r->total]),
+            ])
+        </div>
+
+        {{-- Por usuario asignado --}}
+        <div class="col-lg-6">
+            @include('inventario._tabla_alerta', [
+                'titulo'  => 'Duplicados por usuario asignado',
+                'icono'   => 'bi-people-fill',
+                'color'   => 'warning',
+                'columnas'=> ['Usuario', 'Cant.', 'Equipos'],
+                'filas'   => $dupUsuario->map(fn($r) => [trim($r->usuario) ?: '—', $r->total, $r->equipos]),
+            ])
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        {{-- Por usuario alternativo (contact) --}}
+        <div class="col-lg-6">
+            @include('inventario._tabla_alerta', [
+                'titulo'  => 'Duplicados por usuario alternativo (contact)',
+                'icono'   => 'bi-person-vcard',
+                'color'   => 'warning',
+                'columnas'=> ['Usuario alternativo', 'Cant.', 'Equipos'],
+                'filas'   => $dupContact->map(fn($r) => [$r->contact, $r->total, $r->equipos]),
+            ])
+        </div>
+    </div>
+
     {{-- ── Fila tablas alertas ── --}}
     <div class="row g-3 mb-4">
 

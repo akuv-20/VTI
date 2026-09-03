@@ -170,6 +170,63 @@ class DashboardController extends BaseController
                 DB::raw("TRIM(CONCAT(IFNULL(u.firstname,''),' ',IFNULL(u.realname,''))) as usuario"))
             ->orderBy('c.serial')->orderBy('c.name')->limit(40)->get();
 
+        // ── Correcciones: otros criterios de duplicados ──────────────────────
+        // GROUP_CONCAT recorta a 1024 por defecto; se sube para no truncar la
+        // lista de equipos de cada grupo.
+        $glpi->statement('SET SESSION group_concat_max_len = 1000000');
+
+        // Duplicados por usuario asignado
+        $dupUsuario = $glpi->table('glpi_computers as c')
+            ->join('glpi_users as u', 'u.id', '=', 'c.users_id')
+            ->where('c.is_deleted', 0)->where('c.is_template', 0)
+            ->where('c.users_id', '<>', 0)
+            ->where('c.users_id', '!=', $excluir)
+            ->select(
+                DB::raw("TRIM(CONCAT(IFNULL(u.firstname,''),' ',IFNULL(u.realname,''))) as usuario"),
+                DB::raw('COUNT(*) as total'),
+                DB::raw("GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR '  |  ') as equipos")
+            )
+            ->groupBy('c.users_id', 'usuario')
+            ->havingRaw('COUNT(*) > 1')
+            ->orderByDesc('total')->limit(30)->get();
+
+        // Duplicados por usuario alternativo (contact)
+        $dupContact = $glpi->table('glpi_computers as c')
+            ->where('c.is_deleted', 0)->where('c.is_template', 0)
+            ->where('c.users_id', '!=', $excluir)
+            ->whereNotNull('c.contact')->where('c.contact', '<>', '')
+            ->select('c.contact',
+                DB::raw('COUNT(*) as total'),
+                DB::raw("GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR '  |  ') as equipos"))
+            ->groupBy('c.contact')
+            ->havingRaw('COUNT(*) > 1')
+            ->orderByDesc('total')->limit(30)->get();
+
+        // Duplicados por nombre de equipo exacto
+        $dupNombre = $glpi->table('glpi_computers as c')
+            ->where('c.is_deleted', 0)->where('c.is_template', 0)
+            ->where('c.users_id', '!=', $excluir)
+            ->select('c.name', DB::raw('COUNT(*) as total'))
+            ->groupBy('c.name')
+            ->havingRaw('COUNT(*) > 1')
+            ->orderByDesc('total')->limit(30)->get();
+
+        // Duplicados por prefijo antes del guion (recambios: VPL156-2303 y VPL156-2603)
+        $dupPrefijo = $glpi->table('glpi_computers as c')
+            ->leftJoin('glpi_users as u', 'u.id', '=', 'c.users_id')
+            ->where('c.is_deleted', 0)->where('c.is_template', 0)
+            ->where('c.users_id', '!=', $excluir)
+            ->select(
+                DB::raw("SUBSTRING_INDEX(c.name, '-', 1) as prefijo"),
+                DB::raw('COUNT(*) as total'),
+                DB::raw("GROUP_CONCAT(
+                    CONCAT(c.name, ' → ', COALESCE(NULLIF(TRIM(CONCAT(IFNULL(u.firstname,''),' ',IFNULL(u.realname,''))), ''), '(sin usuario)'))
+                    ORDER BY c.name SEPARATOR '  |  ') as equipos")
+            )
+            ->groupBy('prefijo')
+            ->havingRaw('COUNT(*) > 1')
+            ->orderByDesc('total')->limit(40)->get();
+
         // ── Equipos sin agente ───────────────────────────────────────────────
         $idsConAgente = $glpi->table('glpi_agents')
             ->where('itemtype', 'Computer')->pluck('items_id');
@@ -226,7 +283,8 @@ class DashboardController extends BaseController
             'inactivos', 'sinUsuarioLista', 'sinUbicacionLista',
             'duplicadosDetalle', 'sinAgenteLista',
             'masAntiguos', 'recientes', 'porUbicacion',
-            'sinAntivirusLista'
+            'sinAntivirusLista',
+            'dupUsuario', 'dupContact', 'dupNombre', 'dupPrefijo'
         ));
     }
 }
