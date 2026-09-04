@@ -34,13 +34,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success py-2" style="font-size:.84rem">{{ session('success') }}</div>
-    @endif
-    @foreach($errors->all() as $e)
-        <div class="alert alert-danger py-2" style="font-size:.84rem">{{ $e }}</div>
-    @endforeach
-
     @if(!$ok)
         <div class="alert alert-warning">
             <b><i class="bi bi-exclamation-triangle me-1"></i>No se pudo revisar</b>

@@ -28,19 +28,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show py-2">
-            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show py-2">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ $errors->first() }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     @if($avisoGlpi)
         <div class="alert alert-warning d-flex align-items-start gap-2">
             <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>

@@ -61,13 +61,6 @@
         </div>
     </div>
 
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show py-2">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ $errors->first() }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     {{-- Indicadores que filtran --}}
     <div class="mfal-tiles">
         <a href="{{ route('admin.entra_id.mfa.index') }}"

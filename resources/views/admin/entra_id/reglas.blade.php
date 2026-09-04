@@ -15,19 +15,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show py-2">
-            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show py-2">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ $errors->first() }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     <p class="text-muted mb-3" style="font-size:.84rem">
         Las reglas activas se evalúan en <a href="{{ route('admin.entra_id.dashboard') }}">Salud de datos</a>
         y determinan la puntuación de cada indicador.
