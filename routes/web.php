@@ -91,6 +91,7 @@ Route::resource('aparatos', AparatoController::class);
 Route::get('centros_costo/buscar', [CentroCostoController::class, 'buscar'])->name('centros_costo.buscar');
 Route::resource('centros_costo', CentroCostoController::class);
 Route::post('lineas_telefonicas/reprocesar_ccosto', [LineaTelefonicaController::class, 'reprocesarCentroCosto'])->name('lineas_telefonicas.reprocesar_ccosto');
+Route::get('lineas_telefonicas/export', [LineaTelefonicaController::class, 'export'])->name('lineas_telefonicas.export');
 Route::resource('lineas_telefonicas', LineaTelefonicaController::class);
 Route::get('informes/telefonia', [InformeController::class, 'telefonia'])->name('informes.telefonia');
 

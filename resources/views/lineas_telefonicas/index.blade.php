@@ -22,6 +22,10 @@
             <a href="{{ route('lineas_telefonicas.create') }}" class="btn btn-success btn-sm">
                 <i class="bi bi-plus-lg"></i> Nueva Línea
             </a>
+            <a href="{{ route('lineas_telefonicas.export', request()->query()) }}" class="btn btn-outline-success btn-sm"
+               title="Exportar el listado (con los filtros activos) a Excel">
+                <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+            </a>
             <form action="{{ route('lineas_telefonicas.reprocesar_ccosto') }}" method="POST"
                   data-confirm="todas las líneas sin centro de costo"
                   data-confirm-verb="reprocesar"
