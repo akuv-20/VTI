@@ -60,6 +60,11 @@ class MfaController extends Controller
 
     public function excel(Request $request)
     {
+        // Mismo motivo que en el informe de buzones: PhpSpreadsheet arma el libro
+        // completo en memoria, y aquí el universo son ~5.700 cuentas.
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(180);
+
         try {
             $d = $this->mfa->analizar();
         } catch (\Throwable $e) {

@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Services\UsoBuzones;
+use App\Services\ActividadBuzones;
 use Illuminate\Console\Command;
 
 /**
@@ -15,9 +15,9 @@ class AnalizarBuzones extends Command
 {
     protected $signature = 'buzones:analizar';
 
-    protected $description = 'Recalcula el uso de buzones de Microsoft 365 y lo deja en caché';
+    protected $description = 'Recalcula la actividad de los buzones de Microsoft 365 y la deja en caché';
 
-    public function handle(UsoBuzones $uso): int
+    public function handle(ActividadBuzones $uso): int
     {
         $this->info('Consultando Microsoft Graph…');
         $inicio = microtime(true);

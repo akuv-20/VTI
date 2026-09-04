@@ -34,9 +34,9 @@ use Illuminate\Support\Facades\Cache;
  *    que ofrece la API. Por eso el veredicto se apoya en el inicio de sesión y
  *    los contadores de correo solo matizan.
  */
-class UsoBuzones
+class ActividadBuzones
 {
-    private const CACHE_KEY = 'uso_buzones_analisis';
+    private const CACHE_KEY = 'actividad_buzones_analisis';
 
     // Construir el análisis toma ~40 s: son dos recorridos completos del
     // directorio más dos reportes de Graph. Demasiado para una petición web, así
@@ -193,8 +193,29 @@ class UsoBuzones
         $r['sin_uso']          = $sinUso->count();
         $r['sin_uso_pct']      = $total > 0 ? round($sinUso->count() * 100 / $total, 1) : 0.0;
         $r['correo_al_vacio']  = $sinUso->sum('recibidos');
-        $r['con_correo']       = $sinUso->where('recibidos', '>', 50)->count();
         $r['mb_sin_uso']       = round($sinUso->sum('mb') / 1024, 1);
+
+        // Cuánto correo recibe cada buzón sin uso.
+        //
+        // Es el único corte que de verdad separa a este grupo: por antigüedad son
+        // todos iguales —salieron de la misma tanda— y correo reciben todos, así
+        // que "recibe o no recibe" tampoco distingue. El volumen sí: uno con
+        // cinco correos en medio año es ruido automático, y uno con doscientos
+        // está perdiendo comunicación real.
+        $r['tramos_correo'] = self::tramos($sinUso);
+
+        // Meses de licencia pagados sobre buzones que nunca se abrieron. Es la
+        // cifra que traduce el problema a plata sin inventar precios.
+        $r['meses_licencia'] = (int) round($sinUso->sum(
+            fn ($b) => $b['creado'] ? $b['creado']->diffInMonths(now()) : 0
+        ));
+
+        $r['meses_mediana'] = (int) round(
+            $sinUso->filter(fn ($b) => $b['creado'])
+                ->map(fn ($b) => $b['creado']->diffInMonths(now()))
+                ->sort()->values()
+                ->get((int) ($sinUso->count() / 2)) ?? 0
+        );
 
         // Licencias retenidas por buzones que nunca se abrieron
         $lic = [];
@@ -222,6 +243,32 @@ class UsoBuzones
             ->map->count()->sortDesc()->take(10)->all();
 
         return $r;
+    }
+
+    /**
+     * Tramos de correo recibido, de menos a más urgente.
+     *
+     * clave => [etiqueta, mínimo, máximo|null, lectura]
+     */
+    public const TRAMOS = [
+        'nada'    => ['Sin correo entrante',   0,   0,    'Nadie les escribe: se pueden dar de baja sin más'],
+        'ruido'   => ['1 a 10 correos',        1,   10,   'Casi todo automático; poco que rescatar'],
+        'algo'    => ['11 a 50 correos',       11,  50,   'Reciben algo real, conviene mirarlos'],
+        'mucho'   => ['51 a 200 correos',      51,  200,  'Correo de trabajo que no está llegando'],
+        'critico' => ['Más de 200 correos',    201, null, 'Están perdiendo comunicación a diario'],
+    ];
+
+    private static function tramos(Collection $buzones): array
+    {
+        $out = [];
+
+        foreach (self::TRAMOS as $clave => [, $min, $max]) {
+            $out[$clave] = $buzones
+                ->filter(fn ($b) => $b['recibidos'] >= $min && ($max === null || $b['recibidos'] <= $max))
+                ->count();
+        }
+
+        return $out;
     }
 
     /* ── Apoyo ───────────────────────────────────────────────────────────── */

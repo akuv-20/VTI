@@ -35,7 +35,7 @@ use App\Http\Controllers\Admin\ActiveDirectory2Controller as AdminAD2Controller;
 use App\Http\Controllers\Admin\ActiveDirectory3Controller as AdminAD3Controller;
 use App\Http\Controllers\Admin\EntraIDController as AdminEntraIDController;
 use App\Http\Controllers\Admin\MfaController;
-use App\Http\Controllers\Admin\UsoBuzonesController;
+use App\Http\Controllers\Admin\ActividadBuzonesController;
 use App\Http\Controllers\Admin\KpiDisponibilidadController as AdminKpiDisponibilidadController;
 use App\Http\Controllers\Admin\MonitoreoMapaController as AdminMonitoreoMapaController;
 use App\Http\Controllers\Admin\SitioController as AdminSitioController;
@@ -265,14 +265,16 @@ Route::middleware(['auth', 'can:acceso_entra'])->prefix('admin')->name('admin.')
         });
     });
 
-    // Uso de buzones: mismo tenant y mismo permiso que Entra ID.
+    // Actividad de buzones: mismo tenant y mismo permiso que Entra ID.
     Route::prefix('buzones')->name('buzones.')->group(function () {
-        Route::get('/',                    [UsoBuzonesController::class, 'dashboard'])->name('dashboard');
-        Route::get('/listado',             [UsoBuzonesController::class, 'index'])->name('index');
-        Route::get('/excel',               [UsoBuzonesController::class, 'excel'])->name('excel');
-        Route::post('/refrescar',          [UsoBuzonesController::class, 'refrescar'])->name('refrescar');
-        Route::post('/excluir',            [UsoBuzonesController::class, 'excluir'])->name('excluir');
-        Route::delete('/excluir/{excluido}', [UsoBuzonesController::class, 'incluir'])->name('incluir');
+        Route::get('/',                    [ActividadBuzonesController::class, 'dashboard'])->name('dashboard');
+        Route::get('/listado',             [ActividadBuzonesController::class, 'index'])->name('index');
+        Route::get('/excel',               [ActividadBuzonesController::class, 'excel'])->name('excel');
+        Route::get('/pdf',                 [ActividadBuzonesController::class, 'pdf'])->name('pdf');
+        Route::post('/refrescar',          [ActividadBuzonesController::class, 'refrescar'])->name('refrescar');
+        Route::post('/excluir',            [ActividadBuzonesController::class, 'excluir'])->name('excluir');
+        Route::delete('/excluir/{excluido}', [ActividadBuzonesController::class, 'incluir'])->name('incluir');
+        Route::post('/excluir/{id}/restaurar', [ActividadBuzonesController::class, 'restaurar'])->name('restaurar');
     });
 });
 

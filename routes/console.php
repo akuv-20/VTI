@@ -26,7 +26,7 @@ Schedule::command('dhcp:revisar-inactivas')
     ->onOneServer()
     ->withoutOverlapping();
 
-// ── Uso de buzones (Microsoft 365) ────────────────────────────────────────────
+// ── Actividad de buzones (Microsoft 365) ────────────────────────────────────────────
 // Los reportes de uso de Graph se refrescan una vez al día. A las 05:00 deja el
 // análisis en caché para que nadie espere los ~40 s que toma construirlo.
 Schedule::command('buzones:analizar')

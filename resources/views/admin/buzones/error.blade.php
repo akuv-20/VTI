@@ -5,7 +5,7 @@
 
     <div class="vti-page-header">
         <h4>
-            <i class="bi bi-envelope-exclamation me-2" style="color:#a63a22"></i>Uso de buzones
+            <i class="bi bi-envelope-exclamation me-2" style="color:#a63a22"></i>Actividad de buzones
         </h4>
     </div>
 

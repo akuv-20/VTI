@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @php
-    use App\Services\UsoBuzones;
+    use App\Services\ActividadBuzones;
 
     $f    = $filtros['activos'];
     $orden = $f['orden'] ?? 'recibidos';
@@ -52,14 +52,15 @@
 
     <div class="vti-page-header">
         <h4 class="d-flex align-items-center gap-2 flex-wrap">
-            <span><i class="bi bi-envelope-exclamation me-2" style="color:#a63a22"></i>Uso de buzones</span>
+            <span><i class="bi bi-envelope-exclamation me-2" style="color:#a63a22"></i>Actividad de buzones</span>
             <span class="badge bg-light text-secondary border" style="font-size:.7rem">unifrutti.com</span>
         </h4>
         <div class="d-flex gap-2">
             <a href="{{ route('admin.buzones.dashboard') }}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-bar-chart-line me-1"></i>Informe
             </a>
-            <a href="{{ route('admin.buzones.excel', $f) }}" class="btn btn-success btn-sm">
+            <a href="{{ route('admin.buzones.excel', $f) }}" class="btn btn-success btn-sm"
+               title="Un libro con una hoja por estado. Respeta departamento, licencia, mes y búsqueda; los filtros de estado no aplican porque el informe es el desglose.">
                 <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
             </a>
             <button class="btn btn-outline-secondary btn-sm" type="button"
@@ -69,19 +70,6 @@
             </button>
         </div>
     </div>
-
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show py-2">
-            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show py-2">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ $errors->first() }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
 
     {{-- Buzones excluidos --}}
     <div class="collapse @if($errors->any()) show @endif" id="paneExcluidos">
@@ -94,12 +82,15 @@
 
             <form method="POST" action="{{ route('admin.buzones.excluir') }}" class="row g-2 align-items-end mb-3">
                 @csrf
-                <div class="col-md-4">
-                    <label class="form-label" style="font-size:.78rem;font-weight:600">Correo del buzón</label>
-                    <input type="text" name="upn" class="form-control form-control-sm"
-                           placeholder="info.pv@unifrutti.com" value="{{ old('upn') }}" required>
-                </div>
                 <div class="col-md-5">
+                    <label class="form-label" style="font-size:.78rem;font-weight:600">
+                        Correo del buzón
+                        <span class="text-muted fw-normal">— puedes pegar varios de una vez</span>
+                    </label>
+                    <textarea name="upn" class="form-control form-control-sm" rows="2" required
+                              placeholder="info.pv@unifrutti.com&#10;cuadraturalind@unifrutti.com">{{ old('upn') }}</textarea>
+                </div>
+                <div class="col-md-4">
                     <label class="form-label" style="font-size:.78rem;font-weight:600">Motivo</label>
                     <input type="text" name="motivo" class="form-control form-control-sm"
                            placeholder="Buzón compartido de Post Venta" value="{{ old('motivo') }}" required>
@@ -138,6 +129,36 @@
                 </table>
             </div>
             @endif
+
+            {{-- Papelera: quitar un buzón de la lista no lo borra de verdad --}}
+            @if($papelera->isNotEmpty())
+            <hr class="my-3">
+            <p class="mb-2" style="font-size:.8rem;color:#64748b">
+                <i class="bi bi-trash3 me-1"></i>
+                <strong>Quitados de la lista.</strong> No se borran: quedan aquí por si los necesitas de vuelta.
+            </p>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="font-size:.82rem">
+                    <tbody>
+                        @foreach($papelera as $e)
+                        <tr class="text-muted">
+                            <td class="font-monospace" style="font-size:.78rem">{{ $e->upn }}</td>
+                            <td>{{ $e->motivo }}</td>
+                            <td>quitado el {{ $e->deleted_at?->format('d/m/Y') }}</td>
+                            <td class="text-end" style="width:110px">
+                                <form method="POST" action="{{ route('admin.buzones.restaurar', $e->id) }}">
+                                    @csrf
+                                    <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.74rem">
+                                        <i class="bi bi-arrow-counterclockwise me-1"></i>Restaurar
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @endif
         </div>
     </div>
 
@@ -149,7 +170,7 @@
             <div class="buzl-tile-val">{{ number_format($resumen['total']) }}</div>
             <div class="buzl-tile-lbl"><i class="bi bi-list-ul"></i>Todos</div>
         </a>
-        @foreach(UsoBuzones::CLASES as $clave => [$lbl, $desc, $color, $ico])
+        @foreach(ActividadBuzones::CLASES as $clave => [$lbl, $desc, $color, $ico])
         <a href="{{ route('admin.buzones.index', ['clase' => $clave]) }}"
            class="buzl-tile {{ ($f['clase'] ?? null) === $clave ? 'active' : '' }}"
            style="border-left-color:{{ $color }}" title="{{ $desc }}">
@@ -193,7 +214,7 @@
                 <label class="form-label" style="font-size:.76rem;font-weight:600">Último acceso</label>
                 <select name="acceso" class="form-select form-select-sm">
                     <option value="">Cualquiera</option>
-                    @foreach(\App\Http\Controllers\Admin\UsoBuzonesController::ACCESOS as $clave => $lbl)
+                    @foreach(\App\Http\Controllers\Admin\ActividadBuzonesController::ACCESOS as $clave => $lbl)
                         <option value="{{ $clave }}" @selected(($f['acceso'] ?? null) === (string) $clave)>
                             {{ $lbl }} ({{ number_format($filtros['accesos'][$clave] ?? 0) }})
                         </option>
@@ -262,7 +283,7 @@
             </thead>
             <tbody>
                 @forelse($buzones as $b)
-                @php [$lbl, $desc, $color, $ico] = UsoBuzones::CLASES[$b['clase']]; @endphp
+                @php [$lbl, $desc, $color, $ico] = ActividadBuzones::CLASES[$b['clase']]; @endphp
                 <tr>
                     <td class="font-monospace" style="font-size:.78rem">{{ $b['upn'] }}</td>
                     <td>{{ $b['nombre'] }}</td>
