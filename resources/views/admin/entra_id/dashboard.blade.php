@@ -245,5 +245,14 @@
 
     @endif
     @endif
+
+    @isset($generado)
+        @if($generado)
+        <p class="text-muted mt-3" style="font-size:.76rem">
+            <i class="bi bi-clock-history me-1"></i>Actualizado {{ $generado->diffForHumans() }} ·
+            el servidor rehace los datos de Entra ID cada 15 minutos.
+        </p>
+        @endif
+    @endisset
 </div>
 @endsection

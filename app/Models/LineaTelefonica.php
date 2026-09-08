@@ -20,6 +20,7 @@ class LineaTelefonica extends Model
         'id_ubicacion',
         'id_centro_costo',
         'id_aparato',
+        'id_equipo',
         'imei_equipo',
         'imei_sim',
         'fecha_entrega_sim',
@@ -50,6 +51,11 @@ class LineaTelefonica extends Model
     public function aparato()
     {
         return $this->belongsTo(Aparato::class, 'id_aparato');
+    }
+
+    public function equipo()
+    {
+        return $this->belongsTo(Equipo::class, 'id_equipo');
     }
 
     public function centroCosto()

@@ -75,20 +75,25 @@
                             <div>{{ $lineas_telefonica->centroCosto?->ccosto ?? '—' }}</div>
                         </div>
                         <div class="col-6 col-md-4">
-                            <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">Aparato</div>
+                            <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">Equipo</div>
                             <div>
-                                @if($lineas_telefonica->aparato)
-                                    {{ $lineas_telefonica->aparato->marca->nombre ?? '' }}
-                                    {{ $lineas_telefonica->aparato->modelo }}
+                                @if($lineas_telefonica->equipo)
+                                    @php $eq = $lineas_telefonica->equipo; @endphp
+                                    <a href="{{ route('equipos.show', $eq) }}" class="text-decoration-none">{{ $eq->modelo_completo }}</a>
+                                    @if($eq->propiedad === 'Empresa')
+                                        <span class="badge bg-primary ms-1" style="font-size:.68rem">Empresa</span>
+                                    @else
+                                        <span class="badge bg-secondary ms-1" style="font-size:.68rem">Personal</span>
+                                    @endif
                                 @else
-                                    —
+                                    <span class="badge bg-light text-muted border">Solo chip</span>
                                 @endif
                             </div>
                         </div>
-                        @if($lineas_telefonica->imei_equipo)
+                        @if($lineas_telefonica->equipo?->imei)
                         <div class="col-6 col-md-4">
                             <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">IMEI Equipo</div>
-                            <div class="font-monospace" style="font-size:.85rem">{{ $lineas_telefonica->imei_equipo }}</div>
+                            <div class="font-monospace" style="font-size:.85rem">{{ $lineas_telefonica->equipo->imei }}</div>
                         </div>
                         @endif
                         @if($lineas_telefonica->imei_sim)

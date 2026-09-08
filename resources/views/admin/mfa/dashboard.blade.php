@@ -236,7 +236,7 @@
     <p class="mfa-pie">
         Datos de Microsoft Graph: reporte <code>authenticationMethods/userRegistrationDetails</code>.
         Universo: cuentas de tipo Member, habilitadas y con licencia asignada.<br>
-        Actualizado {{ $generado->diffForHumans() }} · se recalcula cada 6 horas.
+        Actualizado {{ $generado->diffForHumans() }} · el servidor lo rehace cada 15 minutos.
     </p>
 
 </div>

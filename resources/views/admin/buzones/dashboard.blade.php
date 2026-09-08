@@ -282,7 +282,7 @@
         <code>getMailboxUsageDetail</code> (180 días, el máximo de la API), <code>signInActivity</code>
         y <code>subscribedSkus</code>. Universo: cuentas Member habilitadas, con licencia y con buzón.
         El inicio de sesión cubre toda la vida de la cuenta; los contadores de correo, solo 180 días.<br>
-        Actualizado {{ $generado->diffForHumans() }} · se recalcula todos los días a las 05:00.
+        Actualizado {{ $generado->diffForHumans() }} · el servidor lo rehace cada 15 minutos.
     </p>
 
 </div>

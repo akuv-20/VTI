@@ -33,7 +33,7 @@ class LineaTelefonicaController extends Controller
 
     public function index(Request $request)
     {
-        $query = LineaTelefonica::with(['emisor', 'usuario', 'empresa', 'ubicacion', 'centroCosto', 'aparato.marca', 'lastHistorialUsuario.usuarioAnterior']);
+        $query = LineaTelefonica::with(['emisor', 'usuario', 'empresa', 'ubicacion', 'centroCosto', 'aparato.marca', 'equipo.aparato.marca', 'lastHistorialUsuario.usuarioAnterior']);
 
         extract($this->crucesImportaciones());
 
@@ -161,6 +161,7 @@ class LineaTelefonicaController extends Controller
         $lineas_telefonica->load([
             'emisor', 'usuario', 'empresa', 'ubicacion',
             'aparato.marca', 'centroCosto',
+            'equipo.aparato.marca', 'equipo.usuario',
             'historialUsuarios.usuarioAnterior',
             'historialUsuarios.usuarioNuevo',
             'historialImei',

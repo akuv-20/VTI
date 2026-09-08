@@ -658,7 +658,7 @@
             @endif
 
             {{-- ── Telefonía ── --}}
-            @if($ta('lineas_telefonicas.index') || $ta('roamings.index') || $ta('emisores.index') || $ta('usuarios_telefonicos.index') || $ta('ubicaciones.index') || $ta('marcas.index') || $ta('aparatos.index') || $ta('centros_costo.index') || $ta('importaciones_movistar.index') || $ta('importaciones_entel.index') || $ta('importaciones_wom.index') || $ta('informes.telefonia') || $ta('actas_entrega_telefono.index') || $ta('actas_devolucion_telefono.index'))
+            @if($ta('lineas_telefonicas.index') || $ta('roamings.index') || $ta('equipos.index') || $ta('emisores.index') || $ta('usuarios_telefonicos.index') || $ta('ubicaciones.index') || $ta('marcas.index') || $ta('aparatos.index') || $ta('centros_costo.index') || $ta('importaciones_movistar.index') || $ta('importaciones_entel.index') || $ta('importaciones_wom.index') || $ta('informes.telefonia') || $ta('actas_entrega_telefono.index') || $ta('actas_devolucion_telefono.index'))
             <div class="vti-nav-group" data-group="telefonia">
                 <button type="button" class="vti-nav-group-toggle">
                     <i class="bi bi-phone"></i><span class="sb-text">Telefonía</span>
@@ -673,6 +673,11 @@
                     @if($ta('roamings.index'))
                     <a href="{{ route('roamings.index') }}" class="vti-nav-link {{ request()->routeIs('roamings.*') ? 'active' : '' }}">
                         <i class="bi bi-globe-americas"></i>Roamings
+                    </a>
+                    @endif
+                    @if($ta('equipos.index'))
+                    <a href="{{ route('equipos.index') }}" class="vti-nav-link {{ request()->routeIs('equipos.*') ? 'active' : '' }}">
+                        <i class="bi bi-phone-fill"></i>Equipos
                     </a>
                     @endif
                     @if($ta('lineas_telefonicas.index') || $ta('roamings.index'))
@@ -973,6 +978,7 @@
             'importaciones_wom'           => ['Telefonía', 'Importaciones WOM'],
             'informes.telefonia'          => ['Telefonía', 'Informe Telefonía'],
             'roamings'                    => ['Telefonía', 'Roamings'],
+            'equipos'                     => ['Telefonía', 'Equipos'],
             'actas_entrega_telefono'      => ['Telefonía', 'Actas de Entrega'],
             'actas_devolucion_telefono'   => ['Telefonía', 'Actas de Devolución'],
             // El módulo es uno solo; el dominio se ve dentro de la pantalla.

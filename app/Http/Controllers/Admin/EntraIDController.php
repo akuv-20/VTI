@@ -53,8 +53,8 @@ class EntraIDController extends Controller
     public function datos(Request $request)
     {
         try {
-            $token  = $this->getAccessToken();
-            $todos  = Cache::remember(self::CACHE_USERS_KEY, self::CACHE_USERS_TTL, fn() => $this->fetchFromGraph($token));
+            $todos = (new \App\Services\GraphClient())->fichas();
+
             return response()->json($todos->values());
         } catch (\Throwable $e) {
             Cache::forget('entra_id_token');
@@ -102,6 +102,7 @@ class EntraIDController extends Controller
                 'countHabilitados'    => $countHabilitados,
                 'countDeshabilitados' => $countDeshabilitados,
                 'countTodos'          => $countTodos,
+                'generado'            => (new \App\Services\GraphClient())->generado(),
             ]);
 
         } catch (\Throwable $e) {
@@ -194,6 +195,7 @@ class EntraIDController extends Controller
                 'scoreGlobal'    => $scoreGlobal,
                 'totalHallazgos' => $totalHallazgos,
                 'tieneSignIn'    => $tieneSignIn,
+                'generado'       => (new \App\Services\GraphClient())->generado(),
             ]);
 
         } catch (\Throwable $e) {
@@ -388,13 +390,14 @@ class EntraIDController extends Controller
     // ── Traer todos los usuarios (con caché de 5 min) ────────────────────────
 
     private const CACHE_USERS_KEY = 'entra_id_users_all';
-    private const CACHE_USERS_TTL = 300; // segundos
 
+    // La caché la maneja GraphClient, que es también quien la deja caliente
+    // desde `entra:refrescar`. Antes vivía acá con 5 minutos de vida: como el
+    // refresco automático corre cada 15, expiraba entre corridas y el primero en
+    // abrir la pantalla terminaba esperando la consulta igual.
     private function fetchAllUsers(string $token, string $buscar = '', string $fields = ''): \Illuminate\Support\Collection
     {
-        $todos = Cache::remember(self::CACHE_USERS_KEY, self::CACHE_USERS_TTL, function () use ($token) {
-            return $this->fetchFromGraph($token);
-        });
+        $todos = (new \App\Services\GraphClient())->fichas();
 
         if ($buscar !== '') {
             $q = mb_strtolower($buscar);
@@ -410,29 +413,6 @@ class EntraIDController extends Controller
         return $todos;
     }
 
-    private function fetchFromGraph(string $token): \Illuminate\Support\Collection
-    {
-        $fields = 'id,displayName,givenName,surname,userPrincipalName,mail,jobTitle,department,city,state,country,usageLocation,officeLocation,mobilePhone,businessPhones,accountEnabled,createdDateTime,userType,companyName';
-
-        $url   = $this->graphBase . "/users?\$top=999&\$select={$fields}&\$orderby=displayName";
-        $todos = collect();
-
-        do {
-            $resp = Http::withHeaders(['Authorization' => 'Bearer ' . $token])->get($url);
-
-            if (!$resp->successful()) {
-                throw new \RuntimeException('Error Graph API: ' . ($resp->json('error.message') ?? $resp->body()));
-            }
-
-            $data  = $resp->json();
-            $todos = $todos->concat($data['value'] ?? []);
-            $url   = $data['@odata.nextLink'] ?? null;
-
-        } while ($url && $todos->count() < 5000);
-
-        return $todos;
-    }
-
     // ── Actividad de inicio de sesión ────────────────────────────────────────
     //
     // signInActivity vive en otra consulta: exige el permiso AuditLog.Read.All
@@ -443,31 +423,14 @@ class EntraIDController extends Controller
 
     private function fetchSignInActivity(string $token): ?array
     {
-        return Cache::remember(self::CACHE_SIGNIN_KEY, self::CACHE_USERS_TTL, function () use ($token) {
-            $url   = $this->graphBase . '/users?$top=999&$select=id,signInActivity';
-            $mapa  = [];
-            $leidos = 0;
-
-            do {
-                $resp = Http::withHeaders(['Authorization' => 'Bearer ' . $token])->get($url);
-
-                if (!$resp->successful()) {
-                    return null; // sin permiso u otro error → degradamos
-                }
-
-                $data = $resp->json();
-                foreach ($data['value'] ?? [] as $fila) {
-                    if (!empty($fila['id'])) {
-                        $mapa[$fila['id']] = $fila['signInActivity'] ?? null;
-                    }
-                }
-                $leidos += count($data['value'] ?? []);
-                $url = $data['@odata.nextLink'] ?? null;
-
-            } while ($url && $leidos < 5000);
-
-            return $mapa;
-        });
+        try {
+            return (new \App\Services\GraphClient())->firmas();
+        } catch (\Throwable $e) {
+            // Sin AuditLog.Read.All la consulta se rechaza. Devolver null deja las
+            // reglas que dependen de la actividad marcadas como «no disponibles»,
+            // en vez de tumbar la pantalla entera.
+            return null;
+        }
     }
 
     /**

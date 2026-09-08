@@ -11,7 +11,9 @@ class CheckModulo
     /** Prefijos de ruta que no requieren comprobación de módulo */
     // 'inventario.elegir.' es el selector de dominio: se protege con el gate
     // can:acceso_inventario, no por prefijo de módulo (ningún módulo lo declara).
-    private const BYPASS = ['admin.', 'inventario.elegir.', 'login', 'logout', 'register', 'password.', 'verification.'];
+    // 'creacion_rapida.' son endpoints auxiliares (crear usuario/ubicación/marca/aparato
+    // al vuelo desde los formularios): se protegen en el propio controlador.
+    private const BYPASS = ['admin.', 'inventario.elegir.', 'creacion_rapida.', 'login', 'logout', 'register', 'password.', 'verification.'];
 
     public function handle(Request $request, Closure $next): Response
     {

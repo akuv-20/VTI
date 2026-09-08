@@ -75,11 +75,9 @@ class RegistroMfa
     private function construir(): array
     {
         // El directorio manda: define quién entra al universo. El reporte de
-        // registro solo aporta el estado de MFA de cada uno.
-        $usuarios = $this->graph->paginar(
-            GraphClient::BASE . '/users?$top=999&$select='
-            . 'id,userPrincipalName,displayName,accountEnabled,userType,department,jobTitle,assignedLicenses'
-        );
+        // registro solo aporta el estado de MFA de cada uno. Se toma del
+        // directorio compartido, el mismo que usa el análisis de buzones.
+        $usuarios = $this->graph->directorio();
 
         $registro = $this->graph
             ->paginar(GraphClient::BASE . '/reports/authenticationMethods/userRegistrationDetails?$top=999')

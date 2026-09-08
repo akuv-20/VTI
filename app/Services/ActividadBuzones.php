@@ -96,19 +96,10 @@ class ActividadBuzones
     {
         $ocultos = $this->graph->nombresOcultos();
 
-        $usuarios = $this->graph->paginar(
-            GraphClient::BASE . '/users?$top=999&$select=' . implode(',', [
-                'id', 'userPrincipalName', 'displayName', 'accountEnabled', 'userType',
-                'createdDateTime', 'department', 'jobTitle', 'assignedLicenses',
-            ])
-        );
-
-        // signInActivity va en consulta aparte: Graph no la admite junto al resto
-        // del $select en la misma llamada sin degradar el rendimiento.
-        $firma = [];
-        foreach ($this->graph->paginar(GraphClient::BASE . '/users?$top=999&$select=id,signInActivity') as $u) {
-            $firma[$u['id']] = $u['signInActivity'] ?? null;
-        }
+        // Ambas vienen del directorio compartido: el análisis de MFA usa las
+        // mismas y así se recorren una vez por vuelta, no dos.
+        $usuarios = $this->graph->directorio();
+        $firma    = $this->graph->firmas();
 
         $correo = $this->graph->reporte('getEmailActivityUserDetail', self::PERIODO)
             ->keyBy(fn ($f) => mb_strtolower($f['User Principal Name'] ?? ''));

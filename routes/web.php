@@ -22,6 +22,8 @@ use App\Http\Controllers\EntregaFacturaController;
 use App\Http\Controllers\ActaEntregaTelefonoController;
 use App\Http\Controllers\ActaDevolucionTelefonoController;
 use App\Http\Controllers\RoamingController;
+use App\Http\Controllers\EquipoController;
+use App\Http\Controllers\CreacionRapidaController;
 use App\Http\Controllers\Inventario\SelectorController as InvSelectorController;
 use App\Http\Controllers\Inventario\EquipoController as InvEquipoController;
 use App\Http\Controllers\Inventario\DashboardController as InvDashboardController;
@@ -93,6 +95,13 @@ Route::resource('centros_costo', CentroCostoController::class);
 Route::post('lineas_telefonicas/reprocesar_ccosto', [LineaTelefonicaController::class, 'reprocesarCentroCosto'])->name('lineas_telefonicas.reprocesar_ccosto');
 Route::get('lineas_telefonicas/export', [LineaTelefonicaController::class, 'export'])->name('lineas_telefonicas.export');
 Route::resource('lineas_telefonicas', LineaTelefonicaController::class);
+Route::resource('equipos', EquipoController::class);
+
+// ── Creación rápida (inline "+") ──────────────────────────────────────────────
+Route::post('creacion-rapida/usuario',   [CreacionRapidaController::class, 'usuario'])->name('creacion_rapida.usuario');
+Route::post('creacion-rapida/ubicacion', [CreacionRapidaController::class, 'ubicacion'])->name('creacion_rapida.ubicacion');
+Route::post('creacion-rapida/marca',     [CreacionRapidaController::class, 'marca'])->name('creacion_rapida.marca');
+Route::post('creacion-rapida/aparato',   [CreacionRapidaController::class, 'aparato'])->name('creacion_rapida.aparato');
 Route::get('informes/telefonia', [InformeController::class, 'telefonia'])->name('informes.telefonia');
 
 // ── Roamings ─────────────────────────────────────────────────────────────────

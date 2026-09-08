@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Configuracion;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -102,6 +103,87 @@ class GraphClient
         }
 
         return $this->csv($r->body());
+    }
+
+    /* ── Consultas compartidas ───────────────────────────────────────────────
+     *
+     * Recorrer el directorio es lo caro de todo esto: ~17 s los usuarios y ~26 s
+     * la actividad de inicio de sesión, contra 3 s que cuesta un reporte. Antes
+     * cada servicio las hacía por su cuenta y se pagaban dos veces por vuelta.
+     *
+     * La caché dura más que el intervalo del refresco automático a propósito: si
+     * durase menos, expiraría entre corrida y corrida y el primero en abrir la
+     * pantalla pagaría la espera igual, que es justo lo que se quiere evitar.
+     */
+
+    private const CACHE_DIRECTORIO = 'graph_directorio';
+    private const CACHE_FIRMAS     = 'graph_sign_in';
+    private const CACHE_FICHAS     = 'entra_id_users_all';
+    private const CACHE_SELLO      = 'graph_directorio_sello';
+    public  const TTL_DIRECTORIO   = 1500;   // 25 min
+
+    /** Campos que necesitan los servicios que consumen el directorio. */
+    private const CAMPOS = 'id,userPrincipalName,displayName,accountEnabled,userType,'
+                         . 'createdDateTime,department,jobTitle,assignedLicenses';
+
+    public function directorio(): Collection
+    {
+        return Cache::remember(self::CACHE_DIRECTORIO, self::TTL_DIRECTORIO,
+            fn () => $this->paginar(self::BASE . '/users?$top=999&$select=' . self::CAMPOS));
+    }
+
+    /** id de usuario => signInActivity. Consulta aparte: Graph no la mezcla bien. */
+    public function firmas(): array
+    {
+        return Cache::remember(self::CACHE_FIRMAS, self::TTL_DIRECTORIO, function () {
+            $mapa = [];
+
+            foreach ($this->paginar(self::BASE . '/users?$top=999&$select=id,signInActivity') as $u) {
+                $mapa[$u['id']] = $u['signInActivity'] ?? null;
+            }
+
+            return $mapa;
+        });
+    }
+
+    /**
+     * El directorio con los campos de la ficha, para las pantallas de Entra ID.
+     *
+     * Es un $select más ancho que el de `directorio()` y viene ordenado por
+     * nombre, que es como se muestra. Se mantiene aparte para no arrastrar veinte
+     * campos en los análisis, que solo necesitan nueve.
+     */
+    public function fichas(): Collection
+    {
+        return Cache::remember(self::CACHE_FICHAS, self::TTL_DIRECTORIO, function () {
+            $campos = 'id,displayName,givenName,surname,userPrincipalName,mail,jobTitle,department,'
+                    . 'city,state,country,usageLocation,officeLocation,mobilePhone,businessPhones,'
+                    . 'accountEnabled,createdDateTime,userType,companyName';
+
+            $fichas = $this->paginar(self::BASE . "/users?\$top=999&\$select={$campos}&\$orderby=displayName");
+
+            // En clave aparte, no dentro de la colección: los consumidores esperan
+            // una lista de usuarios y meterles un metadato adentro los rompería.
+            Cache::put(self::CACHE_SELLO, now()->toIso8601String(), self::TTL_DIRECTORIO);
+
+            return $fichas;
+        });
+    }
+
+    /** Cuándo se bajó el directorio que está en caché. Null si no hay nada. */
+    public function generado(): ?Carbon
+    {
+        $sello = Cache::get(self::CACHE_SELLO);
+
+        return $sello ? Carbon::parse($sello) : null;
+    }
+
+    public function olvidarDirectorio(): void
+    {
+        Cache::forget(self::CACHE_DIRECTORIO);
+        Cache::forget(self::CACHE_FIRMAS);
+        Cache::forget(self::CACHE_FICHAS);
+        Cache::forget(self::CACHE_SELLO);
     }
 
     /** ¿Están ofuscados los nombres en los reportes? null si no se puede saber. */

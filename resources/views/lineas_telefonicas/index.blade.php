@@ -163,7 +163,7 @@
                     <th>Empresa</th>
                     <th>Ubicación</th>
                     <th>Centro Costo</th>
-                    <th>Aparato</th>
+                    <th>Equipo</th>
                     <th>Estado</th>
                     <th>Vigencia</th>
                     <th title="Azul claro=Movistar · Azul oscuro=Entel · Morado=WOM&#10;Movistar: {{ $ultimoMovil ? 'Móvil '.$ultimoMovil->periodo_label : '-' }} / {{ $ultimoBAM ? 'BAM '.$ultimoBAM->periodo_label : '-' }}&#10;Entel: {{ $ultimoEntelMovil ? 'Móvil '.$ultimoEntelMovil->periodo_label : '-' }} / {{ $ultimoEntelBAM ? 'BAM '.$ultimoEntelBAM->periodo_label : '-' }}&#10;WOM: {{ $ultimoWom ? $ultimoWom->periodo_label : '-' }}">
@@ -205,9 +205,15 @@
                     <td>{{ $linea->ubicacion->nombre ?? '—' }}</td>
                     <td>{{ $linea->centroCosto?->ccosto ?? '—' }}</td>
                     <td>
-                        @if($linea->aparato)
-                            {{ $linea->aparato->marca->nombre ?? '' }} {{ $linea->aparato->modelo }}
-                        @else —
+                        @if($linea->equipo)
+                            <div>{{ $linea->equipo->modelo_completo }}</div>
+                            @if($linea->equipo->propiedad === 'Empresa')
+                                <span class="badge bg-primary" style="font-size:.68rem">Empresa</span>
+                            @else
+                                <span class="badge bg-secondary" style="font-size:.68rem">Personal</span>
+                            @endif
+                        @else
+                            <span class="badge bg-light text-muted border" style="font-size:.68rem">Solo chip</span>
                         @endif
                     </td>
                     <td>
