@@ -66,11 +66,13 @@
             <thead>
                 <tr>
                     <th>IMEI</th>
+                    <th>MAC WiFi</th>
                     <th>Modelo</th>
                     <th>Propiedad</th>
                     <th>Usuario</th>
                     <th>Ubicación</th>
                     <th>Estado</th>
+                    <th>Reserva DHCP</th>
                     <th>Línea</th>
                     <th>Acciones</th>
                 </tr>
@@ -79,6 +81,7 @@
                 @forelse($equipos as $e)
                 <tr>
                     <td class="font-monospace" style="font-size:.85rem">{{ $e->imei ?? '—' }}</td>
+                    <td class="font-monospace" style="font-size:.85rem">{{ $e->mac_wifi ?? '—' }}</td>
                     <td>{{ $e->modelo_completo }}</td>
                     <td>
                         @if($e->propiedad === 'Empresa')
@@ -92,6 +95,17 @@
                     <td>
                         @php $ecls = ['En uso' => 'bg-success', 'En bodega' => 'bg-info text-dark', 'De baja' => 'bg-secondary'][$e->estado] ?? 'bg-light text-dark'; @endphp
                         <span class="badge {{ $ecls }}">{{ $e->estado }}</span>
+                    </td>
+                    <td>
+                        @if(!$e->mac_wifi)
+                            <span class="text-muted">—</span>
+                        @elseif($reservasDhcp->has($e->mac_wifi))
+                            <span class="badge bg-success" title="MAC {{ $e->mac_wifi }}">
+                                <i class="bi bi-check-lg"></i> {{ $reservasDhcp[$e->mac_wifi] }}
+                            </span>
+                        @else
+                            <span class="badge bg-warning text-dark" title="MAC {{ $e->mac_wifi }}">Sin Reserva</span>
+                        @endif
                     </td>
                     <td>
                         @if($e->lineaTelefonica)
@@ -114,7 +128,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr class="vti-empty"><td colspan="8">No hay equipos que coincidan con el filtro.</td></tr>
+                <tr class="vti-empty"><td colspan="10">No hay equipos que coincidan con el filtro.</td></tr>
                 @endforelse
             </tbody>
         </table>

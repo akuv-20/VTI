@@ -48,6 +48,16 @@
                value="{{ old('imei', $e->imei ?? '') }}" placeholder="Identificación del equipo">
     </div>
     <div class="col-md-6 mb-3">
+        <label for="mac_wifi" class="form-label">MAC WiFi:</label>
+        <input type="text" name="mac_wifi" id="mac_wifi" class="form-control @error('mac_wifi') is-invalid @enderror"
+               maxlength="40" value="{{ old('mac_wifi', $e->mac_wifi ?? '') }}" placeholder="AA:BB:CC:DD:EE:FF">
+        <div class="form-text">Se cruza con el DHCP para mostrar la IP reservada. Se guarda como <code>aa-bb-cc-dd-ee-ff</code>.</div>
+        @error('mac_wifi')<div class="invalid-feedback">{{ $message }}</div>@enderror
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
         <label for="estado" class="form-label">Estado:</label>
         <select name="estado" id="estado" class="form-select" required>
             @foreach ($estados as $op)

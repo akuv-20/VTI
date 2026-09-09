@@ -36,6 +36,22 @@
                         </div>
                         {!! $item('Propiedad', e($equipo->propiedad)) !!}
                         {!! $item('Estado', e($equipo->estado)) !!}
+                        <div class="col-6 col-md-4">
+                            <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">MAC WiFi</div>
+                            <div class="fw-semibold font-monospace" style="font-size:.85rem">{{ $equipo->mac_wifi ?? '—' }}</div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">Reserva DHCP</div>
+                            <div class="fw-semibold">
+                                @if(!$equipo->mac_wifi)
+                                    <span class="text-muted">—</span>
+                                @elseif($equipo->reservaDhcp)
+                                    <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>{{ $equipo->reservaDhcp->ip }}</span>
+                                @else
+                                    <span class="badge bg-warning text-dark">Sin Reserva</span>
+                                @endif
+                            </div>
+                        </div>
                         {!! $item('Usuario', e($equipo->usuario->nombre ?? '')) !!}
                         {!! $item('Ubicación', e($equipo->ubicacion->nombre ?? '')) !!}
                         <div class="col-6 col-md-4">

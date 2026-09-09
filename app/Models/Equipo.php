@@ -11,6 +11,7 @@ class Equipo extends Model
     protected $fillable = [
         'id_aparato',
         'imei',
+        'mac_wifi',
         'propiedad',
         'id_usuario',
         'id_ubicacion',
@@ -44,5 +45,24 @@ class Equipo extends Model
     {
         if (!$this->aparato) return '—';
         return trim(($this->aparato->marca->nombre ?? '') . ' ' . $this->aparato->modelo);
+    }
+
+    /**
+     * Normaliza una MAC al formato del módulo DHCP: minúsculas con guiones,
+     * p. ej. "AA:BB:CC:DD:EE:FF" o "aabbccddeeff" → "aa-bb-cc-dd-ee-ff".
+     * Devuelve null si no hay 12 dígitos hex válidos.
+     */
+    public static function normalizarMac(?string $mac): ?string
+    {
+        if (!$mac) return null;
+        $hex = strtolower(preg_replace('/[^0-9a-fA-F]/', '', $mac));
+        if (strlen($hex) !== 12) return null;
+        return implode('-', str_split($hex, 2));
+    }
+
+    /** Reserva DHCP que coincide con la MAC WiFi (si existe). */
+    public function reservaDhcp()
+    {
+        return $this->belongsTo(DhcpReserva::class, 'mac_wifi', 'mac');
     }
 }

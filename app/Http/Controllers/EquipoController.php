@@ -55,6 +55,12 @@ class EquipoController extends Controller
 
         $equipos = $query->latest()->paginate(20)->withQueryString();
 
+        // Cruce con reservas DHCP: mapa mac_wifi => ip (solo de la página actual)
+        $macs = $equipos->pluck('mac_wifi')->filter()->unique()->values();
+        $reservasDhcp = $macs->isEmpty()
+            ? collect()
+            : \App\Models\DhcpReserva::whereIn('mac', $macs)->pluck('ip', 'mac');
+
         // Conteos para badges
         $total        = Equipo::count();
         $countEmpresa = Equipo::where('propiedad', 'Empresa')->count();
@@ -62,7 +68,7 @@ class EquipoController extends Controller
         $countSinLinea= Equipo::whereDoesntHave('lineaTelefonica')->count();
 
         return view('equipos.index', compact(
-            'equipos', 'propiedad', 'estado', 'vinculo',
+            'equipos', 'propiedad', 'estado', 'vinculo', 'reservasDhcp',
             'total', 'countEmpresa', 'countPersonal', 'countSinLinea'
         ));
     }
@@ -86,7 +92,7 @@ class EquipoController extends Controller
 
     public function show(Equipo $equipo)
     {
-        $equipo->load(['aparato.marca', 'usuario', 'ubicacion', 'lineaTelefonica.emisor']);
+        $equipo->load(['aparato.marca', 'usuario', 'ubicacion', 'lineaTelefonica.emisor', 'reservaDhcp']);
         return view('equipos.show', compact('equipo'));
     }
 
@@ -154,6 +160,7 @@ class EquipoController extends Controller
         $validated = $request->validate([
             'id_aparato'   => 'nullable|exists:aparatos,id',
             'imei'         => 'nullable|string|max:50',
+            'mac_wifi'     => 'nullable|string|max:40',
             'propiedad'    => 'required|in:' . implode(',', self::PROPIEDADES),
             'id_usuario'   => 'nullable|exists:usuarios_telefonicos,id',
             'id_ubicacion' => 'nullable|exists:ubicaciones,id',
@@ -161,6 +168,19 @@ class EquipoController extends Controller
             'observacion'  => 'nullable|string|max:500',
             'id_linea'     => 'nullable|exists:lineas_telefonicas,id',
         ]);
+
+        // Normaliza la MAC al formato del DHCP (aa-bb-cc-dd-ee-ff)
+        if ($request->filled('mac_wifi')) {
+            $norm = Equipo::normalizarMac($request->input('mac_wifi'));
+            if ($norm === null) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'mac_wifi' => 'La MAC WiFi debe tener 12 dígitos hexadecimales (ej: AA:BB:CC:DD:EE:FF).',
+                ]);
+            }
+            $validated['mac_wifi'] = $norm;
+        } else {
+            $validated['mac_wifi'] = null;
+        }
 
         unset($validated['id_linea']); // se maneja aparte (FK vive en la línea)
         return $validated;
