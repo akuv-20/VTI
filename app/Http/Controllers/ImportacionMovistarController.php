@@ -206,12 +206,23 @@ class ImportacionMovistarController extends Controller
             ->pluck('id_linea_telefonica')
             ->unique();
 
+        // IDs de líneas presentes en la última importación del OTRO tipo (BAM ⇄ Móvil).
+        // Si una línea migró de tipo (p. ej. de BAM a Móvil), se factura allí y no debe
+        // marcarse como "faltante" en este tipo.
+        $otroTipo = $importacion->tipo_servicio === 'BAM' ? 'Movil' : 'BAM';
+        $ultimaOtroTipo = ImportacionMovistar::ultimaPorTipo($otroTipo);
+        $idsEnOtroTipo = $ultimaOtroTipo
+            ? $ultimaOtroTipo->detalles()->whereNotNull('id_linea_telefonica')->pluck('id_linea_telefonica')
+            : collect();
+
         // Líneas Movistar activas del mismo tipo que NO aparecen en esta importación
-        // (las inactivas se excluyen: si fueron dadas de baja, es esperado que no estén)
+        // (las inactivas se excluyen: si fueron dadas de baja, es esperado que no estén;
+        //  y las que migraron al otro tipo tampoco, porque se facturan allí).
         $lineasSinImportar = LineaTelefonica::with(['usuario', 'empresa'])
             ->whereHas('emisor', fn($q) => $q->where('nombre', 'like', '%Movistar%'))
             ->whereIn('id', $idsConHistorial)
             ->whereNotIn('id', $idsEnImportacion)
+            ->whereNotIn('id', $idsEnOtroTipo)
             ->where('estado', 'Activo')
             ->orderBy('linea')
             ->get();

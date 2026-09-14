@@ -167,12 +167,21 @@ class ImportacionEntelController extends Controller
             ->pluck('id_linea_telefonica')
             ->unique();
 
+        // IDs de líneas presentes en la última importación del OTRO tipo (BAM ⇄ Móvil).
+        // Si una línea migró de tipo, se factura allí y no debe marcarse como "faltante" aquí.
+        $otroTipo = $importacion->tipo_servicio === 'BAM' ? 'Movil' : 'BAM';
+        $ultimaOtroTipo = ImportacionEntel::ultimaPorTipo($otroTipo);
+        $idsEnOtroTipo = $ultimaOtroTipo
+            ? $ultimaOtroTipo->detalles()->whereNotNull('id_linea_telefonica')->pluck('id_linea_telefonica')
+            : collect();
+
         // Líneas Entel activas del mismo tipo que NO aparecen en esta importación
-        // (las inactivas se excluyen: si fueron dadas de baja, es esperado que no estén)
+        // (las inactivas se excluyen; y las que migraron al otro tipo tampoco).
         $lineasSinImportar = LineaTelefonica::with(['usuario', 'empresa'])
             ->whereHas('emisor', fn($q) => $q->where('nombre', 'like', '%Entel%'))
             ->whereIn('id', $idsConHistorial)
             ->whereNotIn('id', $idsEnImportacion)
+            ->whereNotIn('id', $idsEnOtroTipo)
             ->where('estado', 'Activo')
             ->orderBy('linea')
             ->get();
