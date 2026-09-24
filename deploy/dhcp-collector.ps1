@@ -9,6 +9,16 @@
 $Endpoint = "https://TU-SERVIDOR-VTI/api/dhcp/importar"
 $Token    = "PEGA-AQUI-EL-TOKEN"
 
+# ── Log con marca de tiempo (para auditar cada corrida, útil bajo SYSTEM) ────
+$LogDir  = if ($PSScriptRoot) { $PSScriptRoot } else { "C:\Scripts" }
+$LogFile = Join-Path $LogDir "dhcp-collector.log"
+function Write-Log([string]$msg) {
+    $linea = "{0}  {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $msg
+    try { Add-Content -Path $LogFile -Value $linea -Encoding UTF8 } catch {}
+    Write-Host $linea
+}
+Write-Log "=== Inicio (usuario: $env:USERNAME) ==="
+
 # Scopes a los que SÍ se les hace ping (por sufijo del ScopeId).
 # Ej: '32.0' pingea el scope que termine en .32.0 (10.x.32.0 / 172.x.32.0, etc.)
 # Los scopes que no estén aquí NO se pingean (se reportan solo por lease DHCP).
@@ -40,7 +50,9 @@ function Test-IPsParallel {
     return $resultado
 }
 
+Write-Log "Leyendo scopes del DHCP..."
 $scopes = Get-DhcpServerv4Scope
+Write-Log "Scopes encontrados: $($scopes.Count)"
 $payloadScopes = @()
 
 foreach ($sc in $scopes) {
@@ -59,6 +71,7 @@ foreach ($sc in $scopes) {
     $pingMap = @{}
     if ($hacePing) {
         $ips = @($reservas | ForEach-Object { "$($_.IPAddress)" })
+        Write-Log "Ping a $scopeStr ($($ips.Count) IPs)..."
         $pingMap = Test-IPsParallel -Ips $ips -TimeoutMs $PingTimeout
     }
 
@@ -108,12 +121,19 @@ $payload = [ordered]@{
     scopes      = $payloadScopes
 } | ConvertTo-Json -Depth 6
 
+# TLS 1.2 (algunos Windows Server viejos negocian TLS 1.0 por defecto)
+try { [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 } catch {}
+
+Write-Log "Enviando POST a $Endpoint ..."
 try {
-    Invoke-RestMethod -Uri $Endpoint -Method Post `
+    $resp = Invoke-RestMethod -Uri $Endpoint -Method Post `
         -Headers @{ "X-DHCP-Token" = $Token } `
         -ContentType "application/json; charset=utf-8" `
-        -Body ([System.Text.Encoding]::UTF8.GetBytes($payload))
-    Write-Host "Snapshot enviado: $($payloadScopes.Count) scopes"
+        -Body ([System.Text.Encoding]::UTF8.GetBytes($payload)) `
+        -TimeoutSec 30
+    Write-Log "OK - Snapshot enviado: $($payloadScopes.Count) scopes (respuesta: $($resp | ConvertTo-Json -Compress))"
 } catch {
+    Write-Log "ERROR al enviar a VTI: $($_.Exception.Message)"
     Write-Error "Error al enviar a VTI: $($_.Exception.Message)"
 }
+Write-Log "=== Fin ==="

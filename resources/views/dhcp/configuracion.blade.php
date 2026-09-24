@@ -113,6 +113,16 @@
 $Endpoint = "{{ $endpoint }}"
 $Token    = "{{ $token ?: 'PEGA-AQUI-EL-TOKEN' }}"
 
+# Log con marca de tiempo (útil para auditar la tarea programada bajo SYSTEM)
+$LogDir  = if ($PSScriptRoot) { $PSScriptRoot } else { "C:\Scripts" }
+$LogFile = Join-Path $LogDir "dhcp-collector.log"
+function Write-Log([string]$msg) {
+    $linea = "{0}  {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $msg
+    try { Add-Content -Path $LogFile -Value $linea -Encoding UTF8 } catch {}
+    Write-Host $linea
+}
+Write-Log "=== Inicio (usuario: $env:USERNAME) ==="
+
 # Scopes a los que SÍ se les hace ping (por sufijo del ScopeId).
 $PingScopes  = @('32.0','24.0','8.0','2.0')   # Planta Rapel, Oro Verde, Planta Nevado, Datacenter
 $PingTimeout = 800
@@ -132,7 +142,9 @@ function Test-IPsParallel {
     return $resultado
 }
 
+Write-Log "Leyendo scopes del DHCP..."
 $scopes = Get-DhcpServerv4Scope
+Write-Log "Scopes encontrados: $($scopes.Count)"
 $payloadScopes = @()
 
 foreach ($sc in $scopes) {
@@ -143,7 +155,11 @@ foreach ($sc in $scopes) {
     $scopeStr = "$($sc.ScopeId)"; $hacePing = $false
     foreach ($seg in $PingScopes) { if ($scopeStr.EndsWith(".$seg") -or $scopeStr -eq $seg) { $hacePing = $true; break } }
     $pingMap = @{}
-    if ($hacePing) { $pingMap = Test-IPsParallel -Ips @($reservas | ForEach-Object { "$($_.IPAddress)" }) -TimeoutMs $PingTimeout }
+    if ($hacePing) {
+        $ips = @($reservas | ForEach-Object { "$($_.IPAddress)" })
+        Write-Log "Ping a $scopeStr ($($ips.Count) IPs)..."
+        $pingMap = Test-IPsParallel -Ips $ips -TimeoutMs $PingTimeout
+    }
 
     $listaReservas = @()
     foreach ($r in $reservas) {
@@ -187,15 +203,21 @@ $payload = [ordered]@{
     scopes      = $payloadScopes
 } | ConvertTo-Json -Depth 6
 
+try { [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 } catch {}
+
+Write-Log "Enviando POST a $Endpoint ..."
 try {
-    Invoke-RestMethod -Uri $Endpoint -Method Post `
+    $resp = Invoke-RestMethod -Uri $Endpoint -Method Post `
         -Headers @{ "X-DHCP-Token" = $Token } `
         -ContentType "application/json; charset=utf-8" `
-        -Body ([System.Text.Encoding]::UTF8.GetBytes($payload))
-    Write-Host "Snapshot enviado: $($payloadScopes.Count) scopes"
+        -Body ([System.Text.Encoding]::UTF8.GetBytes($payload)) `
+        -TimeoutSec 30
+    Write-Log "OK - Snapshot enviado: $($payloadScopes.Count) scopes (respuesta: $($resp | ConvertTo-Json -Compress))"
 } catch {
+    Write-Log "ERROR al enviar a VTI: $($_.Exception.Message)"
     Write-Error "Error al enviar a VTI: $($_.Exception.Message)"
 }
+Write-Log "=== Fin ==="
 </textarea>
                 </div>
             </div>
