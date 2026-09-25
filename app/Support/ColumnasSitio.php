@@ -139,6 +139,47 @@ class ColumnasSitio
         );
     }
 
+    /**
+     * Valor crudo de las columnas que en una sábana tienen que salir como
+     * número o fecha, no como texto.
+     *
+     * `todas()` devuelve lo legible —«55%», «14-08-2026»—, que es lo correcto
+     * para una tabla en pantalla o un informe que se lee. Pero una sábana se
+     * abre para sumar, ordenar y armar tablas dinámicas, y nada de eso funciona
+     * sobre texto: Excel no suma «55%» ni ordena «14-08-2026» por fecha real.
+     *
+     * Es un mapa aparte, y no un cuarto elemento de `todas()`, para no tocar a
+     * los dos consumidores que ya existen. Una columna que no esté acá sale
+     * como texto, que es el valor seguro por omisión.
+     *
+     * Deliberadamente NO incluye `ancho_banda`: es un varchar donde conviven
+     * «300» y «100/100», y volverlo número dejaría la columna mitad numérica y
+     * mitad texto, que es lo que rompe los filtros de Excel.
+     *
+     * @return array<string,array{0:string,1:callable}>
+     */
+    public static function crudos(): array
+    {
+        return [
+            'latitud'           => ['numero', fn(Sitio $s) => $s->latitud],
+            'longitud'          => ['numero', fn(Sitio $s) => $s->longitud],
+            'fecha_instalacion' => ['fecha',  fn(Sitio $s) => $s->fecha_instalacion],
+            'ups_kva'           => ['numero', fn(Sitio $s) => $s->ups_kva],
+            'racks_cant'        => ['entero', fn(Sitio $s) => $s->racks_cant],
+            'racks_u_usados'    => ['entero', fn(Sitio $s) => $s->racks_u_usados],
+            'racks_u_totales'   => ['entero', fn(Sitio $s) => $s->racks_u_totales],
+            'eval_distancia_km' => ['numero', fn(Sitio $s) => $s->eval_distancia_km],
+            'eval_altura_m'     => ['numero', fn(Sitio $s) => $s->eval_altura_m],
+            'superficie_ha'     => ['numero', fn(Sitio $s) => $s->superficie_ha],
+            'usuarios_cant'     => ['entero', fn(Sitio $s) => $s->usuarios_cant],
+            'pcs_cant'          => ['entero', fn(Sitio $s) => $s->pcs_cant],
+            'orden_ejecucion'   => ['entero', fn(Sitio $s) => $s->orden_ejecucion],
+            'costo_estimado'    => ['entero', fn(Sitio $s) => $s->costo_estimado],
+            'completitud'       => ['entero', fn(Sitio $s) => $s->completitud],
+            'levantado_at'      => ['fecha_hora', fn(Sitio $s) => $s->levantado_at],
+        ];
+    }
+
     /** Los sitios con todas sus relaciones, para no consultar de a una por fila. */
     public static function consulta()
     {

@@ -11,6 +11,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
@@ -25,27 +27,87 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  */
 class InformeController extends Controller
 {
-    /** Clave de sesión donde se recuerda el filtro entre visitas. */
-    private const SESION_ZONAS = 'informes.zonas';
+    /** Claves de sesión donde se recuerdan las elecciones entre visitas. */
+    private const SESION_ZONAS    = 'informes.zonas';
+    private const SESION_COLUMNAS = 'informes.columnas';
+
+    /**
+     * La columna del nombre no se puede quitar: es la identidad de la fila,
+     * la que lleva el enlace a la ficha y la que queda anclada al desplazarse.
+     * Un informe sin ella es una parrilla de datos sin saber de quién son.
+     */
+    private const COLUMNA_FIJA = 'nombre';
 
     public function sitios(Request $request)
     {
         [$zonas, $sitios] = $this->filtrar($request);
+        [$columnas, $aMano] = $this->columnas($request, $sitios);
 
         return view('admin.informes.sitios', [
-            'sitios'    => $sitios,
-            'columnas'  => ColumnasSitio::conDatos($sitios),
-            'totales'   => count(ColumnasSitio::todas()),
-            'zonas'     => Zona::withCount('sitios')->ordenadas()->get(),
-            'elegidas'  => $zonas,
-            'sinZona'   => Sitio::activos()->whereNull('zona_id')->count(),
+            'sitios'      => $sitios,
+            'columnas'    => $columnas,
+            'todasCols'   => ColumnasSitio::todas(),
+            'conDatos'    => array_keys(ColumnasSitio::conDatos($sitios)),
+            'colsAMano'   => $aMano,
+            'columnaFija' => self::COLUMNA_FIJA,
+            'totales'     => count(ColumnasSitio::todas()),
+            'zonas'       => Zona::withCount('sitios')->ordenadas()->get(),
+            'elegidas'    => $zonas,
+            'sinZona'     => Sitio::activos()->whereNull('zona_id')->count(),
         ]);
+    }
+
+    /**
+     * Qué columnas mostrar, y si la elección la hizo alguien a mano.
+     *
+     * Mientras nadie configure nada se mantiene el comportamiento de siempre:
+     * las que tienen al menos un dato. En cuanto se elige a mano, manda esa
+     * elección aunque deje columnas vacías —a veces el vacío ES el dato que se
+     * quiere mostrar— y se recuerda entre visitas, igual que el filtro de zonas.
+     *
+     * @return array{0: array<string,array>, 1: bool}
+     */
+    private function columnas(Request $request, $sitios): array
+    {
+        $todas = ColumnasSitio::todas();
+
+        if ($request->boolean('cols')) {
+            // Se cruza contra las columnas que existen: lo que llega por la URL
+            // no se guarda en sesión sin revisar.
+            $elegidas = array_values(array_intersect(
+                array_keys($todas),
+                array_map('strval', (array) $request->input('columnas', []))
+            ));
+            $request->session()->put(self::SESION_COLUMNAS, $elegidas);
+        } else {
+            $elegidas = $request->session()->get(self::SESION_COLUMNAS);
+
+            // Una columna guardada hace meses puede ya no existir; si no se
+            // filtrara, el informe intentaría pintar una definición ausente.
+            if ($elegidas !== null) {
+                $elegidas = array_values(array_intersect(array_keys($todas), (array) $elegidas));
+            }
+        }
+
+        if ($elegidas === null) {
+            return [ColumnasSitio::conDatos($sitios), false];
+        }
+
+        $elegidas = array_unique(array_merge([self::COLUMNA_FIJA], $elegidas));
+
+        // Se filtra `todas()` en vez de recorrer lo elegido: así el orden de las
+        // columnas es siempre el de la ficha, no el que hayan quedado marcadas.
+        return [
+            array_filter($todas, fn($k) => in_array($k, $elegidas, true), ARRAY_FILTER_USE_KEY),
+            true,
+        ];
     }
 
     public function sitiosExcel(Request $request)
     {
         [, $sitios] = $this->filtrar($request);
-        $columnas = ColumnasSitio::conDatos($sitios);
+        [$columnas] = $this->columnas($request, $sitios);
+        $crudos = ColumnasSitio::crudos();
 
         $libro = new Spreadsheet();
         $hoja  = $libro->getActiveSheet();
@@ -63,12 +125,8 @@ class InformeController extends Controller
         $fila = 2;
         foreach ($sitios as $s) {
             $col = 1;
-            foreach ($columnas as $c) {
-                $v = $c[2]($s);
-                // Las cadenas se fuerzan como texto: si no, Excel se come los
-                // ceros a la izquierda y convierte «100/100» en una fecha.
-                $hoja->setCellValueExplicit([$col, $fila], (string) ($v ?? ''),
-                    \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            foreach ($columnas as $clave => $c) {
+                $this->celda($hoja, $col, $fila, $clave, $c, $crudos, $s);
                 $col++;
             }
             $fila++;
@@ -100,6 +158,41 @@ class InformeController extends Controller
      * Deliberadamente corto: doce columnas, las que gerencia necesita para
      * decidir. El detalle completo vive en la tabla y en el Excel.
      */
+    /**
+     * Escribe una celda del Excel con su tipo real.
+     *
+     * El texto va forzado como texto o Excel se come los ceros a la izquierda de
+     * un código y convierte «100/100» en una fecha. Pero los números y las fechas
+     * tienen que entrar como tales: un Excel que se abre para sumar usuarios,
+     * promediar distancias u ordenar por fecha de instalación no sirve de nada si
+     * todo es texto. Cuáles son unos y otros lo dice ColumnasSitio::crudos().
+     */
+    private function celda($hoja, int $col, int $fila, string $clave, array $c, array $crudos, Sitio $s): void
+    {
+        if (!isset($crudos[$clave])) {
+            $hoja->setCellValueExplicit([$col, $fila], (string) ($c[2]($s) ?? ''), DataType::TYPE_STRING);
+            return;
+        }
+
+        [$tipo, $valor] = $crudos[$clave];
+        $v = $valor($s);
+
+        // Un null se deja en blanco, nunca en cero: «no lo sé» y «cero» son cosas
+        // distintas, y un cero inventado arruinaría cualquier promedio.
+        if ($v === null || $v === '') {
+            $hoja->setCellValue([$col, $fila], null);
+            return;
+        }
+
+        if ($tipo === 'fecha' || $tipo === 'fecha_hora') {
+            $hoja->setCellValue([$col, $fila], ExcelDate::PHPToExcel($v));
+            $hoja->getStyle([$col, $fila, $col, $fila])->getNumberFormat()
+                ->setFormatCode($tipo === 'fecha' ? 'dd-mm-yyyy' : 'dd-mm-yyyy hh:mm');
+            return;
+        }
+
+        $hoja->setCellValue([$col, $fila], $tipo === 'entero' ? (int) $v : (float) $v);
+    }
     public function sitiosPdf(Request $request)
     {
         [$zonas, $sitios] = $this->filtrar($request);

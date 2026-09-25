@@ -39,6 +39,25 @@
     .in-tabla tbody .fij1 a:hover { color:#7c3aed; }
 
     .in-vacio { color:#e2e8f0; }
+
+    /* ── Configurador de columnas ────────────────────────────────────── */
+    .co-grupo { border:1px solid #e2e8f0; border-radius:9px; padding:.55rem .7rem; margin-bottom:.5rem; }
+    .co-grupo > .cab { display:flex; align-items:center; justify-content:space-between; gap:.5rem;
+                       margin-bottom:.4rem; }
+    .co-grupo > .cab .nom { font-size:.68rem; font-weight:700; color:#64748b; text-transform:uppercase;
+                            letter-spacing:.04em; }
+    .co-campos { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:.15rem .6rem; }
+    .co-c { display:flex; align-items:center; gap:.4rem; font-size:.78rem; color:#334155;
+            padding:.15rem .1rem; cursor:pointer; border-radius:4px; }
+    .co-c:hover { background:#f8fafc; }
+    .co-c input { flex:0 0 auto; }
+    .co-c .txt { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    /* Sin datos en la selección actual: se puede elegir igual, pero conviene
+       saberlo antes de exportar una columna que va a salir entera vacía. */
+    .co-c.sindatos .txt { color:#94a3b8; }
+    .co-c.sindatos .txt::after { content:' · vacía'; font-size:.66rem; color:#cbd5e1; }
+    .co-c.fija { opacity:.75; cursor:default; }
+    .co-c.fija .txt::after { content:' · fija'; font-size:.66rem; color:#94a3b8; }
     .in-nota { font-size:.72rem; color:#94a3b8; margin-top:.5rem; }
 </style>
 
@@ -48,10 +67,16 @@
         <h4><i class="bi bi-table me-2" style="color:#7c3aed"></i>Informe de sitios
             <span class="text-muted fw-normal" style="font-size:.82rem">
                 {{ $sitios->count() }} {{ $sitios->count() === 1 ? 'sitio' : 'sitios' }} ·
-                {{ count($columnas) }} de {{ $totales }} columnas con datos
+                {{ count($columnas) }} de {{ $totales }} columnas{{ $colsAMano ? ' (elegidas)' : ' con datos' }}
             </span>
         </h4>
         <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    data-bs-toggle="modal" data-bs-target="#modalColumnas"
+                    title="Elegir qué columnas se ven y se exportan">
+                <i class="bi bi-sliders me-1"></i>Columnas
+                <span class="badge bg-secondary ms-1" style="font-size:.62rem">{{ count($columnas) }}</span>
+            </button>
             <button type="button" class="btn btn-outline-danger btn-sm"
                     data-bs-toggle="modal" data-bs-target="#modalPdf"
                     title="Resumen ejecutivo de 12 columnas">
@@ -152,10 +177,97 @@
     </div>
 
     <div class="in-nota">
-        Se ocultan {{ $totales - count($columnas) }} columnas porque ningún sitio de esta selección
-        tiene datos en ellas. Al filtrar por zona, la tabla se ajusta sola.
+        @if($colsAMano)
+            Columnas elegidas a mano. Se ocultan {{ $totales - count($columnas) }} de {{ $totales }};
+            cámbialas en <b>Columnas</b>. El Excel exporta exactamente estas.
+        @else
+            Se ocultan {{ $totales - count($columnas) }} columnas porque ningún sitio de esta selección
+            tiene datos en ellas. Al filtrar por zona, la tabla se ajusta sola.
+        @endif
     </div>
     @endif
+</div>
+
+{{-- ── Configurador de columnas ─────────────────────────────────────────────
+     `cols=1` cumple acá el mismo papel que `filtrado=1` en el filtro de zonas:
+     distingue «no configuró» de «destildó todo». Sin él, dejar cero marcas se
+     leería como no haber elegido nunca y volverían las columnas automáticas.
+
+     Va por GET y no toca el filtro de zonas: ese vive en sesión y se conserva
+     solo, así que las dos elecciones no se pisan. --}}
+<div class="modal fade" id="modalColumnas" tabindex="-1" aria-labelledby="tituloCols" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <form method="GET" action="{{ route('admin.informes.sitios') }}" class="modal-content" id="fCols">
+            <input type="hidden" name="cols" value="1">
+
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-bold" id="tituloCols">
+                    <i class="bi bi-sliders me-1"></i>Columnas del informe
+                    <span class="text-muted fw-normal" style="font-size:.78rem">
+                        — <span id="colsCuenta">{{ count($columnas) }}</span> de {{ $totales }}
+                    </span>
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="d-flex gap-2 flex-wrap align-items-center mb-3">
+                    <button type="button" class="btn btn-outline-secondary btn-sm py-0" data-cols="todas">Todas</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm py-0" data-cols="ninguna">Ninguna</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm py-0" data-cols="condatos">
+                        Solo las que tienen datos
+                    </button>
+                    <span class="text-muted" style="font-size:.72rem">
+                        Lo que elijas se recuerda y es lo que exporta el Excel.
+                    </span>
+                </div>
+
+                @php
+                    // Las columnas agrupadas como en la ficha, respetando el orden
+                    // de ColumnasSitio: es el mismo que tendrá la tabla y el Excel.
+                    $porGrupo = [];
+                    foreach ($todasCols as $clave => $c) {
+                        $porGrupo[$c[1]][$clave] = $c[0];
+                    }
+                @endphp
+
+                @foreach($porGrupo as $grupo => $campos)
+                <div class="co-grupo">
+                    <div class="cab">
+                        <span class="nom">{{ $grupo }}</span>
+                        <button type="button" class="btn btn-link btn-sm p-0" style="font-size:.7rem"
+                                data-grupo="{{ $loop->index }}">Invertir</button>
+                    </div>
+                    <div class="co-campos">
+                        @foreach($campos as $clave => $etiqueta)
+                            @php
+                                $fija     = $clave === $columnaFija;
+                                $marcada  = $fija || array_key_exists($clave, $columnas);
+                                $sinDatos = !in_array($clave, $conDatos, true);
+                            @endphp
+                            <label class="co-c {{ $sinDatos && !$fija ? 'sindatos' : '' }} {{ $fija ? 'fija' : '' }}"
+                                   title="{{ $etiqueta }}">
+                                <input type="checkbox" name="columnas[]" value="{{ $clave }}"
+                                       data-g="{{ $loop->parent->index }}"
+                                       data-condatos="{{ $sinDatos ? '0' : '1' }}"
+                                       @checked($marcada) @disabled($fija)>
+                                <span class="txt">{{ $etiqueta }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+                @endforeach
+            </div>
+
+            <div class="modal-footer py-2">
+                <span class="text-muted me-auto" style="font-size:.72rem">
+                    El informe PDF no cambia: lleva sus 12 columnas fijas.
+                </span>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-success btn-sm">Aplicar</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 {{-- ── Vista previa del informe ─────────────────────────────────────────────
@@ -301,6 +413,40 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('#fFiltro input[name="zonas[]"]').forEach(ch => {
         ch.addEventListener('change', () => ch.form.submit());
     });
+
+    /* ── Configurador de columnas ──────────────────────────────────────────
+       Los atajos y el contador. La elección la aplica el servidor al enviar el
+       formulario; esto es solo para no tener que marcar 73 casillas a mano. */
+    const fCols = document.getElementById('fCols');
+    if (fCols) {
+        // Las fijas quedan fuera: van deshabilitadas y no las mueve ningún atajo.
+        const casillas = [...fCols.querySelectorAll('input[name="columnas[]"]:not([disabled])')];
+        const fijas    = fCols.querySelectorAll('input[name="columnas[]"][disabled]').length;
+        const cuenta   = document.getElementById('colsCuenta');
+
+        const contar = () => {
+            cuenta.textContent = fijas + casillas.filter(c => c.checked).length;
+        };
+
+        fCols.querySelectorAll('[data-cols]').forEach(b => b.addEventListener('click', () => {
+            const modo = b.dataset.cols;
+            casillas.forEach(c => {
+                c.checked = modo === 'todas' ? true
+                          : modo === 'ninguna' ? false
+                          : c.dataset.condatos === '1';   // «solo las que tienen datos»
+            });
+            contar();
+        }));
+
+        fCols.querySelectorAll('[data-grupo]').forEach(b => b.addEventListener('click', () => {
+            casillas.filter(c => c.dataset.g === b.dataset.grupo)
+                    .forEach(c => { c.checked = !c.checked; });
+            contar();
+        }));
+
+        casillas.forEach(c => c.addEventListener('change', contar));
+        contar();
+    }
 
     // La segunda columna se ancla justo después de la primera, que no tiene un
     // ancho fijo: se mide y se pasa a CSS.
