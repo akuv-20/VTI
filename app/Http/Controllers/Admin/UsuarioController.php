@@ -39,6 +39,11 @@ class UsuarioController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'es_admin' => 'boolean',
             'activo'   => 'boolean',
+            // Se valida contra la lista real de husos de PHP: un identificador
+            // inventado haria fallar cada lectura de fecha de esa persona.
+            'zona_horaria' => ['nullable', 'string', 'max:64', function ($campo, $valor, $falla) {
+                if (!\App\Support\ZonaHoraria::valida($valor)) $falla('La zona horaria no existe.');
+            }],
             'modulos'  => 'array',
             'modulos.*'=> 'exists:modulos,id',
         ]);
@@ -49,6 +54,8 @@ class UsuarioController extends Controller
             'password' => Hash::make($data['password']),
             'es_admin' => $request->boolean('es_admin'),
             'activo'   => $request->boolean('activo', true),
+            // Vacio = null = «usa la de la aplicacion», no una cadena vacia.
+            'zona_horaria' => $data['zona_horaria'] ?: null,
         ]);
 
         $usuario->modulos()->sync($data['modulos'] ?? []);
@@ -77,6 +84,11 @@ class UsuarioController extends Controller
             'password' => 'nullable|string|min:8|confirmed',
             'es_admin' => 'boolean',
             'activo'   => 'boolean',
+            // Se valida contra la lista real de husos de PHP: un identificador
+            // inventado haria fallar cada lectura de fecha de esa persona.
+            'zona_horaria' => ['nullable', 'string', 'max:64', function ($campo, $valor, $falla) {
+                if (!\App\Support\ZonaHoraria::valida($valor)) $falla('La zona horaria no existe.');
+            }],
             'modulos'  => 'array',
             'modulos.*'=> 'exists:modulos,id',
         ]);
@@ -85,6 +97,8 @@ class UsuarioController extends Controller
         $usuario->email    = $data['email'];
         $usuario->es_admin = $request->boolean('es_admin');
         $usuario->activo   = $request->boolean('activo');
+        // Vacio = null = «usa la de la aplicacion», no una cadena vacia.
+        $usuario->zona_horaria = $data['zona_horaria'] ?: null;
 
         if (!empty($data['password'])) {
             $usuario->password = Hash::make($data['password']);

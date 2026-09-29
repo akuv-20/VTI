@@ -339,6 +339,51 @@
             z-index: 1039;
         }
 
+
+        /* Reloj (centro del topbar).
+           Va en posición absoluta y no como hijo del flex: así queda centrado
+           respecto de la barra y no del hueco que dejen las migas de pan, que
+           cambian de ancho en cada pantalla. */
+        .vti-reloj {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            pointer-events: none;
+            user-select: none;
+        }
+        .vti-reloj .hora {
+            font-size: .95rem;
+            font-weight: 700;
+            color: #1e293b;
+            letter-spacing: .01em;
+        }
+        .vti-reloj .fecha {
+            font-size: .74rem;
+            color: #94a3b8;
+            text-transform: capitalize;
+        }
+        .vti-reloj .zona {
+            font-size: .62rem;
+            font-weight: 600;
+            color: #94a3b8;
+            background: #f1f5f9;
+            border-radius: 20px;
+            padding: 1px 6px;
+        }
+        /* Debajo de 1200px la barra se aprieta entre migas y usuario: el reloj
+           se queda sin espacio y taparía una de las dos. */
+        @media (max-width: 1199.98px) {
+            .vti-reloj .fecha, .vti-reloj .zona { display: none; }
+        }
+        @media (max-width: 767.98px) {
+            .vti-reloj { display: none; }
+        }
+
         /* ── Responsive ─────────────────────────────────────────────── */
         @media (max-width: 991.98px) {
             .vti-sidebar { transform: translateX(-100%); }
@@ -1071,6 +1116,24 @@
             @endif
         </nav>
 
+        {{-- ── Reloj ────────────────────────────────────────────────────────
+             Se pinta ya con la hora del SERVIDOR, no con `new Date()`: un
+             equipo con el reloj desajustado mostraría una hora distinta a la
+             que el sistema realmente registra, que es justo lo contrario de
+             para lo que está esto. El JavaScript solo lo hace avanzar. --}}
+        @php
+            $zonaReloj  = \App\Support\ZonaHoraria::actual();
+            $ahoraReloj = now()->setTimezone($zonaReloj);
+        @endphp
+        <div class="vti-reloj" id="vtiReloj"
+             data-zona="{{ $zonaReloj }}"
+             data-servidor="{{ now()->valueOf() }}"
+             title="Hora de {{ \App\Support\ZonaHoraria::OPCIONES[$zonaReloj] ?? $zonaReloj }}">
+            <span class="fecha" id="vtiRelojFecha">{{ $ahoraReloj->locale('es')->isoFormat('ddd D MMM') }}</span>
+            <span class="hora"  id="vtiRelojHora">{{ $ahoraReloj->format('H:i:s') }}</span>
+            <span class="zona">{{ $ahoraReloj->format('T') }}</span>
+        </div>
+
         {{-- Usuario --}}
         <div class="vti-user-menu" id="userMenu">
             @php
@@ -1217,6 +1280,64 @@
                     if (!menu.contains(e.target)) menu.classList.remove('show');
                 });
             })();
+
+                /* ── Reloj del topbar ──────────────────────────────────────
+                   Avanza desde la hora que mandó el SERVIDOR, no desde la del
+                   equipo. Así un PC con el reloj corrido no muestra una hora
+                   distinta a la que el sistema registra —que es el problema
+                   que todo esto vino a arreglar—. Del reloj local solo se usa
+                   cuánto ha pasado desde que cargó la página, que en unos
+                   minutos no se desvía de forma apreciable. */
+                (function () {
+                    const caja = document.getElementById('vtiReloj');
+                    if (!caja) return;
+
+                    const zona     = caja.dataset.zona;
+                    const servidor = Number(caja.dataset.servidor);
+                    if (!servidor) return;
+
+                    const partida = Date.now();
+                    const elHora  = document.getElementById('vtiRelojHora');
+                    const elFecha = document.getElementById('vtiRelojFecha');
+
+                    let fHora, fFecha;
+                    try {
+                        fHora  = new Intl.DateTimeFormat('es-CL', {
+                            timeZone: zona, hour: '2-digit', minute: '2-digit',
+                            second: '2-digit', hour12: false,
+                        });
+                        fFecha = new Intl.DateTimeFormat('es-CL', {
+                            timeZone: zona, weekday: 'short', day: '2-digit', month: 'short',
+                        });
+                    } catch {
+                        // Navegador sin esa zona: se queda con lo que pintó el
+                        // servidor, que es correcto aunque no avance.
+                        return;
+                    }
+
+                    const pintar = () => {
+                        const ahora = new Date(servidor + (Date.now() - partida));
+                        elHora.textContent = fHora.format(ahora);
+                        if (elFecha) {
+                            elFecha.textContent = fFecha.format(ahora).replace(/\.$/, '');
+                        }
+                    };
+
+                    pintar();
+                    let tic = setInterval(pintar, 1000);
+
+                    // Con la pestaña oculta el navegador frena los temporizadores;
+                    // al volver hay que repintar de inmediato para no mostrar una
+                    // hora vieja durante un segundo.
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.hidden) {
+                            clearInterval(tic);
+                        } else {
+                            pintar();
+                            tic = setInterval(pintar, 1000);
+                        }
+                    });
+                })();
 
             // ── Auto-dismiss alertas ────────────────────────────────────────
             setTimeout(() => {

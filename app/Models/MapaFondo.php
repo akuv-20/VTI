@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Concerns\HoraLocal;
 
 /**
  * Plano de fondo de un mapa, guardado en la base de datos.
@@ -13,6 +14,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class MapaFondo extends Model
 {
+    /** Las horas se guardan en UTC y se muestran en la zona de cada usuario. */
+    use HoraLocal;
+
     protected $table = 'mapa_fondos';
 
     protected $primaryKey = 'mapa_id';

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Concerns\HoraLocal;
 
 /**
  * Un host/servicio de CheckMK marcado manualmente como "crítico" y que, por
@@ -14,6 +15,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class KpiServicioCritico extends Model
 {
+    /** Las horas se guardan en UTC y se muestran en la zona de cada usuario. */
+    use HoraLocal;
+
     protected $table = 'kpi_servicios_criticos';
 
     protected $fillable = [

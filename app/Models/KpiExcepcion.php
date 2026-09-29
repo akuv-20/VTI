@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use App\Models\Concerns\HoraLocal;
 
 /**
  * Ventana de tiempo justificada que se descuenta del KPI de disponibilidad.
@@ -14,6 +15,9 @@ use Illuminate\Support\Carbon;
  */
 class KpiExcepcion extends Model
 {
+    /** Las horas se guardan en UTC y se muestran en la zona de cada usuario. */
+    use HoraLocal;
+
     protected $table = 'kpi_excepciones';
 
     protected $fillable = [

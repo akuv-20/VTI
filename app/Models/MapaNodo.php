@@ -4,9 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Concerns\HoraLocal;
 
 class MapaNodo extends Model
 {
+    /** Las horas se guardan en UTC y se muestran en la zona de cada usuario. */
+    use HoraLocal;
+
     protected $table = 'mapa_nodos';
 
     protected $fillable = ['mapa_id', 'host_name', 'etiqueta', 'icono', 'icono_px', 'letra_px', 'x', 'y', 'mapa_destino_id'];

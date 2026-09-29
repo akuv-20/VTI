@@ -6,9 +6,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Models\Concerns\HoraLocal;
 
 class User extends Authenticatable
 {
+    /** Las horas se guardan en UTC y se muestran en la zona de cada usuario. */
+    use HoraLocal;
+
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
@@ -18,7 +22,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name', 'email', 'password', 'es_admin', 'activo',
+        'name', 'email', 'password', 'es_admin', 'activo', 'zona_horaria',
         // Preparado para Office 365 SSO (SAML/OAuth):
         // 'azure_id', 'azure_token',
     ];

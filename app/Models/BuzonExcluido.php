@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\HoraLocal;
 
 /**
  * Buzón que no entra en el análisis de uso. Ver la migración para el porqué.
@@ -14,6 +15,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class BuzonExcluido extends Model
 {
+    /** Las horas se guardan en UTC y se muestran en la zona de cada usuario. */
+    use HoraLocal;
+
     use SoftDeletes;
 
     protected $table = 'buzones_excluidos';

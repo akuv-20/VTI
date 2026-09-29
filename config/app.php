@@ -69,6 +69,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Zona horaria con la que se MUESTRAN las horas
+    |--------------------------------------------------------------------------
+    |
+    | La de arriba («timezone») es en la que se GUARDA, y tiene que seguir
+    | siendo UTC: es lo que permite que cada persona vea la misma marca de
+    | tiempo en su propia hora sin tocar el dato.
+    |
+    | Esta es la que se usa al mostrarla, para quien no eligió una propia en
+    | su ficha de usuario. Va el identificador y no un desfase fijo: Chile
+    | cambia de hora dos veces al año y un «-4» quedaría corrido medio año.
+    |
+    */
+
+    'zona_horaria_por_defecto' => env('APP_ZONA_HORARIA', 'America/Santiago'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

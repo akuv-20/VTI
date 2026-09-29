@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Concerns\HoraLocal;
 
 /**
  * Snapshot congelado de la disponibilidad de un servicio crítico en un mes.
@@ -13,6 +14,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class KpiDisponibilidadMensual extends Model
 {
+    /** Las horas se guardan en UTC y se muestran en la zona de cada usuario. */
+    use HoraLocal;
+
     protected $table = 'kpi_disponibilidad_mensual';
 
     protected $fillable = [

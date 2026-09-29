@@ -3,9 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\HoraLocal;
 
 class Modulo extends Model
 {
+    /** Las horas se guardan en UTC y se muestran en la zona de cada usuario. */
+    use HoraLocal;
+
     protected $fillable = ['nombre', 'label', 'grupo', 'descripcion', 'route_prefixes', 'orden', 'activo'];
 
     protected $casts = [

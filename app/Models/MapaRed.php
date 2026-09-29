@@ -4,9 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Concerns\HoraLocal;
 
 class MapaRed extends Model
 {
+    /** Las horas se guardan en UTC y se muestran en la zona de cada usuario. */
+    use HoraLocal;
+
     protected $table = 'mapas_red';
 
     protected $fillable = ['nombre', 'descripcion', 'fondo_opacidad', 'fondo_actualizado_at', 'orden', 'activo', 'en_tv', 'publico_lectura', 'tv_token'];

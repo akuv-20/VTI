@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\HoraLocal;
 
 /**
  * Regla que exceptúa equipos del indicador de antivirus.
@@ -21,6 +22,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 class InventarioExcepcion extends Model
 {
+    /** Las horas se guardan en UTC y se muestran en la zona de cada usuario. */
+    use HoraLocal;
+
     protected $table = 'inventario_excepciones';
 
     protected $fillable = ['dominio', 'campo', 'operador', 'valor', 'motivo', 'activa'];

@@ -58,6 +58,24 @@
                     <div class="form-text">Los usuarios inactivos no pueden iniciar sesión.</div>
                 </div>
             </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold" for="zona_horaria">Zona horaria</label>
+                @php $zonaActual = old('zona_horaria', $usuario->zona_horaria ?? null); @endphp
+                <select name="zona_horaria" id="zona_horaria"
+                        class="form-select @error('zona_horaria') is-invalid @enderror">
+                    <option value="">
+                        Por defecto — {{ \App\Support\ZonaHoraria::OPCIONES[\App\Support\ZonaHoraria::porDefecto()] ?? \App\Support\ZonaHoraria::porDefecto() }}
+                    </option>
+                    @foreach(\App\Support\ZonaHoraria::OPCIONES as $clave => $nombre)
+                        <option value="{{ $clave }}" @selected($zonaActual === $clave)>{{ $nombre }}</option>
+                    @endforeach
+                </select>
+                @error('zona_horaria')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                <div class="form-text">
+                    Con qué hora ve las fechas. Se guarda siempre en UTC;
+                    esto solo cambia cómo se le muestran.
+                </div>
+            </div>
         </div>
     </div>
 </div>

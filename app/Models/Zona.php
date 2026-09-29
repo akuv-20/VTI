@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Concerns\HoraLocal;
 
 /**
  * Zona de operación: la agrupación con la que TI mira los sitios, que no
@@ -11,6 +12,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Zona extends Model
 {
+    /** Las horas se guardan en UTC y se muestran en la zona de cada usuario. */
+    use HoraLocal;
+
     protected $table = 'zonas';
 
     protected $fillable = ['nombre', 'orden'];
