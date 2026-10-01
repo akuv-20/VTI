@@ -105,6 +105,18 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
+                        <label for="tipo_chip" class="form-label">Tipo Chip:</label>
+                        <select name="tipo_chip" id="tipo_chip" class="form-control">
+                            <option value="">-- Sin especificar --</option>
+                            @foreach (['SIM', 'ESIM', 'BAM'] as $op)
+                                <option value="{{ $op }}" {{ old('tipo_chip') == $op ? 'selected' : '' }}>{{ $op }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
                         <label for="fecha_entrega_sim" class="form-label">Fecha Entrega SIM:</label>
                         <input type="date" name="fecha_entrega_sim" id="fecha_entrega_sim" class="form-control" value="{{ old('fecha_entrega_sim') }}">
                     </div>

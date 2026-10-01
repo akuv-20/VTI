@@ -27,6 +27,7 @@ class LineaTelefonica extends Model
         'id_equipo',
         'imei_equipo',
         'imei_sim',
+        'tipo_chip',
         'fecha_entrega_sim',
         'fecha_renovacion_equipo',
         'observacion',

@@ -164,6 +164,8 @@
                     <th>Ubicación</th>
                     <th>Centro Costo</th>
                     <th>Equipo</th>
+                    <th>Marca · Aparato</th>
+                    <th>Tipo Chip</th>
                     <th>Estado</th>
                     <th>Vigencia</th>
                     <th title="Azul claro=Movistar · Azul oscuro=Entel · Morado=WOM&#10;Movistar: {{ $ultimoMovil ? 'Móvil '.$ultimoMovil->periodo_label : '-' }} / {{ $ultimoBAM ? 'BAM '.$ultimoBAM->periodo_label : '-' }}&#10;Entel: {{ $ultimoEntelMovil ? 'Móvil '.$ultimoEntelMovil->periodo_label : '-' }} / {{ $ultimoEntelBAM ? 'BAM '.$ultimoEntelBAM->periodo_label : '-' }}&#10;WOM: {{ $ultimoWom ? $ultimoWom->periodo_label : '-' }}">
@@ -214,6 +216,23 @@
                             @endif
                         @else
                             <span class="badge bg-light text-muted border" style="font-size:.68rem">Solo chip</span>
+                        @endif
+                    </td>
+                    <td>
+                        @php $ap = $linea->equipo->aparato ?? $linea->aparato; @endphp
+                        @if($ap)
+                            <div class="fw-semibold">{{ $ap->marca->nombre ?? '—' }}</div>
+                            <div class="text-muted" style="font-size:.78rem">{{ $ap->modelo }}</div>
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
+                    <td>
+                        @if($linea->tipo_chip)
+                            @php $chipCls = ['SIM' => 'bg-info text-dark', 'ESIM' => 'bg-primary', 'BAM' => 'bg-secondary'][$linea->tipo_chip] ?? 'bg-light text-dark'; @endphp
+                            <span class="badge {{ $chipCls }}">{{ $linea->tipo_chip }}</span>
+                        @else
+                            <span class="text-muted">—</span>
                         @endif
                     </td>
                     <td>
@@ -285,7 +304,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr class="vti-empty"><td colspan="14">No hay líneas que coincidan con los filtros.</td></tr>
+                <tr class="vti-empty"><td colspan="16">No hay líneas que coincidan con los filtros.</td></tr>
                 @endforelse
             </tbody>
         </table>
