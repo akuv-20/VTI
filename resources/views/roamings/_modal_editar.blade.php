@@ -95,32 +95,38 @@
     dias.addEventListener('change', calcTermino);
     inicio.addEventListener('change', calcTermino);
 
+    // Helpers null-safe: si un bloqueador de contenido elimina algún nodo
+    // (p. ej. los bloques con clase .alert), NO debe impedir que el modal abra.
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const setVal  = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+
     // Delegación: abrir editor desde cualquier botón .btn-editar-roaming
     document.addEventListener('click', function (e) {
         const btn = e.target.closest('.btn-editar-roaming');
         if (!btn) return;
         const d = btn.dataset;
 
-        form.setAttribute('action', updateBase.replace('__ID__', d.id));
-
-        document.getElementById('edtNumero').textContent  = d.numero || '—';
-        document.getElementById('edtUsuario').textContent = d.usuario || '—';
-        document.getElementById('edtCarrier').textContent = d.carrier === 'entel' ? 'Entel' : 'Movistar';
-        const tipoTxt = { pasaporte:'Pasaporte', recurrente:'Recurrente (30d)', entel_uso:'Entel · por uso' }[d.tipo] || d.tipo;
-        document.getElementById('edtTipo').textContent = tipoTxt;
+        // Camino crítico primero (acción del form y campos funcionales)
+        if (form) form.setAttribute('action', updateBase.replace('__ID__', d.id));
 
         const esPasaporte = d.tipo === 'pasaporte';
-        diasWrap.style.display    = esPasaporte ? '' : 'none';
-        terminoWrap.style.display = esPasaporte ? '' : 'none';
-        dias.disabled = !esPasaporte;
-        if (esPasaporte && d.dias) dias.value = d.dias;
-        inicioLabel.textContent = d.tipo === 'entel_uso' ? 'Fecha de activación' : 'Inicio';
+        if (diasWrap)    diasWrap.style.display    = esPasaporte ? '' : 'none';
+        if (terminoWrap) terminoWrap.style.display = esPasaporte ? '' : 'none';
+        if (dias)        dias.disabled = !esPasaporte;
+        if (dias && esPasaporte && d.dias) dias.value = d.dias;
+        if (inicioLabel) inicioLabel.textContent = d.tipo === 'entel_uso' ? 'Fecha de activación' : 'Inicio';
+        if (inicio) inicio.value = d.inicio || '';
 
-        inicio.value          = d.inicio || '';
-        document.getElementById('edtDestino').value   = d.destino || '';
-        document.getElementById('edtSolicitud').value = d.solicitud || '';
-        document.getElementById('edtEstado').value    = d.estado || 'activo';
-        document.getElementById('edtObs').value       = d.observacion || '';
+        setVal('edtDestino',   d.destino || '');
+        setVal('edtSolicitud', d.solicitud || '');
+        setVal('edtEstado',    d.estado || 'activo');
+        setVal('edtObs',       d.observacion || '');
+
+        // Info de cabecera (cosmética, tolerante a null)
+        setText('edtNumero',  d.numero || '—');
+        setText('edtUsuario', d.usuario || '—');
+        setText('edtCarrier', d.carrier === 'entel' ? 'Entel' : 'Movistar');
+        setText('edtTipo', { pasaporte:'Pasaporte', recurrente:'Recurrente (30d)', entel_uso:'Entel · por uso' }[d.tipo] || d.tipo);
 
         calcTermino();
         abrirModal(document.getElementById('modalEditar'));
