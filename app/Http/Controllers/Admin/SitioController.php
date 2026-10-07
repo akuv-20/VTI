@@ -16,6 +16,7 @@ use App\Services\CheckMkClient;
 use App\Services\GaleriaFotos;
 use App\Services\SitiosCheckMk;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Cache;
 
 class SitioController extends Controller
@@ -27,22 +28,53 @@ class SitioController extends Controller
 
     /* ── Listado ─────────────────────────────────────────────────────────── */
 
+    /** Cómo se dibuja el listado. La tabla es la de partida: con medio centenar
+     *  de sitios, comparar pesa más que reconocer la foto. */
+    private const VISTAS       = ['tabla', 'tarjetas'];
+    private const VISTA_COOKIE = 'vti_vista_sitios';
+
+    /**
+     * La vista elegida: la del enlace si viene, si no la recordada, si no tabla.
+     *
+     * Va en cookie y no en sesión porque la sesión caduca en una hora y una
+     * preferencia que se olvida cada mañana no es una preferencia. Se resuelve
+     * en el servidor para que la página llegue ya dibujada como corresponde:
+     * decidirlo en el navegador mostraría medio segundo la vista equivocada.
+     */
+    private function vista(Request $request): string
+    {
+        $pedida = $request->input('vista');
+
+        if (in_array($pedida, self::VISTAS, true)) {
+            Cookie::queue(self::VISTA_COOKIE, $pedida, 60 * 24 * 365);
+            return $pedida;
+        }
+
+        $guardada = $request->cookie(self::VISTA_COOKIE);
+
+        return in_array($guardada, self::VISTAS, true) ? $guardada : 'tabla';
+    }
+
     public function index(Request $request)
     {
+        $vista  = $this->vista($request);
         $sitios = Sitio::activos()
+            ->pais($request->input('pais'))
             ->tipo($request->input('tipo'))
             ->estadoEnlace($request->input('estado'))
             ->zona($request->input('zona'))
             ->buscar($request->input('q'))
-            ->with(['fotos', 'tecnico:id,name', 'zona:id,nombre'])
+            ->with(['fotos', 'tecnico:id,name', 'zona:id,nombre', 'isp:id,nombre'])
             ->withCount('equipos')
             ->ordenados()
             ->get();
 
-        $todos = Sitio::activos()->get(['tipo', 'estado_enlace', 'zona_id']);
+        $todos = Sitio::activos()->get(['tipo', 'estado_enlace', 'zona_id', 'pais']);
 
         return view('admin.sitios.index', [
             'sitios'  => $sitios,
+            'vista'   => $vista,
+            'pais'    => $request->input('pais'),
             'tipo'    => $request->input('tipo'),
             'estado'  => $request->input('estado'),
             'zona'    => $request->input('zona'),
@@ -53,6 +85,8 @@ class SitioController extends Controller
                 'tipos'  => collect(Sitio::TIPOS)->map(fn($_, $k) => $todos->where('tipo', $k)->count()),
                 'estados' => collect(Sitio::ESTADOS_ENLACE)->map(fn($_, $k) => $todos->where('estado_enlace', $k)->count()),
                 'sin_zona' => $todos->whereNull('zona_id')->count(),
+                'paises'   => collect(Sitio::PAISES)->map(fn($_, $k) => $todos->where('pais', $k)->count()),
+                'sin_pais' => $todos->whereNull('pais')->count(),
             ],
         ]);
     }
@@ -80,6 +114,7 @@ class SitioController extends Controller
         $data = $request->validate([
             'nombre'  => ['required', 'string', 'max:255'],
             'tipo'    => ['required', 'in:' . implode(',', array_keys(Sitio::TIPOS))],
+            'pais'    => ['required', 'in:' . implode(',', array_keys(Sitio::PAISES))],
             'codigo'  => ['nullable', 'string', 'max:30'],
             'zona_id' => ['nullable', 'integer', 'exists:zonas,id'],
         ]);
@@ -97,6 +132,7 @@ class SitioController extends Controller
             'codigo'            => ['nullable', 'string', 'max:30'],
             'nombre'            => ['required', 'string', 'max:255'],
             'tipo'              => ['required', 'in:' . implode(',', array_keys(Sitio::TIPOS))],
+            'pais'              => ['required', 'in:' . implode(',', array_keys(Sitio::PAISES))],
             'estado_enlace'     => ['required', 'in:' . implode(',', array_keys(Sitio::ESTADOS_ENLACE))],
             'empresa_id'        => ['nullable', 'integer', 'exists:empresas,id'],
             'zona_id'           => ['nullable', 'integer', 'exists:zonas,id'],

@@ -18,6 +18,7 @@
     .sit-buscar .limpiar:hover { color:#475569; }
     .sit-sep { width:1px; align-self:stretch; background:#e2e8f0; margin:.1rem .15rem; }
     .sit-zona-sel { font-size:.72rem; padding:.2rem 1.4rem .2rem .5rem; height:auto; width:auto; max-width:190px; }
+    .sit-pais-sel { width:auto; min-width:160px; font-size:.78rem; }
     .sit-zona { display:inline-block; font-size:.62rem; font-weight:600; padding:1px 7px;
                 border-radius:5px; background:#ede9fe; color:#5b21b6; max-width:100%;
                 overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -32,24 +33,78 @@
     .sit-tab .n { opacity:.6; margin-left:.25rem; font-size:.68rem; }
     .sit-tab .pt { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:4px; }
 
-    /* ── Tarjetas: más chicas, para ver muchos sitios de una ──────────────── */
-    .sit-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(198px,1fr)); gap:.7rem; }
-    .sit-item { border:1px solid #e2e8f0; border-radius:9px; overflow:hidden; background:#fff; transition:border-color .15s, box-shadow .15s; }
+    /* ── Tarjeta compacta: una línea por sitio ────────────────────────────
+       La miniatura pasó de una banda de 74 px a un cuadrado de 40: la foto
+       sirve para reconocer el sitio de un vistazo, y para eso 40 bastan,
+       mientras los 74 eran casi toda la altura de la tarjeta.
+
+       Queda fuera el técnico (cargado en 1 de 54) y la barra de completitud:
+       42 de 54 fichas están al 100%, así que la barra sale llena en cuatro
+       de cada cinco tarjetas y no distingue nada. El número de al lado dice
+       lo mismo con una cifra exacta y sin ocupar una fila. ───────────────── */
+    .sit-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(252px,1fr)); gap:.45rem; }
+    .sit-item { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; background:#fff;
+                transition:border-color .15s, box-shadow .15s; }
     .sit-item:hover { border-color:#94a3b8; box-shadow:0 2px 8px rgba(15,23,42,.06); }
-    .sit-item a.lnk { text-decoration:none; color:inherit; display:block; }
-    .sit-foto { height:74px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    .sit-item a.lnk { text-decoration:none; color:inherit;
+                      display:flex; align-items:center; gap:.5rem; padding:.4rem .55rem; }
+    .sit-foto { flex:0 0 40px; width:40px; height:40px; border-radius:6px; background:#f1f5f9;
+                display:flex; align-items:center; justify-content:center; overflow:hidden; }
     .sit-foto img { width:100%; height:100%; object-fit:cover; }
-    .sit-foto i { font-size:1.5rem; color:#cbd5e1; }
-    .sit-body { padding:.5rem .6rem .55rem; }
-    .sit-body h5 { font-size:.82rem; font-weight:700; color:#1e293b; margin:0 0 .3rem;
-                   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .sit-tags { display:flex; align-items:center; gap:.25rem; flex-wrap:wrap; }
-    .sit-badge { display:inline-block; font-size:.62rem; font-weight:700; padding:1px 6px; border-radius:20px; color:#fff; }
-    .sit-tipo { display:inline-block; font-size:.62rem; font-weight:600; padding:1px 6px; border-radius:5px; background:#eef2ff; color:#4338ca; }
-    .sit-meta { font-size:.66rem; color:#94a3b8; display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.35rem; }
-    .sit-comp { height:3px; background:#f1f5f9; border-radius:3px; overflow:hidden; margin-top:.4rem; }
-    .sit-comp span { display:block; height:100%; }
-    .sit-pct { margin-left:auto; font-size:.62rem; font-weight:700; }
+    .sit-foto i { font-size:1.05rem; color:#cbd5e1; }
+    /* min-width:0 es lo que permite que el nombre largo se recorte en vez de
+       estirar la tarjeta: un hijo flex no baja del ancho de su contenido sin
+       esto, y hay nombres de 37 caracteres. */
+    .sit-body { flex:1; min-width:0; }
+    .sit-body h5 { font-size:.81rem; font-weight:700; color:#1e293b; margin:0 0 .2rem;
+                   display:flex; align-items:center; gap:.3rem; min-width:0; }
+    .sit-body h5 .nom { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sit-body h5 .bnd { flex:0 0 auto; font-size:.78rem; line-height:1; }
+    .sit-tags { display:flex; align-items:center; gap:.3rem; min-width:0; white-space:nowrap; }
+    .sit-punto { flex:0 0 auto; width:7px; height:7px; border-radius:50%; }
+    .sit-tipo { flex:0 0 auto; font-size:.62rem; font-weight:600; padding:1px 6px;
+                border-radius:5px; background:#eef2ff; color:#4338ca; }
+    .sit-com { min-width:0; font-size:.66rem; color:#94a3b8;
+               overflow:hidden; text-overflow:ellipsis; }
+    .sit-pct { margin-left:auto; flex:0 0 auto; font-size:.65rem; font-weight:700; }
+
+    /* ── Vista de tabla ──────────────────────────────────────────────── */
+    .sit-vistas { display:flex; gap:0; border:1px solid #cbd5e1; border-radius:7px; overflow:hidden; }
+    .sit-vistas a { display:flex; align-items:center; gap:.3rem; font-size:.75rem; font-weight:600;
+                    padding:.25rem .6rem; color:#64748b; background:#fff; text-decoration:none; }
+    .sit-vistas a + a { border-left:1px solid #e2e8f0; }
+    .sit-vistas a:hover { background:#f8fafc; color:#334155; }
+    .sit-vistas a.on { background:#7c3aed; color:#fff; }
+
+    .sit-tabla-env { background:#fff; border:1px solid #e2e8f0; border-radius:10px; overflow:auto;
+                     max-height:calc(100vh - var(--topbar-h) - 230px); }
+    .sit-tabla { border-collapse:separate; border-spacing:0; width:100%; font-size:.8rem; }
+    .sit-tabla th { text-align:left; font-size:.65rem; letter-spacing:.06em; text-transform:uppercase;
+                    color:#94a3b8; font-weight:700; padding:.45rem .6rem; white-space:nowrap;
+                    background:#f8fafc; border-bottom:1px solid #e2e8f0; position:sticky; top:0; z-index:2; }
+    .sit-tabla th.orden { cursor:pointer; user-select:none; }
+    .sit-tabla th.orden:hover { color:#7c3aed; }
+    .sit-tabla th.orden::after { content:''; display:inline-block; width:.6em; }
+    .sit-tabla th.asc::after  { content:'▲'; font-size:.55em; margin-left:.25em; color:#7c3aed; }
+    .sit-tabla th.desc::after { content:'▼'; font-size:.55em; margin-left:.25em; color:#7c3aed; }
+    .sit-tabla td { padding:.3rem .6rem; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+    .sit-tabla tbody tr { cursor:pointer; }
+    .sit-tabla tbody tr:hover td { background:#f8fafc; }
+    .sit-tabla tbody tr[hidden] { display:none; }
+    .sit-tabla .nom a { font-weight:600; color:#1e293b; text-decoration:none; white-space:nowrap; }
+    .sit-tabla .nom a:hover { color:#7c3aed; }
+    .sit-tabla .mudo { color:#64748b; }
+    .sit-tabla .num { text-align:right; font-variant-numeric:tabular-nums; }
+    .sit-tabla .nowrap { white-space:nowrap; }
+    .sit-tabla td.mini { width:34px; padding-left:.6rem; padding-right:0; }
+    .sit-mini { width:26px; height:26px; border-radius:5px; background:#f1f5f9; overflow:hidden;
+                display:flex; align-items:center; justify-content:center; }
+    .sit-mini img { width:100%; height:100%; object-fit:cover; }
+    .sit-mini i { font-size:.7rem; color:#cbd5e1; }
+    .sit-tabla .pt { display:inline-block; width:.5rem; height:.5rem; border-radius:50%;
+                     margin-right:.35rem; vertical-align:middle; }
+    .sit-tabla .sit-zona { font-size:.66rem; font-weight:700; padding:1px 7px; border-radius:20px;
+                           background:#ede9fe; color:#6d28d9; white-space:nowrap; }
 </style>
 
 <div class="container-fluid vti-page">
@@ -60,7 +115,19 @@
         </h4>
         <div class="d-flex gap-2">
             <a href="{{ route('admin.sitios.dashboard') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-graph-up me-1"></i>Avance</a>
-            <a href="{{ route('admin.sitios.descubrimiento') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-search me-1"></i>Descubrir hosts</a>
+            {{-- La elección se recuerda en cookie por un año: la sesión caduca
+                 en una hora y se olvidaría cada mañana. Los filtros vigentes
+                 viajan en el enlace para no perderlos al cambiar de vista. --}}
+            <div class="sit-vistas" role="group" aria-label="Forma de ver el listado">
+                <a href="{{ route('admin.sitios.index', array_merge(request()->only(['pais','tipo','estado','zona','q']), ['vista' => 'tabla'])) }}"
+                   class="{{ $vista === 'tabla' ? 'on' : '' }}" title="Ver como tabla">
+                    <i class="bi bi-list-ul"></i>Tabla
+                </a>
+                <a href="{{ route('admin.sitios.index', array_merge(request()->only(['pais','tipo','estado','zona','q']), ['vista' => 'tarjetas'])) }}"
+                   class="{{ $vista === 'tarjetas' ? 'on' : '' }}" title="Ver como tarjetas">
+                    <i class="bi bi-grid-3x3-gap"></i>Tarjetas
+                </a>
+            </div>            <a href="{{ route('admin.sitios.descubrimiento') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-search me-1"></i>Descubrir hosts</a>
             <a href="{{ route('admin.sitios.importar') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-excel me-1"></i>Importar</a>
             <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoSitio">
                 <i class="bi bi-plus-lg me-1"></i>Nuevo sitio
@@ -71,6 +138,7 @@
     {{-- ── Filtros ────────────────────────────────────────────────────────── --}}
     <div class="sit-filtros">
         <form method="GET" action="{{ route('admin.sitios.index') }}" class="sit-buscar">
+            <input type="hidden" name="pais" value="{{ $pais }}">
             <input type="hidden" name="tipo" value="{{ $tipo }}">
             <input type="hidden" name="estado" value="{{ $estado }}">
             <input type="hidden" name="zona" value="{{ $zona }}">
@@ -78,7 +146,7 @@
             <input type="search" name="q" class="form-control form-control-sm" value="{{ $q }}"
                    placeholder="Nombre, código, comuna o encargado…" autocomplete="off">
             @if($q)
-                <a href="{{ route('admin.sitios.index', ['tipo' => $tipo, 'estado' => $estado, 'zona' => $zona]) }}"
+                <a href="{{ route('admin.sitios.index', ['pais' => $pais, 'tipo' => $tipo, 'estado' => $estado, 'zona' => $zona]) }}"
                    class="limpiar" title="Limpiar búsqueda"><i class="bi bi-x-lg"></i></a>
             @endif
         </form>
@@ -86,11 +154,11 @@
         <div class="sit-sep"></div>
 
         <div class="sit-chips">
-            <a href="{{ route('admin.sitios.index', ['tipo' => null, 'estado' => $estado, 'zona' => $zona, 'q' => $q]) }}" class="sit-tab {{ $tipo ? '' : 'on' }}">
+            <a href="{{ route('admin.sitios.index', ['pais' => $pais, 'tipo' => null, 'estado' => $estado, 'zona' => $zona, 'q' => $q]) }}" class="sit-tab {{ $tipo ? '' : 'on' }}">
                 Todos <span class="n">{{ $conteos['total'] }}</span>
             </a>
             @foreach(Sitio::TIPOS as $k => $label)
-                <a href="{{ route('admin.sitios.index', ['tipo' => $k, 'estado' => $estado, 'zona' => $zona, 'q' => $q]) }}"
+                <a href="{{ route('admin.sitios.index', ['pais' => $pais, 'tipo' => $k, 'estado' => $estado, 'zona' => $zona, 'q' => $q]) }}"
                    class="sit-tab {{ $tipo === $k ? 'on' : '' }}">
                     <i class="bi {{ Sitio::ICONOS_TIPO[$k] }} me-1"></i>{{ $label }} <span class="n">{{ $conteos['tipos'][$k] }}</span>
                 </a>
@@ -100,9 +168,9 @@
         <div class="sit-sep"></div>
 
         <div class="sit-chips">
-            <a href="{{ route('admin.sitios.index', ['tipo' => $tipo, 'estado' => null, 'zona' => $zona, 'q' => $q]) }}" class="sit-tab {{ $estado ? '' : 'on' }}">Cualquier estado</a>
+            <a href="{{ route('admin.sitios.index', ['pais' => $pais, 'tipo' => $tipo, 'estado' => null, 'zona' => $zona, 'q' => $q]) }}" class="sit-tab {{ $estado ? '' : 'on' }}">Cualquier estado</a>
             @foreach(Sitio::ESTADOS_ENLACE as $k => $label)
-                <a href="{{ route('admin.sitios.index', ['tipo' => $tipo, 'estado' => $k, 'zona' => $zona, 'q' => $q]) }}"
+                <a href="{{ route('admin.sitios.index', ['pais' => $pais, 'tipo' => $tipo, 'estado' => $k, 'zona' => $zona, 'q' => $q]) }}"
                    class="sit-tab {{ $estado === $k ? 'on' : '' }}">
                     <span class="pt" style="background:{{ Sitio::COLORES_ENLACE[$k] }}"></span>{{ $label }}
                     <span class="n">{{ $conteos['estados'][$k] }}</span>
@@ -112,9 +180,33 @@
 
         <div class="sit-sep"></div>
 
+        {{-- País: va primero porque es el filtro más grueso —Chile o Perú son
+             dos operaciones distintas— y porque de él depende si «región» y
+             «comuna» se eligen de un listado o se escriben a mano. --}}
+        <form method="GET" action="{{ route('admin.sitios.index') }}" class="d-flex align-items-center gap-1">
+            <input type="hidden" name="tipo" value="{{ $tipo }}">
+            <input type="hidden" name="estado" value="{{ $estado }}">
+            <input type="hidden" name="zona" value="{{ $zona }}">
+            <input type="hidden" name="q" value="{{ $q }}">
+            <select name="pais" class="form-select form-select-sm sit-pais-sel" onchange="this.form.submit()"
+                    title="Filtrar por país">
+                <option value="">Selecciona el País</option>
+                @foreach(Sitio::PAISES as $k => $label)
+                    <option value="{{ $k }}" @selected($pais === $k)>
+                        {{ Sitio::BANDERAS[$k] }} {{ $label }} ({{ $conteos['paises'][$k] }})
+                    </option>
+                @endforeach
+                @if($conteos['sin_pais'])
+                    <option value="sin" @selected($pais === 'sin')>— Sin país ({{ $conteos['sin_pais'] }})</option>
+                @endif
+            </select>
+        </form>
+
+        <div class="sit-sep"></div>
         {{-- Zona: un select y no chips, porque el mantenedor no tiene tope y
              una decena de zonas partiría la barra en tres líneas. --}}
         <form method="GET" action="{{ route('admin.sitios.index') }}" class="d-flex align-items-center gap-1">
+            <input type="hidden" name="pais" value="{{ $pais }}">
             <input type="hidden" name="tipo" value="{{ $tipo }}">
             <input type="hidden" name="estado" value="{{ $estado }}">
             <input type="hidden" name="q" value="{{ $q }}">
@@ -154,10 +246,90 @@
             <a href="{{ route('admin.sitios.importar') }}">importa varios desde Excel</a>.
         </div>
     @else
+    {{-- ── A · Tabla ───────────────────────────────────────────────────────
+         Con medio centenar de sitios comparar pesa más que reconocer la foto:
+         de un vistazo se ve qué campos de una zona siguen sin ISP o cuáles
+         quedaron en «Sin enlace». La foto queda como miniatura.
+
+         Se ordena en el navegador y no en el servidor: los datos ya están en
+         la página, así que pedir otra no aporta nada y se pierde el scroll. --}}
+    @if($vista === 'tabla')
+    <div class="sit-tabla-env">
+        <table class="sit-tabla" id="tablaSitios">
+            <thead>
+                <tr>
+                    <th class="mini"></th>
+                    <th data-ord="nom" class="orden">Sitio</th>
+                    <th data-ord="pais" class="orden">País</th>
+                    <th data-ord="zona" class="orden">Zona</th>
+                    <th data-ord="comuna" class="orden">Comuna</th>
+                    <th data-ord="tipo" class="orden">Tipo</th>
+                    <th data-ord="estado" class="orden">Estado</th>
+                    <th data-ord="enlace" class="orden">Enlace</th>
+                    <th data-ord="isp" class="orden">ISP</th>
+                    <th data-ord="ab" class="orden num">Mbps</th>
+                    <th data-ord="pct" class="orden num">%</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($sitios as $s)
+                @php
+                    $c  = $s->completitud;
+                    $cc = $c >= 80 ? '#16a34a' : ($c >= 40 ? '#d97706' : '#dc2626');
+                @endphp
+                <tr onclick="location='{{ route('admin.sitios.show', $s) }}'"
+                    data-nom="{{ $s->titulo }}"
+                    data-pais="{{ $s->pais_label }}"
+                    data-zona="{{ $s->zona?->nombre }}"
+                    data-comuna="{{ $s->comuna }}"
+                    data-tipo="{{ $s->tipo_label }}"
+                    data-estado="{{ $s->estado_enlace_label }}"
+                    data-enlace="{{ Sitio::ENLACE_TIPOS[$s->enlace_tipo] ?? '' }}"
+                    data-isp="{{ $s->isp?->nombre }}"
+                    data-ab="{{ (int) filter_var($s->ancho_banda, FILTER_SANITIZE_NUMBER_INT) }}"
+                    data-pct="{{ $c }}">
+                    <td class="mini">
+                        <span class="sit-mini">
+                            @if($s->portada && $s->portada->thumb_url)
+                                <img src="{{ $s->portada->thumb_url }}" alt="" loading="lazy">
+                            @else
+                                <i class="bi {{ $s->icono }}"></i>
+                            @endif
+                        </span>
+                    </td>
+                    <td class="nom">
+                        <a href="{{ route('admin.sitios.show', $s) }}">{{ $s->titulo }}</a>
+                    </td>
+                    <td>{{ $s->bandera }} <span class="mudo">{{ $s->pais_label }}</span></td>
+                    <td>
+                        @if($s->zona)<span class="sit-zona">{{ $s->zona->nombre }}</span>
+                        @else<span class="mudo">—</span>@endif
+                    </td>
+                    <td class="mudo">{{ $s->comuna ?: '—' }}</td>
+                    <td class="mudo">{{ $s->tipo_label }}</td>
+                    <td class="nowrap">
+                        <span class="pt" style="background:{{ $s->estado_enlace_color }}"></span>{{ $s->estado_enlace_label }}
+                    </td>
+                    <td class="mudo">{{ Sitio::ENLACE_TIPOS[$s->enlace_tipo] ?? '—' }}</td>
+                    <td class="mudo">{{ $s->isp?->nombre ?: '—' }}</td>
+                    <td class="num mudo">{{ $s->ancho_banda ?: '—' }}</td>
+                    <td class="num" style="font-weight:700;color:{{ $cc }}">{{ $c }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+
+    @else
     <div class="sit-grid">
         @foreach($sitios as $s)
+        @php $c = $s->completitud; $cc = $c >= 80 ? '#16a34a' : ($c >= 40 ? '#d97706' : '#dc2626'); @endphp
         <div class="sit-item">
-            <a class="lnk" href="{{ route('admin.sitios.show', $s) }}">
+            {{-- El title lleva lo que la tarjeta recorta: el nombre completo
+                 —hay varios de más de 30 caracteres— y el estado del enlace,
+                 que en la tarjeta es solo un punto de color. --}}
+            <a class="lnk" href="{{ route('admin.sitios.show', $s) }}"
+               title="{{ $s->titulo }} · {{ $s->estado_enlace_label }}{{ $s->comuna ? ' · ' . $s->comuna : '' }} · ficha {{ $c }}% completa">
                 <div class="sit-foto">
                     @if($s->portada && $s->portada->thumb_url)
                         <img src="{{ $s->portada->thumb_url }}" alt="">
@@ -166,36 +338,28 @@
                     @endif
                 </div>
                 <div class="sit-body">
-                    <h5 title="{{ $s->titulo }}">{{ $s->titulo }}</h5>
-                    <div class="sit-tags">
-                        <span class="sit-tipo"><i class="bi {{ $s->icono }} me-1"></i>{{ $s->tipo_label }}</span>
-                        <span class="sit-badge" style="background:{{ $s->estado_enlace_color }}">{{ $s->estado_enlace_label }}</span>
-                        @php $c = $s->completitud; $cc = $c >= 80 ? '#16a34a' : ($c >= 40 ? '#d97706' : '#dc2626'); @endphp
+                    <h5>
+                        @if($s->bandera)<span class="bnd">{{ $s->bandera }}</span>@endif
+                        <span class="nom">{{ $s->titulo }}</span>
                         <span class="sit-pct" style="color:{{ $cc }}">{{ $c }}%</span>
-                    </div>
-                    {{-- La zona va en su propia fila y no junto al tipo y el estado:
-                         en una tarjeta de 198 px los tres chips juntos se parten en
-                         dos líneas apenas el nombre pasa de una palabra. --}}
-                    <div class="sit-tags mt-1">
+                    </h5>
+                    <div class="sit-tags">
+                        <span class="sit-punto" style="background:{{ $s->estado_enlace_color }}"></span>
+                        <span class="visually-hidden">{{ $s->estado_enlace_label }}</span>
+                        <span class="sit-tipo">{{ $s->tipo_label }}</span>
                         @if($s->zona)
-                            <span class="sit-zona"><i class="bi bi-signpost-split me-1"></i>{{ $s->zona->nombre }}</span>
+                            <span class="sit-zona">{{ $s->zona->nombre }}</span>
                         @else
-                            <span class="sit-zona vacia"><i class="bi bi-signpost me-1"></i>Sin zona</span>
+                            <span class="sit-zona vacia">Sin zona</span>
                         @endif
-                    </div>
-                    <div class="sit-meta">
-                        @if($s->comuna)<span><i class="bi bi-geo me-1"></i>{{ $s->comuna }}</span>@endif
-                        @if($s->equipos_count)<span><i class="bi bi-hdd-network me-1"></i>{{ $s->equipos_count }}</span>@endif
-                        @if($s->tecnico)<span><i class="bi bi-person me-1"></i>{{ Str::before($s->tecnico->name, ' ') }}</span>@endif
-                    </div>
-                    <div class="sit-comp" title="Ficha {{ $c }}% completa">
-                        <span style="width:{{ $c }}%;background:{{ $cc }}"></span>
+                        @if($s->comuna)<span class="sit-com">{{ $s->comuna }}</span>@endif
                     </div>
                 </div>
             </a>
         </div>
         @endforeach
     </div>
+    @endif
     @endif
 </div>
 
@@ -232,6 +396,17 @@
                             @error('nombre')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-6">
+                            <label class="form-label" style="font-size:.75rem">País <span class="text-danger">*</span></label>
+                            <select name="pais" class="form-select form-select-sm @error('pais') is-invalid @enderror" required>
+                                <option value="">Selecciona el País</option>
+                                @foreach(Sitio::PAISES as $k => $label)
+                                    {{-- Si estás filtrando por un país, el sitio nuevo
+                                         casi seguro es de ese mismo. --}}
+                                    <option value="{{ $k }}" @selected(old('pais', $pais !== 'sin' ? $pais : '') === $k)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('pais')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>                        <div class="col-6">
                             <label class="form-label" style="font-size:.75rem">Tipo <span class="text-danger">*</span></label>
                             <select name="tipo" class="form-select form-select-sm @error('tipo') is-invalid @enderror" required>
                                 @foreach(Sitio::TIPOS as $k => $label)
@@ -272,6 +447,49 @@
 // En DOMContentLoaded, no antes: `bootstrap` lo publica el bundle de Vite, que
 // es un módulo y por lo tanto se ejecuta después de este script en línea.
 document.addEventListener('DOMContentLoaded', () => {
+    /* ── Ordenar la tabla ──────────────────────────────────────────────
+       En el navegador y no pidiéndole otra página al servidor: las filas ya
+       están acá, así que ir y volver solo agregaría una espera y perdería el
+       punto donde ibas leyendo. */
+    (function () {
+        const tabla = document.getElementById('tablaSitios');
+        if (!tabla) return;
+
+        const cuerpo = tabla.tBodies[0];
+        let columna = null, inverso = false;
+
+        // Sin tildes y en minúsculas, para que «Ñuñoa» y «Nunoa» ordenen juntas.
+        const texto = v => (v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+        tabla.querySelectorAll('th.orden').forEach(th => {
+            th.addEventListener('click', () => {
+                const c = th.dataset.ord;
+                inverso = columna === c ? !inverso : false;
+                columna = c;
+
+                tabla.querySelectorAll('th.orden').forEach(o => o.classList.remove('asc', 'desc'));
+                th.classList.add(inverso ? 'desc' : 'asc');
+
+                // Numéricas por valor; el resto alfabético respetando el español.
+                const numerica = c === 'pct' || c === 'ab';
+
+                [...cuerpo.rows]
+                    .sort((a, b) => {
+                        const x = a.dataset[c] ?? '', y = b.dataset[c] ?? '';
+                        // Lo vacío siempre al final, se ordene como se ordene:
+                        // son los que faltan por completar y estorban arriba.
+                        if (x === '' && y !== '') return 1;
+                        if (y === '' && x !== '') return -1;
+                        const r = numerica
+                            ? (Number(x) || 0) - (Number(y) || 0)
+                            : texto(x).localeCompare(texto(y), 'es');
+                        return inverso ? -r : r;
+                    })
+                    .forEach(fila => cuerpo.appendChild(fila));
+            });
+        });
+    })();
+
     const modal = document.getElementById('modalNuevoSitio');
     if (!modal) return;
 

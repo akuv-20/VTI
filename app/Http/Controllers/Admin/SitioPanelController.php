@@ -33,6 +33,7 @@ class SitioPanelController extends Controller
         'codigo'             => 'Codigo',
         'nombre'             => 'Nombre',
         'tipo'               => 'Tipo (planta/campo/datacenter/oficina)',
+        'pais'               => 'Pais (chile/peru)',
         'estado_enlace'      => 'Estado enlace (sin_enlace/en_gestion/en_instalacion/operativo)',
         'empresa'            => 'Empresa (del mantenedor)',
         'region'             => 'Region',
@@ -350,17 +351,36 @@ class SitioPanelController extends Controller
                 unset($datos[$col]);
             }
 
-            // Región y comuna se ajustan a la división política oficial.
-            if (isset($datos['comuna'])) {
-                $comuna = DpaChile::normalizarComuna($datos['comuna']);
-                if (!$comuna) {
-                    $errores[] = "Fila {$linea}: la comuna «{$datos['comuna']}» no se reconoce.";
+            // El país llega como texto libre: se acepta «Chile», «PERU», «Perú».
+            if (isset($datos['pais'])) {
+                $pais = mb_strtolower(trim((string) $datos['pais']));
+                $pais = strtr($pais, ['á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u']);
+                if ($pais !== '' && !isset(Sitio::PAISES[$pais])) {
+                    $errores[] = "Fila {$linea}: el país «{$datos['pais']}» no se reconoce (chile o peru).";
+                    $pais = null;
                 }
-                $datos['comuna'] = $comuna ?? $datos['comuna'];
+                $datos['pais'] = $pais ?: null;
             }
-            $region = DpaChile::normalizarRegion($datos['region'] ?? null)
-                ?: DpaChile::regionDeComuna($datos['comuna'] ?? null);
-            if ($region) $datos['region'] = $region;
+            // Celda vacía: no se toca el país. Así una planilla vieja —o una
+            // que no trae la columna— actualiza el resto de los campos sin
+            // devolver a Chile un sitio peruano ya cargado.
+            if (($datos['pais'] ?? null) === null) unset($datos['pais']);
+
+            // Región y comuna se ajustan a la división política oficial, pero
+            // SOLO en Chile: ese listado no tiene los distritos del Perú y
+            // marcaría como error cada fila peruana.
+            if (($datos['pais'] ?? 'chile') === 'chile') {
+                if (isset($datos['comuna'])) {
+                    $comuna = DpaChile::normalizarComuna($datos['comuna']);
+                    if (!$comuna) {
+                        $errores[] = "Fila {$linea}: la comuna «{$datos['comuna']}» no se reconoce.";
+                    }
+                    $datos['comuna'] = $comuna ?? $datos['comuna'];
+                }
+                $region = DpaChile::normalizarRegion($datos['region'] ?? null)
+                    ?: DpaChile::regionDeComuna($datos['comuna'] ?? null);
+                if ($region) $datos['region'] = $region;
+            }
 
             // Coordenadas a partir del link de Maps.
             if (!empty($datos['maps_url']) && $coords = Sitio::coordenadasDesdeUrl($datos['maps_url'])) {
@@ -382,7 +402,9 @@ class SitioPanelController extends Controller
                 continue;
             }
 
-            Sitio::create($datos);
+            // Una ficha nueva sin país indicado se asume chilena: es lo que
+            // había antes de incorporar Perú y lo que trae toda planilla vieja.
+            Sitio::create($datos + ['pais' => 'chile']);
             $creados++;
         }
 

@@ -42,6 +42,23 @@ class Sitio extends Model
         'eval_altura_m'            => 'float',
     ];
 
+    /**
+     * Países donde el grupo tiene operaciones.
+     *
+     * No es solo una etiqueta: de acá depende si «región» y «comuna» se eligen
+     * de la división política de Chile o se escriben a mano, porque el listado
+     * de DpaChile no sirve para un distrito peruano.
+     */
+    public const PAISES = [
+        'chile' => 'Chile',
+        'peru'  => 'Perú',
+    ];
+
+    /** Bandera de cada país, para distinguirlos de un vistazo en los listados. */
+    public const BANDERAS = [
+        'chile' => '🇨🇱',
+        'peru'  => '🇵🇪',
+    ];
     public const TIPOS = [
         'planta'     => 'Planta',
         'campo'      => 'Campo',
@@ -242,6 +259,7 @@ class Sitio extends Model
         'racks_cant'         => 'racks',
         'ups_modelo'         => 'UPS',
         'ups_kva'            => 'capacidad UPS',
+        'pais'               => 'país',
         'encargado_nombre'   => 'encargado',
         'encargado_telefono' => 'teléfono del encargado',
         'acceso'             => 'cómo llegar',
@@ -316,6 +334,16 @@ class Sitio extends Model
         return $q->where('activo', true);
     }
 
+    /**
+     * Filtra por país. 'sin' aísla las fichas que todavía no lo tienen, que es
+     * lo que hay que ir cerrando cuando se incorpora una operación nueva.
+     */
+    public function scopePais($q, ?string $pais)
+    {
+        if ($pais === null || $pais === '') return $q;
+
+        return $pais === 'sin' ? $q->whereNull('pais') : $q->where('pais', $pais);
+    }
     public function scopeTipo($q, ?string $tipo)
     {
         return $tipo ? $q->where('tipo', $tipo) : $q;
@@ -358,6 +386,22 @@ class Sitio extends Model
 
     /* ── Atributos derivados ─────────────────────────────────────────────── */
 
+    public function getPaisLabelAttribute(): ?string
+    {
+        return self::PAISES[$this->pais] ?? $this->pais;
+    }
+
+    public function getBanderaAttribute(): ?string
+    {
+        return self::BANDERAS[$this->pais] ?? null;
+    }
+
+    /** Si la división política de Chile aplica a este sitio. */
+    public function usaDpaChile(): bool
+    {
+        // Las fichas sin país son las de antes de incorporar Perú: son chilenas.
+        return $this->pais === 'chile' || $this->pais === null;
+    }
     public function getTipoLabelAttribute(): string
     {
         return self::TIPOS[$this->tipo] ?? $this->tipo;

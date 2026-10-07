@@ -178,7 +178,17 @@
                                     @foreach(Sitio::ESTADOS_ENLACE as $k => $l)<option value="{{ $k }}" @selected($sitio->estado_enlace === $k)>{{ $l }}</option>@endforeach
                                 </select>
                             </div>
-                            <div class="sf-f"><label>Empresa</label>
+                            {{-- País: de él depende si Región y Comuna se eligen de un
+                                 listado o se escriben a mano, porque la división política
+                                 que trae DpaChile no sirve para un distrito peruano. --}}
+                            <div class="sf-f"><label>País *</label>
+                                <select name="pais" id="selPais" class="form-select form-select-sm" required>
+                                    <option value="">Selecciona el País</option>
+                                    @foreach(Sitio::PAISES as $k => $l)
+                                        <option value="{{ $k }}" @selected($sitio->pais === $k)>{{ $l }}</option>
+                                    @endforeach
+                                </select>
+                            </div>                            <div class="sf-f"><label>Empresa</label>
                                 <div class="input-group input-group-sm">
                                     <select name="empresa_id" class="form-select form-select-sm">
                                         <option value="">—</option>
@@ -203,15 +213,24 @@
                                             title="Crear o editar zonas"><i class="bi bi-plus-lg"></i></button>
                                 </div>
                             </div>
-                            <div class="sf-f"><label>Región @include('admin.sitios._req', ['campo' => 'region'])</label>
-                                <select name="region" id="selRegion" class="form-select form-select-sm" data-actual="{{ $sitio->region }}">
+                            @php $esChile = $sitio->usaDpaChile(); @endphp
+                            <div class="sf-f"><label><span id="rotRegion">{{ $esChile ? 'Región' : 'Departamento' }}</span> @include('admin.sitios._req', ['campo' => 'region'])</label>
+                                <select name="region" id="selRegion" class="form-select form-select-sm"
+                                        data-actual="{{ $sitio->region }}" @disabled(!$esChile) @if(!$esChile) hidden @endif>
                                     <option value="">—</option>
                                 </select>
+                                <input type="text" name="region" id="txtRegion" class="form-control form-control-sm"
+                                       value="{{ $sitio->region }}" placeholder="Ej: Ica, La Libertad"
+                                       @disabled($esChile) @if($esChile) hidden @endif>
                             </div>
-                            <div class="sf-f"><label>Comuna @include('admin.sitios._req', ['campo' => 'comuna'])</label>
-                                <select name="comuna" id="selComuna" class="form-select form-select-sm" data-actual="{{ $sitio->comuna }}">
+                            <div class="sf-f"><label><span id="rotComuna">{{ $esChile ? 'Comuna' : 'Distrito' }}</span> @include('admin.sitios._req', ['campo' => 'comuna'])</label>
+                                <select name="comuna" id="selComuna" class="form-select form-select-sm"
+                                        data-actual="{{ $sitio->comuna }}" @disabled(!$esChile) @if(!$esChile) hidden @endif>
                                     <option value="">—</option>
                                 </select>
+                                <input type="text" name="comuna" id="txtComuna" class="form-control form-control-sm"
+                                       value="{{ $sitio->comuna }}" placeholder="Ej: Chincha Alta"
+                                       @disabled($esChile) @if($esChile) hidden @endif>
                             </div>
                             <div class="sf-f" style="grid-column:span 2">
                                 <label>Ubicación en Maps @include('admin.sitios._req', ['campo' => 'maps_url'])
@@ -705,6 +724,49 @@ document.querySelectorAll('.ver-foto').forEach(img => img.addEventListener('clic
 }));
 visor.addEventListener('click', () => visor.style.display = 'none');
 document.addEventListener('keydown', e => { if (e.key === 'Escape') visor.style.display = 'none'; });
+
+// País: decide si Región y Comuna se eligen de un listado o se escriben.
+// El listado de DpaChile solo sirve para Chile; para Perú hay que poder
+// escribir el departamento y el distrito a mano. Se renderizan los dos
+// controles y se deshabilita el que no corresponde, porque un control
+// deshabilitado no se envía y así nunca compiten por el mismo `name`.
+(function () {
+    const selPais   = document.getElementById('selPais');
+    const selRegion = document.getElementById('selRegion');
+    const txtRegion = document.getElementById('txtRegion');
+    const selComuna = document.getElementById('selComuna');
+    const txtComuna = document.getElementById('txtComuna');
+    const rotRegion = document.getElementById('rotRegion');
+    const rotComuna = document.getElementById('rotComuna');
+    if (!selPais || !txtRegion) return;
+
+    const mostrar = (el, visible) => { el.hidden = !visible; el.disabled = !visible; };
+
+    function aplicar() {
+        // Sin país elegido se asume Chile, que es lo que hay hoy en el sistema.
+        const chile = selPais.value === 'chile' || selPais.value === '';
+
+        mostrar(selRegion, chile);
+        mostrar(txtRegion, !chile);
+        mostrar(selComuna, chile);
+        mostrar(txtComuna, !chile);
+
+        rotRegion.textContent = chile ? 'Región'  : 'Departamento';
+        rotComuna.textContent = chile ? 'Comuna'  : 'Distrito';
+
+        // Al cambiar de país se arrastra lo escrito, para no obligar a
+        // teclearlo de nuevo si fue un clic equivocado.
+        if (chile) {
+            if (txtRegion.value && !selRegion.value) selRegion.dataset.actual = txtRegion.value;
+        } else {
+            if (!txtRegion.value && selRegion.value) txtRegion.value = selRegion.value;
+            if (!txtComuna.value && selComuna.value) txtComuna.value = selComuna.value;
+        }
+    }
+
+    selPais.addEventListener('change', aplicar);
+    aplicar();
+})();
 
 // Región y comuna: se llenan desde la API interna de división política
 (function () {

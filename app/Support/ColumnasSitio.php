@@ -30,6 +30,7 @@ class ColumnasSitio
             'nombre'        => ['Nombre',   'Identificación', fn(Sitio $s) => $s->nombre],
             'zona'          => ['Zona',     'Identificación', fn(Sitio $s) => $s->zona?->nombre],
             'codigo'        => ['Código',   'Identificación', fn(Sitio $s) => $s->codigo],
+            'pais'          => ['País',     'Identificación', fn(Sitio $s) => $s->pais_label],
             'tipo'          => ['Tipo',     'Identificación', fn(Sitio $s) => $s->tipo_label],
             'estado_enlace' => ['Estado del enlace', 'Identificación', fn(Sitio $s) => $s->estado_enlace_label],
             'empresa'       => ['Empresa',  'Identificación', fn(Sitio $s) => $s->empresa?->nombre],
