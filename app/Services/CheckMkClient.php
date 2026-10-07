@@ -168,14 +168,19 @@ class CheckMkClient
      * trae por host: estado (0=UP, 1=DOWN, 2=UNREACH), si está en downtime
      * programado, desde cuándo está en el estado actual y la salida del check.
      *
-     * @return Collection<string,array{state:int,downtime:bool,since:?int,output:string}> keyed por host_name
+     * Trae tambien `address`: un host sin IP resoluble queda en 0.0.0.0, y CheckMK
+ * lo reporta DOWN sin haberlo medido nunca. Sin ese dato no hay forma de
+ * distinguir «caido» de «no se esta midiendo», que son problemas distintos.
+ *
+ * @return Collection<string,array{state:int,downtime:bool,since:?int,output:string,address:string}> keyed por host_name
      */
     public function estadoHosts(): Collection
     {
         $this->asegurarConfigurado();
 
         // Igual que en listarServicios: `columns` repetido, querystring a mano.
-        $qs = 'columns=name&columns=state&columns=scheduled_downtime_depth&columns=last_state_change&columns=plugin_output';
+        $qs = 'columns=name&columns=state&columns=scheduled_downtime_depth&columns=last_state_change'
+            . '&columns=plugin_output&columns=address';
 
         $resp = $this->http(15)->get($this->apiBase() . '/domain-types/host/collections/all?' . $qs);
 
@@ -193,6 +198,7 @@ class CheckMkClient
                     'downtime' => ((int) ($ext['scheduled_downtime_depth'] ?? 0)) > 0,
                     'since'    => isset($ext['last_state_change']) ? (int) $ext['last_state_change'] : null,
                     'output'   => (string) ($ext['plugin_output'] ?? ''),
+                    'address'  => (string) ($ext['address'] ?? ''),
                 ]];
             });
     }

@@ -68,6 +68,38 @@
                overflow:hidden; text-overflow:ellipsis; }
     .sit-pct { margin-left:auto; flex:0 0 auto; font-size:.65rem; font-weight:700; }
 
+    /* ── Live: el estado medido, no el declarado ──────────────────────────
+       Llega por fetch despues de dibujar la pagina, asi que todo nace en
+       «comprobando» y se enciende solo. Si CheckMK no responde se queda en
+       «—»: decir «offline» porque no pudimos preguntar seria mentir. */
+    .sit-live { display:inline-flex; align-items:center; gap:.3rem; white-space:nowrap; }
+    .sit-live .pto { width:8px; height:8px; border-radius:50%; background:#cbd5e1; flex:0 0 auto; }
+    .sit-live.cargando .pto { animation:sitLatido 1.1s ease-in-out infinite; }
+    .sit-live .txt { font-size:.68rem; font-weight:600; }
+    /* Sin host enlazado no hay nada que medir, y es distinto de «no se pudo
+       preguntar»: va en hueco, no en gris de error. */
+    .sit-live.vacio .pto { background:transparent; border:1px dashed #cbd5e1; }
+    .sit-live.vacio .txt { color:#64748b; font-weight:500; }
+    @keyframes sitLatido { 0%,100% { opacity:.25 } 50% { opacity:.8 } }
+
+    /* Resumen que aparece cuando llegan los datos. Con cinco estados posibles
+       hace falta decir que significa cada color, y de paso cuantos hay. */
+    .sit-resumen { display:none; align-items:center; gap:.5rem; flex-wrap:wrap;
+                   margin-bottom:.6rem; font-size:.72rem; color:#64748b; }
+    .sit-resumen.hay { display:flex; }
+    .sit-resumen .it { display:inline-flex; align-items:center; gap:.3rem; }
+    .sit-resumen .it .pto { width:8px; height:8px; border-radius:50%; }
+    .sit-resumen .it b { color:#334155; }
+    .sit-resumen .aviso { color:#a855f7; }
+    .sit-resumen .fallo { color:#dc2626; }
+    /* La hora del dato: sin esto, un listado abierto desde la mañana se ve
+       igual de fresco que uno recien cargado. */
+    .sit-resumen .sello { color:#94a3b8; font-variant-numeric:tabular-nums; }
+    .sit-resumen.viejo .sello { color:#b45309; font-weight:600; }
+
+    /* En la tarjeta el punto va junto al nombre: es lo primero que se busca. */
+    .sit-body h5 .sit-live { flex:0 0 auto; }
+
     /* ── Vista de tabla ──────────────────────────────────────────────── */
     .sit-vistas { display:flex; gap:0; border:1px solid #cbd5e1; border-radius:7px; overflow:hidden; }
     .sit-vistas a { display:flex; align-items:center; gap:.3rem; font-size:.75rem; font-weight:600;
@@ -239,6 +271,9 @@
     </div>
     @endif
 
+    {{-- Resumen de lo medido. Nace oculto y se muestra cuando llegan los datos. --}}
+    <div class="sit-resumen" id="sitResumen"></div>
+
     {{-- ── Listado ────────────────────────────────────────────────────────── --}}
     @if($sitios->isEmpty())
         <div class="sit-card text-center text-muted py-5" style="font-size:.85rem">
@@ -265,6 +300,10 @@
                     <th data-ord="comuna" class="orden">Comuna</th>
                     <th data-ord="tipo" class="orden">Tipo</th>
                     <th data-ord="estado" class="orden">Estado</th>
+                    {{-- Al lado de Estado a proposito: uno es lo que dice la ficha
+                         y el otro lo que mide CheckMK, y verlos juntos delata las
+                         fichas que quedaron desactualizadas. --}}
+                    <th data-ord="live" class="orden" title="Estado medido por CheckMK">Live</th>
                     <th data-ord="enlace" class="orden">Enlace</th>
                     <th data-ord="isp" class="orden">ISP</th>
                     <th data-ord="ab" class="orden num">Mbps</th>
@@ -310,6 +349,11 @@
                     <td class="nowrap">
                         <span class="pt" style="background:{{ $s->estado_enlace_color }}"></span>{{ $s->estado_enlace_label }}
                     </td>
+                    <td class="nowrap">
+                        <span class="sit-live cargando" data-live="{{ $s->id }}">
+                            <span class="pto"></span><span class="txt"></span>
+                        </span>
+                    </td>
                     <td class="mudo">{{ Sitio::ENLACE_TIPOS[$s->enlace_tipo] ?? '—' }}</td>
                     <td class="mudo">{{ $s->isp?->nombre ?: '—' }}</td>
                     <td class="num mudo">{{ $s->ancho_banda ?: '—' }}</td>
@@ -339,6 +383,7 @@
                 </div>
                 <div class="sit-body">
                     <h5>
+                        <span class="sit-live cargando" data-live="{{ $s->id }}"><span class="pto"></span></span>
                         @if($s->bandera)<span class="bnd">{{ $s->bandera }}</span>@endif
                         <span class="nom">{{ $s->titulo }}</span>
                         <span class="sit-pct" style="color:{{ $cc }}">{{ $c }}%</span>
@@ -471,7 +516,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 th.classList.add(inverso ? 'desc' : 'asc');
 
                 // Numéricas por valor; el resto alfabético respetando el español.
-                const numerica = c === 'pct' || c === 'ab';
+                // 'live' guarda la gravedad (1 = peor), para que un clic suba los
+                // problemas en vez de ordenar «Offline, Online, Sin medir» alfabetico.
+                const numerica = c === 'pct' || c === 'ab' || c === 'live';
 
                 [...cuerpo.rows]
                     .sort((a, b) => {
@@ -487,6 +534,159 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                     .forEach(fila => cuerpo.appendChild(fila));
             });
+        });
+    })();
+
+    /* ── Live: encender los puntos con lo que mide CheckMK ──────────────
+       Se pide despues de dibujar y no al renderizar: la consulta a CheckMK
+       cuesta ~830 ms en frio y este listado es la pantalla que mas se abre.
+       Bloquearla ahi dejaria la pagina en blanco casi un segundo, y caida
+       del todo cuando CheckMK no responda.
+
+       El refresco NUNCA recarga la pagina: vuelve a pedir el mismo JSON y
+       reescribe el contenido de las celdas que ya estan. Por eso no se
+       pierde nada de lo que hayas hecho —el filtro, el orden que elegiste,
+       donde ibas leyendo, la vista—: el DOM no se rehace y las filas no se
+       mueven de sitio. Un `location.reload()` habria sido una linea, pero te
+       devolveria al principio cada 45 segundos. */
+    (function () {
+        const celdas = document.querySelectorAll('.sit-live[data-live]');
+        if (!celdas.length) return;
+
+        const resumen = document.getElementById('sitResumen');
+        const url     = @json(route('admin.sitios.live'));
+        const CADA    = 45000;   // holgado sobre el cache de 8 s del servidor
+
+        let primeraVez = true;   // el primer fallo se ve distinto que los demas
+        let pidiendo   = false;  // que una peticion lenta no se solape con la siguiente
+        let ultimaBuena = null;
+
+        const hora = (d) => d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+
+        const pintar = (datos) => {
+            const leyenda = datos.leyenda || {};
+            const cuenta  = {};
+            let   sinHost = 0;
+
+            celdas.forEach(cel => {
+                const info = datos.sitios ? datos.sitios[cel.dataset.live] : null;
+                const pto  = cel.querySelector('.pto');
+                const txt  = cel.querySelector('.txt');
+                cel.classList.remove('cargando');
+
+                // Sin host enlazado: no hay nada que medir. Es distinto de un
+                // sitio caido y tiene que verse distinto.
+                if (!info) {
+                    cel.classList.add('vacio');
+                    pto.style.background = '';
+                    if (txt) { txt.textContent = 'Sin host'; txt.style.color = ''; }
+                    cel.title = 'Este sitio no tiene ningun host de CheckMK enlazado';
+                    cel.closest('tr')?.setAttribute('data-live', '');
+                    sinHost++;
+                    return;
+                }
+
+                cel.classList.remove('vacio');
+                const par = leyenda[info.estado] || ['Sin dato', '#94a3b8'];
+                pto.style.background = par[1];
+                if (txt) { txt.textContent = par[0]; txt.style.color = par[1]; }
+
+                const partes = [info.host, par[0]];
+                if (info.desde)   partes.push('desde ' + info.desde);
+                if (info.detalle) partes.push(info.detalle);
+                if (info.otros && info.otros.length) {
+                    partes.push('+ ' + info.otros.map(o => o.host + ': ' + (leyenda[o.estado]?.[0] ?? o.estado)).join(', '));
+                }
+                cel.title = partes.join(' · ');
+
+                // Para ordenar: 1 es lo mas grave, porque ESTADOS viene ordenado
+                // por gravedad desde el servidor. Se actualiza el dato pero NO se
+                // reordena la tabla: una fila que salta sola bajo el cursor
+                // mientras la estas leyendo es peor que un orden desactualizado.
+                const orden = Object.keys(leyenda).indexOf(info.estado) + 1;
+                cel.closest('tr')?.setAttribute('data-live', orden || '');
+
+                cuenta[info.estado] = (cuenta[info.estado] || 0) + 1;
+            });
+
+            ultimaBuena = new Date();
+            if (!resumen) return;
+
+            const trozos = Object.entries(leyenda)
+                .filter(([k]) => cuenta[k])
+                .map(([k, par]) =>
+                    `<span class="it"><span class="pto" style="background:${par[1]}"></span><b>${cuenta[k]}</b> ${par[0]}</span>`);
+            if (sinHost) trozos.push(`<span class="it" style="color:#64748b"><b>${sinHost}</b> sin host enlazado</span>`);
+
+            // «Sin medir» merece una frase, no solo un numero: es un host que
+            // CheckMK da por caido sin haberlo medido nunca, y quien lee el
+            // listado no tiene por que adivinarlo.
+            if (cuenta.sin_ip) {
+                trozos.push(`<span class="aviso" title="CheckMK los reporta caidos pero no tienen IP configurada, asi que nunca los midio">`
+                    + `&#9432; «Sin medir» = sin IP en CheckMK, no es una caida</span>`);
+            }
+            trozos.push(`<span class="sello">${hora(ultimaBuena)}</span>`);
+
+            resumen.innerHTML = trozos.join('<span style="color:#e2e8f0">·</span>');
+            resumen.classList.add('hay');
+            resumen.classList.remove('viejo');
+        };
+
+        const fallar = (motivo) => {
+            // Si ya habia datos buenos se CONSERVAN: borrarlos porque un
+            // refresco fallo dejaria la pantalla peor que antes de refrescar.
+            // Solo se avisa de que lo que se ve ya no es de ahora.
+            if (!primeraVez && ultimaBuena) {
+                if (resumen) {
+                    resumen.classList.add('viejo');
+                    const sello = resumen.querySelector('.sello');
+                    if (sello) {
+                        sello.textContent = 'sin actualizar desde ' + hora(ultimaBuena);
+                        sello.title = 'El ultimo intento fallo: ' + motivo;
+                    }
+                }
+                return;
+            }
+
+            celdas.forEach(cel => {
+                cel.classList.remove('cargando');
+                const txt = cel.querySelector('.txt');
+                if (txt) { txt.textContent = '—'; txt.style.color = '#94a3b8'; }
+                // Nunca marcar «offline» por no haber podido preguntar.
+                cel.title = 'No se pudo consultar CheckMK: ' + motivo;
+                cel.closest('tr')?.setAttribute('data-live', '');
+            });
+            if (resumen) {
+                resumen.innerHTML = '<span class="fallo">No se pudo consultar CheckMK, los puntos quedan sin dato</span>';
+                resumen.classList.add('hay');
+            }
+        };
+
+        const pedir = () => {
+            if (pidiendo) return;
+            pidiendo = true;
+
+            fetch(url, { headers: { 'Accept': 'application/json' } })
+                .then(r => {
+                    // Una sesion caducada redirige al login y devuelve HTML con 200:
+                    // sin esto, el JSON.parse falla con un mensaje incomprensible.
+                    if (r.redirected && /\/login/.test(r.url)) throw new Error('la sesion caduco, recarga la pagina');
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(datos => datos && datos.ok ? pintar(datos) : fallar(datos?.error || 'sin detalle'))
+                .catch(e => fallar(e.message))
+                .finally(() => { pidiendo = false; primeraVez = false; });
+        };
+
+        pedir();
+
+        // En una pestaña de fondo no se refresca: serian consultas a CheckMK
+        // que nadie va a mirar. Al volver se pide de inmediato, porque lo que
+        // quedo en pantalla puede ser de hace rato.
+        setInterval(() => { if (document.visibilityState === 'visible') pedir(); }, CADA);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') pedir();
         });
     })();
 

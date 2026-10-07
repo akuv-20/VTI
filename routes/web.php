@@ -387,6 +387,10 @@ Route::middleware(['auth', 'can:acceso_sitios'])->prefix('admin')->name('admin.'
         Route::delete('/equipos/{equipo}',  [AdminSitioController::class, 'equipoDestroy'])->name('equipos.destroy');
         Route::delete('/hosts/{host}',      [AdminSitioController::class, 'hostDestroy'])->name('hosts.destroy');
 
+        // Estado en vivo del listado. Antes de /{sitio}: si no, «live» se
+        // tomaria por un id de sitio, igual que pasaba con «ping» en terreno.
+        Route::get('/live',                 [AdminSitioController::class, 'live'])->name('live');
+
         // Fichas
         Route::get('/',                     [AdminSitioController::class, 'index'])->name('index');
         Route::post('/',                    [AdminSitioController::class, 'store'])->name('store');

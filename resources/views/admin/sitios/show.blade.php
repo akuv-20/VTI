@@ -497,16 +497,29 @@
                         @php
                             $e = $estadoHosts[$h->host_name] ?? ['estado' => 'na'];
                             $ausente = $e['estado'] === 'ausente';
+                            // Etiqueta y color salen de SitiosCheckMk::ESTADOS para que la
+                            // ficha y el listado no puedan contradecirse.
+                            [$etq, $col] = \App\Services\SitiosCheckMk::ESTADOS[$e['estado']] ?? ['sin datos', '#94a3b8'];
+                            $sinIp = $e['estado'] === 'sin_ip';
                         @endphp
                         <div class="sf-host {{ $ausente ? 'roto' : '' }}">
-                            <span class="sf-dot" style="background:{{ ['up'=>'#16a34a','down'=>'#dc2626','downtime'=>'#d97706','ausente'=>'#a855f7'][$e['estado']] ?? '#94a3b8' }}"></span>
+                            <span class="sf-dot" style="background:{{ $col }}"></span>
                             <div style="flex:1 1 auto;min-width:0">
                                 <div style="font-family:ui-monospace,monospace;font-size:.76rem">{{ $h->host_name }}</div>
                                 <div style="font-size:.68rem;color:{{ $ausente ? '#7e22ce' : '#94a3b8' }}">
                                     {{ $h->rol_label }}
-                                    @if($e['estado'] === 'up') · en línea @elseif($e['estado'] === 'down') · caído @elseif($e['estado'] === 'downtime') · mantención @elseif($ausente) · <b>ya no existe en CheckMK</b> @else · sin datos @endif
+                                    @if($ausente) · <b>ya no existe en CheckMK</b>
+                                    @else · <span style="color:{{ $col }}">{{ $etq }}</span>
+                                    @endif
                                     @if(!empty($e['desde'])) · {{ $e['desde'] }}@endif
                                 </div>
+                                @if($sinIp)
+                                {{-- No es una caida: el host no tiene IP ni nombre resoluble en
+                                     CheckMK, asi que nunca se midio. Se arregla alla, no aqui. --}}
+                                <div style="font-size:.68rem;color:#b45309">
+                                    Sin IP en CheckMK, por eso lo reporta caido sin haberlo medido.
+                                </div>
+                                @endif
                                 @if($ausente)
                                 <a href="{{ route('admin.sitios.enlaces') }}" style="font-size:.68rem">
                                     <i class="bi bi-arrow-left-right me-1"></i>remapear a otro host

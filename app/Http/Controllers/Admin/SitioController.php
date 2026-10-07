@@ -55,6 +55,38 @@ class SitioController extends Controller
         return in_array($guardada, self::VISTAS, true) ? $guardada : 'tabla';
     }
 
+    /**
+     * Estado en vivo de todos los sitios, para el listado.
+     *
+     * Va por separado y no dentro de index() porque consultar CheckMK cuesta
+     * unos 830 ms en frio, y el listado es la pantalla que mas se abre: pagarlo
+     * antes de dibujar dejaria la pagina en blanco casi un segundo, y la
+     * dejaria caida del todo cuando CheckMK no responda. Asi el listado sale
+     * al instante con sus 7 consultas y los puntos se encienden solos.
+     *
+     * Devuelve 200 incluso cuando CheckMK falla, con ok=false: el navegador
+     * necesita distinguir «no se pudo preguntar» de «esta todo bien», y un 503
+     * haria que el fetch pareciera un error de red.
+     */
+    public function live()
+    {
+        $sitios = Sitio::where('activo', 1)
+            ->with(['hosts:id,sitio_id,host_name,rol', 'equipos:id,sitio_id,host_name'])
+            ->get(['id']);
+
+        $r = $this->puente->estadoDeSitios($sitios);
+
+        return response()
+            ->json([
+                'ok'      => $r['ok'],
+                'error'   => $r['error'],
+                'sitios'  => $r['sitios'],
+                'leyenda' => SitiosCheckMk::ESTADOS,
+                'hora'    => now()->toIso8601String(),
+            ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
+    }
+
     public function index(Request $request)
     {
         $vista  = $this->vista($request);

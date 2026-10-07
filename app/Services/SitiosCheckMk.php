@@ -72,7 +72,7 @@ class SitiosCheckMk
                 continue;
             }
             $out[$host] = [
-                'estado'  => $h['downtime'] ? 'downtime' : ($h['state'] === 0 ? 'up' : 'down'),
+                'estado'  => $this->clasificarEstado($h),
                 'detalle' => \Illuminate\Support\Str::limit($h['output'], 120),
                 'desde'   => $h['since'] ? \Carbon\Carbon::createFromTimestamp($h['since'])->locale('es')->diffForHumans() : null,
             ];
@@ -155,4 +155,131 @@ class SitiosCheckMk
 
         return \Illuminate\Support\Str::title(mb_strtolower($n));
     }
+
+    /* ── Estado en vivo para el listado ──────────────────────────────────── */
+
+    /**
+     * Los cinco estados que puede tener un sitio, y su orden de gravedad.
+     *
+     * `sin_ip` existe porque CheckMK reporta DOWN a un host que no pudo medir:
+     * si no tiene IP explicita ni nombre resoluble, queda en 0.0.0.0 y se
+     * informa caido sin haberlo tocado nunca. Llamar a eso «offline» es decir
+     * que el sitio esta sin enlace cuando en realidad esta sin vigilancia, que
+     * es un problema distinto y se arregla en otra parte.
+     */
+    public const ESTADOS = [
+        'down'     => ['Offline',    '#dc2626'],
+        'sin_ip'   => ['Sin medir',  '#d97706'],
+        'ausente'  => ['Host borrado', '#a855f7'],
+        'downtime' => ['Mantencion', '#0284c7'],
+        'up'       => ['Online',     '#16a34a'],
+    ];
+
+    /**
+     * Cual de los hosts de un sitio manda, cuando hay varios.
+     *
+     * Hoy ningun sitio tiene mas de uno, asi que esto no cambia nada todavia;
+     * se define igual para que el dia que aparezca el segundo host el listado
+     * no empiece a mostrar el que venga primero por azar. El rol ya existia en
+     * `sitio_hosts`, de modo que no hace falta inventar un «favorito»: el
+     * enlace principal es el que dice si el sitio esta en linea, y un respaldo
+     * caido es otra conversacion, que la ficha si muestra.
+     */
+    private const PRECEDENCIA_ROL = ['enlace', 'respaldo', 'vpn', 'otro'];
+
+    /**
+     * Estado en vivo de muchos sitios de una vez, para el listado.
+     *
+     * Una sola llamada a CheckMK para todos: el endpoint devuelve los 166
+     * hosts juntos, asi que agregar sitios no agrega consultas.
+     *
+     * @param  iterable<Sitio>  $sitios  con `hosts` y `equipos` ya cargados
+     * @return array{ok:bool,error:?string,sitios:array<int,array>}
+     */
+    public function estadoDeSitios(iterable $sitios): array
+    {
+        try {
+            $estados = $this->estados();
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'error' => $e->getMessage(), 'sitios' => []];
+        }
+
+        $out = [];
+        foreach ($sitios as $sitio) {
+            $hosts = $this->hostsOrdenados($sitio);
+            if (!$hosts) continue;
+
+            $principal = $hosts[0];
+            $info      = $estados->get($principal['host']);
+
+            $out[$sitio->id] = [
+                'estado'  => $this->clasificarEstado($info),
+                'host'    => $principal['host'],
+                'rol'     => $principal['rol'],
+                'detalle' => $info ? \Illuminate\Support\Str::limit($info['output'], 120) : 'Ya no existe en CheckMK',
+                'desde'   => $info && $info['since']
+                    ? \Carbon\Carbon::createFromTimestamp($info['since'])->locale('es')->diffForHumans()
+                    : null,
+                // Si hay mas hosts, el listado lo dice en vez de esconderlos.
+                'otros'   => array_map(
+                    fn($h) => ['host' => $h['host'], 'estado' => $this->clasificarEstado($estados->get($h['host']))],
+                    array_slice($hosts, 1)
+                ),
+            ];
+        }
+
+        return ['ok' => true, 'error' => null, 'sitios' => $out];
+    }
+
+    /**
+     * Traduce lo que devuelve CheckMK a uno de los ESTADOS.
+     *
+     * El orden de las comprobaciones importa: `downtime` gana sobre todo
+     * porque es una decision humana, y `sin_ip` gana sobre `down` porque un
+     * host en 0.0.0.0 nunca se midio y su DOWN no significa nada.
+     */
+    private function clasificarEstado(?array $info): string
+    {
+        if (!$info)                              return 'ausente';
+        if ($info['downtime'])                   return 'downtime';
+        if (($info['address'] ?? '') === '0.0.0.0') return 'sin_ip';
+
+        return $info['state'] === 0 ? 'up' : 'down';
+    }
+
+    /**
+     * Los hosts de un sitio, el que manda primero.
+     *
+     * @return array<int,array{host:string,rol:string}>
+     */
+    private function hostsOrdenados(Sitio $sitio): array
+    {
+        $lista = [];
+
+        foreach ($sitio->hosts as $h) {
+            if ($h->host_name) $lista[] = ['host' => $h->host_name, 'rol' => $h->rol ?: 'otro'];
+        }
+        // Los hosts que cuelgan de un equipo van despues: describen un aparato
+        // dentro del sitio, no el enlace del sitio.
+        foreach ($sitio->equipos as $e) {
+            if ($e->host_name) $lista[] = ['host' => $e->host_name, 'rol' => 'equipo'];
+        }
+
+        $peso = fn(string $rol) => ($i = array_search($rol, self::PRECEDENCIA_ROL, true)) === false
+            ? count(self::PRECEDENCIA_ROL) + 1
+            : $i;
+
+        usort($lista, fn($a, $b) => $peso($a['rol']) <=> $peso($b['rol'])
+            ?: strnatcasecmp($a['host'], $b['host']));
+
+        // Un mismo host enlazado dos veces no cuenta dos veces.
+        $vistos = [];
+        return array_values(array_filter($lista, function ($x) use (&$vistos) {
+            $k = strtolower($x['host']);
+            if (isset($vistos[$k])) return false;
+            $vistos[$k] = true;
+            return true;
+        }));
+    }
+
 }
