@@ -187,6 +187,8 @@ class InventarioGlpi
         return $query->where(function ($q) use ($search) {
             $q->where('c.name', 'like', "%{$search}%")
               ->orWhere('c.serial', 'like', "%{$search}%")
+              ->orWhere('c.contact', 'like', "%{$search}%")
+              ->orWhere('os.name', 'like', "%{$search}%")
               ->orWhere('u.name', 'like', "%{$search}%")
               ->orWhereRaw("CONCAT(IFNULL(u.firstname,''), ' ', IFNULL(u.realname,'')) like ?", ["%{$search}%"]);
         });

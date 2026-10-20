@@ -97,7 +97,7 @@
                     </div>
                     <div class="mt-3" style="font-size:.78rem">
                         @foreach($porVersionAgente->sortByDesc('version') as $va)
-                        @php $esLatest = $va->version === $versionLatest; @endphp
+                        @php $esLatest = in_array($va->version, $versionesUltimas, true); @endphp
                         <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
                             <span>
                                 v{{ $va->version }}
@@ -379,10 +379,17 @@ new Chart(document.getElementById('chartSO'), {
 });
 
 // ── Barras versión agente ─────────────────────────────────────────────────
-const agLabels = @json($porVersionAgente->sortByDesc('version')->pluck('version')->map(fn($v) => 'v'.$v)->values());
-const agData   = @json($porVersionAgente->sortByDesc('version')->pluck('total')->values());
-const latest   = @json($versionLatest);
-const agColors = agLabels.map(l => l === 'v'+latest ? '#16a34a' : '#f59e0b');
+@php
+    $agOrden   = $porVersionAgente->sortByDesc('version');
+    $agVersion = $agOrden->pluck('version')->values()->all();
+    $agLabels  = array_map(fn($v) => 'v'.$v, $agVersion);
+    $agData    = $agOrden->pluck('total')->values()->all();
+@endphp
+const agLabels   = @json($agLabels);
+const agData     = @json($agData);
+const agVersion  = @json($agVersion);
+const agUltimas  = @json($versionesUltimas);
+const agColors   = agVersion.map(v => agUltimas.includes(v) ? '#16a34a' : '#f59e0b');
 new Chart(document.getElementById('chartAgente'), {
     type: 'bar',
     data: { labels: agLabels, datasets: [{ data: agData, backgroundColor: agColors, borderRadius: 4 }] },

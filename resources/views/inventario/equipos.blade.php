@@ -65,7 +65,7 @@
                     <input type="hidden" name="{{ $k }}" value="{{ $v }}">
                 @endforeach
                 <input type="text" name="q" value="{{ $search }}"
-                       class="form-control" placeholder="Buscar equipo, serial o usuario…" style="width:250px">
+                       class="form-control" placeholder="Buscar equipo, serial, usuario o SO…" style="width:250px">
                 <button class="btn btn-primary btn-sm">
                     <i class="bi bi-search"></i>
                 </button>

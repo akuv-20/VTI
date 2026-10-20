@@ -123,8 +123,20 @@ class DashboardController extends BaseController
             ->orderByDesc('total')
             ->get();
 
-        // Versión más reciente
-        $versionLatest = $porVersionAgente->max('version');
+        // Versión más reciente, comparando por base: las distros agregan un
+        // sufijo de build ("-N") al mismo release del agente, así que 1.21 y
+        // 1.21-1 son la misma versión y ambas deben figurar como "última".
+        $baseDe = fn($v) => preg_replace('/-.*/', '', (string) $v);
+        $bases  = $porVersionAgente->pluck('version')->map($baseDe)->unique()->values()->all();
+        usort($bases, 'version_compare');
+        $baseLatest = end($bases) ?: null;
+
+        // Todas las cadenas de versión cuya base es la más reciente (1.21, 1.21-1…).
+        $versionesUltimas = $porVersionAgente->pluck('version')
+            ->filter(fn($v) => $baseDe($v) === $baseLatest)
+            ->values()->all();
+
+        $versionLatest = $baseLatest;
 
         // ── Equipos sin comunicación > 90 días ──────────────────────────────
         $inactivos = $glpi->table('glpi_agents as a')
@@ -279,7 +291,7 @@ class DashboardController extends BaseController
             'totalEquipos', 'sinUsuario', 'sinUbicacion', 'sinAgente',
             'agenteInactivo', 'cantDuplicados', 'sinAntivirus',
             'porSO', 'totalConSO',
-            'porVersionAgente', 'versionLatest',
+            'porVersionAgente', 'versionLatest', 'versionesUltimas',
             'inactivos', 'sinUsuarioLista', 'sinUbicacionLista',
             'duplicadosDetalle', 'sinAgenteLista',
             'masAntiguos', 'recientes', 'porUbicacion',
