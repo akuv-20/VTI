@@ -53,6 +53,7 @@ class DashboardController extends BaseController
         $conAgente = $glpi->table('glpi_agents as a')
             ->join('glpi_computers as c', 'c.id', '=', 'a.items_id')
             ->where('a.itemtype', 'Computer')
+            ->where('c.is_deleted', 0)->where('c.is_template', 0)
             ->where('c.users_id', '!=', $excluir)
             ->distinct()->count('a.items_id');
 
@@ -61,6 +62,7 @@ class DashboardController extends BaseController
         $agenteInactivo = $glpi->table('glpi_agents as a')
             ->join('glpi_computers as c', 'c.id', '=', 'a.items_id')
             ->where('a.itemtype', 'Computer')
+            ->where('c.is_deleted', 0)->where('c.is_template', 0)
             ->where('c.users_id', '!=', $excluir)
             ->where('a.last_contact', '<', $hace90)->count();
 
@@ -113,10 +115,24 @@ class DashboardController extends BaseController
 
         $totalConSO = $porSO->sum('total');
 
+        // Equipos activos sin sistema operativo registrado, para que el total de
+        // la distribución por SO cuadre con "Equipos activos".
+        $conSO = $glpi->table('glpi_computers as c')
+            ->join('glpi_items_operatingsystems as ios', function ($j) {
+                $j->on('ios.items_id', '=', 'c.id')
+                  ->where('ios.itemtype', 'Computer')
+                  ->where('ios.is_deleted', 0);
+            })
+            ->where('c.is_deleted', 0)->where('c.is_template', 0)
+            ->where('c.users_id', '!=', $excluir)
+            ->distinct()->count('c.id');
+        $sinSO = $totalEquipos - $conSO;
+
         // ── Distribución por versión de agente ──────────────────────────────
         $porVersionAgente = $glpi->table('glpi_agents as a')
             ->join('glpi_computers as c', 'c.id', '=', 'a.items_id')
             ->where('a.itemtype', 'Computer')
+            ->where('c.is_deleted', 0)->where('c.is_template', 0)
             ->where('c.users_id', '!=', $excluir)
             ->select('a.version', DB::raw('COUNT(*) as total'))
             ->groupBy('a.version')
@@ -145,7 +161,7 @@ class DashboardController extends BaseController
             ->leftJoin('glpi_locations as loc', 'loc.id', '=', 'c.locations_id')
             ->where('a.itemtype', 'Computer')
             ->where('a.last_contact', '<', $hace90)
-            ->where('c.is_deleted', 0)
+            ->where('c.is_deleted', 0)->where('c.is_template', 0)
             ->where('c.users_id', '!=', $excluir)
             ->select('c.name as equipo', 'a.last_contact', 'a.version',
                 DB::raw("TRIM(CONCAT(IFNULL(u.firstname,''),' ',IFNULL(u.realname,''))) as usuario"),
@@ -290,7 +306,7 @@ class DashboardController extends BaseController
             'dom', 'antivirusNombre',
             'totalEquipos', 'sinUsuario', 'sinUbicacion', 'sinAgente',
             'agenteInactivo', 'cantDuplicados', 'sinAntivirus',
-            'porSO', 'totalConSO',
+            'porSO', 'totalConSO', 'sinSO',
             'porVersionAgente', 'versionLatest', 'versionesUltimas',
             'inactivos', 'sinUsuarioLista', 'sinUbicacionLista',
             'duplicadosDetalle', 'sinAgenteLista',

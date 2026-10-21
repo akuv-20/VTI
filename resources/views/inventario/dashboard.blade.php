@@ -80,6 +80,16 @@
                             </span>
                         </div>
                         @endforeach
+                        @if($sinSO > 0)
+                        <div class="d-flex justify-content-between align-items-center py-1 border-bottom text-muted">
+                            <span><i class="bi bi-question-circle me-1"></i>Sin sistema operativo</span>
+                            <span class="fw-semibold">{{ $sinSO }}</span>
+                        </div>
+                        @endif
+                        <div class="d-flex justify-content-between py-1 fw-bold" style="border-top:2px solid #e2e8f0">
+                            <span>Total</span>
+                            <span>{{ number_format($totalEquipos) }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -118,6 +128,23 @@
                             </span>
                         </div>
                         @endforeach
+                        @if($sinAgente > 0)
+                        <div class="d-flex justify-content-between align-items-center py-1 border-bottom text-muted">
+                            <span><i class="bi bi-plugin me-1"></i>Sin agente</span>
+                            <span class="d-inline-flex align-items-center gap-2">
+                                <span class="fw-semibold">{{ $sinAgente }}</span>
+                                <a href="{{ route("inventario.{$dom->clave}.equipos", ['sin_agente' => 1]) }}"
+                                   class="btn btn-outline-secondary btn-sm py-0 px-1"
+                                   title="Ver equipos sin agente" style="font-size:.7rem;line-height:1.4">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                            </span>
+                        </div>
+                        @endif
+                        <div class="d-flex justify-content-between py-1 fw-bold" style="border-top:2px solid #e2e8f0">
+                            <span>Total</span>
+                            <span>{{ number_format($totalEquipos) }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -148,6 +175,30 @@
                             </span>
                         </div>
                         @endforeach
+                        @php $otrasUbic = $totalEquipos - $sinUbicacion - $porUbicacion->sum('total'); @endphp
+                        @if($otrasUbic > 0)
+                        <div class="d-flex justify-content-between align-items-center py-1 border-bottom text-muted">
+                            <span><i class="bi bi-three-dots me-1"></i>Otras ubicaciones</span>
+                            <span class="fw-semibold">{{ $otrasUbic }}</span>
+                        </div>
+                        @endif
+                        @if($sinUbicacion > 0)
+                        <div class="d-flex justify-content-between align-items-center py-1 border-bottom text-muted">
+                            <span><i class="bi bi-geo me-1"></i>Sin ubicación</span>
+                            <span class="d-inline-flex align-items-center gap-2">
+                                <span class="fw-semibold">{{ $sinUbicacion }}</span>
+                                <a href="{{ route("inventario.{$dom->clave}.equipos", ['filtro' => 'sin_ubicacion']) }}"
+                                   class="btn btn-outline-secondary btn-sm py-0 px-1"
+                                   title="Ver equipos sin ubicación" style="font-size:.7rem;line-height:1.4">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                            </span>
+                        </div>
+                        @endif
+                        <div class="d-flex justify-content-between py-1 fw-bold" style="border-top:2px solid #e2e8f0">
+                            <span>Total</span>
+                            <span>{{ number_format($totalEquipos) }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
