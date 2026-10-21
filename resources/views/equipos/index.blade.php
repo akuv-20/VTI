@@ -117,6 +117,9 @@
                     </td>
                     <td>
                         <div class="vti-actions">
+                            @if(auth()->user()->tieneAcceso('actas_entrega_telefono.index'))
+                                @include('equipos._btn_acta', ['equipo' => $e, 'compacto' => true])
+                            @endif
                             <a href="{{ route('equipos.show', $e) }}" class="vti-btn-view" title="Ver"><i class="bi bi-eye-fill"></i></a>
                             <a href="{{ route('equipos.edit', $e) }}" class="vti-btn-edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
                             <form method="POST" action="{{ route('equipos.destroy', $e) }}"
@@ -139,4 +142,8 @@
         {{ $equipos->links() }}
     </div>
 </div>
+
+@if(auth()->user()->tieneAcceso('actas_entrega_telefono.index'))
+    @include('equipos._acta_modal')
+@endif
 @endsection

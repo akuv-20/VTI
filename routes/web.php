@@ -119,6 +119,7 @@ Route::get('actas_entrega_telefono/{acta}/imprimir', [ActaEntregaTelefonoControl
 Route::get('actas_entrega_telefono/{acta}/editar', [ActaEntregaTelefonoController::class, 'edit'])->name('actas_entrega_telefono.edit');
 Route::put('actas_entrega_telefono/{acta}', [ActaEntregaTelefonoController::class, 'update'])->name('actas_entrega_telefono.update');
 Route::post('actas_entrega_telefono/linea/{linea}', [ActaEntregaTelefonoController::class, 'store'])->name('actas_entrega_telefono.store');
+Route::post('actas_entrega_telefono/equipo/{equipo}', [ActaEntregaTelefonoController::class, 'storeEquipo'])->name('actas_entrega_telefono.store_equipo');
 Route::delete('actas_entrega_telefono/{acta}', [ActaEntregaTelefonoController::class, 'destroy'])->name('actas_entrega_telefono.destroy');
 Route::get('actas_entrega_telefono', [ActaEntregaTelefonoController::class, 'index'])->name('actas_entrega_telefono.index');
 

@@ -70,19 +70,24 @@
                             </div>
                         </div>
 
-                        {{-- Tipo de acta: Equipo+SIM o Solo SIM --}}
+                        {{-- Tipo de acta: Equipo+SIM / Solo SIM / Solo equipo --}}
                         <div class="mb-4">
                             <label class="form-label fw-semibold">Tipo de acta</label>
-                            <div class="btn-group w-100" role="group">
+                            <div class="btn-group w-100" role="group" id="grupoTipoActa">
                                 <input type="radio" class="btn-check" name="tipo_acta" id="tipoEquipoSim"
                                        value="equipo_sim" checked>
-                                <label class="btn btn-outline-primary" for="tipoEquipoSim">
+                                <label class="btn btn-outline-primary" for="tipoEquipoSim" id="lblEquipoSim">
                                     <i class="bi bi-phone me-1"></i>Equipo + SIM
                                 </label>
                                 <input type="radio" class="btn-check" name="tipo_acta" id="tipoSoloSim"
                                        value="solo_sim">
-                                <label class="btn btn-outline-primary" for="tipoSoloSim">
+                                <label class="btn btn-outline-primary" for="tipoSoloSim" id="lblSoloSim">
                                     <i class="bi bi-sim me-1"></i>Solo SIM
+                                </label>
+                                <input type="radio" class="btn-check" name="tipo_acta" id="tipoSoloEquipo"
+                                       value="solo_equipo">
+                                <label class="btn btn-outline-primary" for="tipoSoloEquipo" id="lblSoloEquipo" style="display:none">
+                                    <i class="bi bi-box-seam me-1"></i>Solo equipo
                                 </label>
                             </div>
                             <div class="form-text" id="tipoActaHint">
@@ -239,6 +244,24 @@
         fallbackBackdrop = null;
     }
     btnAbrir?.addEventListener('click', abrirModal);
+
+    // Disparadores con preselección (p. ej. desde la ficha/listado de un equipo):
+    // abren el modal saltándose el buscador, con el destino ya fijado.
+    document.querySelectorAll('.btn-acta-preset').forEach(function (b) {
+        b.addEventListener('click', function () {
+            abrirModal();
+            form.setAttribute('action', b.dataset.target);
+            input.closest('.mb-3').style.display = 'none';
+            seccion.style.display = 'block';
+            btnSubmit.disabled = false;
+            configurarTipos(b.dataset.tieneLinea !== '0', b.dataset.tieneEquipo !== '0');
+            setText('resLinea',   b.dataset.linea || '—');
+            setText('resUsuario', b.dataset.usuario || '(sin asignar)');
+            setText('resZona',    b.dataset.zona || '—');
+            setText('resEquipo',  (b.dataset.equipo || '—') + (b.dataset.propiedad ? ' · ' + b.dataset.propiedad : ''));
+            setText('resEmisor',  b.dataset.emisor || '—');
+        });
+    });
     modalEl?.addEventListener('click', function (e) {
         if (!fallbackBackdrop) return;
         if (e.target.closest('[data-bs-dismiss="modal"]') || e.target === modalEl) {
@@ -280,15 +303,18 @@
             }
             resultados.innerHTML = data.map(l => `
                 <button type="button" class="list-group-item list-group-item-action"
-                        data-id="${l.id}" data-linea="${escapeHtml(l.linea)}"
+                        data-id="${l.id ?? ''}" data-target="${escapeHtml(l.target || '')}"
+                        data-linea="${escapeHtml(l.linea)}"
                         data-usuario="${escapeHtml(l.usuario)}" data-empresa="${escapeHtml(l.empresa)}"
                         data-ubicacion="${escapeHtml(l.ubicacion)}" data-emisor="${escapeHtml(l.emisor)}"
-                        data-equipo="${escapeHtml(l.equipo)}">
+                        data-equipo="${escapeHtml(l.equipo)}" data-propiedad="${escapeHtml(l.propiedad || '')}"
+                        data-tiene-linea="${l.tiene_linea === false ? '0' : '1'}"
+                        data-tiene-equipo="${l.tiene_equipo === false ? '0' : '1'}">
                     <div class="d-flex justify-content-between">
                         <span class="fw-semibold font-monospace">${escapeHtml(l.linea)}</span>
                         <span class="text-muted small">${escapeHtml(l.emisor)}</span>
                     </div>
-                    <div class="small text-muted">${escapeHtml(l.usuario)} · ${escapeHtml(l.empresa)} ${l.ubicacion ? '· ' + escapeHtml(l.ubicacion) : ''}</div>
+                    <div class="small text-muted">${escapeHtml(l.usuario)}${l.empresa ? ' · ' + escapeHtml(l.empresa) : ''}${l.ubicacion ? ' · ' + escapeHtml(l.ubicacion) : ''}</div>
                 </button>
             `).join('');
         } catch (e) {
@@ -302,26 +328,49 @@
         if (el) el.textContent = val;
     }
 
-    // ── Selección de línea ──
+    // ── Selección de línea / equipo ──
     resultados?.addEventListener('click', function (e) {
         const btn = e.target.closest('[data-id]');
         if (!btn) return;
         e.preventDefault();
 
-        // Camino crítico: fijar destino, mostrar formulario, habilitar submit
-        form.setAttribute('action', storeBase.replace('__ID__', btn.dataset.id));
+        // Camino crítico: destino directo (entrega) o fallback storeBase (devolución)
+        const action = btn.dataset.target || storeBase.replace('__ID__', btn.dataset.id);
+        form.setAttribute('action', action);
         input.closest('.mb-3').style.display = 'none';
         seccion.style.display = 'block';
         btnSubmit.disabled = false;
+
+        // Tipos de acta disponibles según el item seleccionado
+        configurarTipos(btn.dataset.tieneLinea !== '0', btn.dataset.tieneEquipo !== '0');
 
         // Resumen (cosmético)
         const zona = [btn.dataset.empresa, btn.dataset.ubicacion].filter(Boolean).join(' — ');
         setText('resLinea',   btn.dataset.linea);
         setText('resUsuario', btn.dataset.usuario || '(sin asignar)');
         setText('resZona',    zona || '—');
-        setText('resEquipo',  btn.dataset.equipo || '—');
+        setText('resEquipo',  (btn.dataset.equipo || '—') + (btn.dataset.propiedad ? ' · ' + btn.dataset.propiedad : ''));
         setText('resEmisor',  btn.dataset.emisor || '—');
     });
+
+    // Muestra solo los tipos de acta aplicables y preselecciona el primero
+    function configurarTipos(tieneLinea, tieneEquipo) {
+        const showEquipoSim  = tieneLinea && tieneEquipo;
+        const showSoloSim    = tieneLinea;
+        const showSoloEquipo = !tieneLinea && tieneEquipo;
+
+        const lbl = (id, show) => { const el = document.getElementById(id); if (el) el.style.display = show ? '' : 'none'; };
+        lbl('lblEquipoSim',  showEquipoSim);
+        lbl('lblSoloSim',    showSoloSim);
+        lbl('lblSoloEquipo', showSoloEquipo);
+
+        const check = (id) => { const el = document.getElementById(id); if (el) el.checked = true; };
+        if (showEquipoSim)       check('tipoEquipoSim');
+        else if (showSoloSim)    check('tipoSoloSim');
+        else if (showSoloEquipo) check('tipoSoloEquipo');
+
+        aplicarTipoActa();
+    }
 
     // ── Cambiar línea ──
     btnCambiar?.addEventListener('click', function () {
@@ -340,13 +389,16 @@
     const filaEquipo   = document.getElementById('resEquipo')?.closest('.col-6');
 
     function aplicarTipoActa() {
-        const soloSim = document.getElementById('tipoSoloSim')?.checked;
-        if (bloqueEquipo) bloqueEquipo.style.display = soloSim ? 'none' : 'block';
-        if (filaEquipo)   filaEquipo.style.display   = soloSim ? 'none' : '';
+        const tipo = document.querySelector('input[name="tipo_acta"]:checked')?.value || 'equipo_sim';
+        const conEquipo = tipo === 'equipo_sim' || tipo === 'solo_equipo';
+        if (bloqueEquipo) bloqueEquipo.style.display = conEquipo ? 'block' : 'none';
+        if (filaEquipo)   filaEquipo.style.display   = conEquipo ? '' : 'none';
         if (hint) {
-            hint.textContent = soloSim
-                ? 'Solo la SIM: número, empleado, compañía y serial de la SIM. Sin equipo físico.'
-                : 'Incluye equipo físico, condición, accesorios y documentación.';
+            hint.textContent = {
+                equipo_sim:  'Incluye equipo físico, condición, accesorios y documentación.',
+                solo_sim:    'Solo la SIM: número, empleado y compañía. Sin equipo físico.',
+                solo_equipo: 'Solo el equipo físico: condición, accesorios y documentación. Sin SIM.',
+            }[tipo] || '';
         }
     }
     document.querySelectorAll('input[name="tipo_acta"]').forEach(r =>

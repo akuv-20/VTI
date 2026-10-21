@@ -14,6 +14,7 @@ class ActaEntregaTelefono extends Model
 
     protected $fillable = [
         'id_linea_telefonica',
+        'id_equipo',
         'tipo_acta',
         'fecha_emision',
         'numero_telefono',
@@ -21,8 +22,10 @@ class ActaEntregaTelefono extends Model
         'zona',
         'marca',
         'modelo',
+        'propiedad',
         'compania',
         'imei_equipo',
+        'mac_wifi',
         'imei_sim',
         'condicion',
         'accesorios',
@@ -40,6 +43,11 @@ class ActaEntregaTelefono extends Model
     public function lineaTelefonica()
     {
         return $this->belongsTo(LineaTelefonica::class, 'id_linea_telefonica');
+    }
+
+    public function equipo()
+    {
+        return $this->belongsTo(Equipo::class, 'id_equipo');
     }
 
     /** El acta queda bloqueada para edición si fue emitida hace más de 2 días. */

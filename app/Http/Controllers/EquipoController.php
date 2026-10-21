@@ -22,7 +22,11 @@ class EquipoController extends Controller
 
     public function index(Request $request)
     {
-        $query = Equipo::with(['aparato.marca', 'usuario', 'ubicacion', 'lineaTelefonica']);
+        $query = Equipo::with([
+            'aparato.marca', 'usuario', 'ubicacion',
+            'lineaTelefonica.usuario', 'lineaTelefonica.emisor',
+            'lineaTelefonica.empresa', 'lineaTelefonica.ubicacion',
+        ]);
 
         $propiedad = $request->input('propiedad', 'Todos');
         if ($propiedad !== 'Todos') {
@@ -92,7 +96,11 @@ class EquipoController extends Controller
 
     public function show(Equipo $equipo)
     {
-        $equipo->load(['aparato.marca', 'usuario', 'ubicacion', 'lineaTelefonica.emisor', 'reservaDhcp']);
+        $equipo->load([
+            'aparato.marca', 'usuario', 'ubicacion', 'reservaDhcp',
+            'lineaTelefonica.emisor', 'lineaTelefonica.usuario',
+            'lineaTelefonica.empresa', 'lineaTelefonica.ubicacion',
+        ]);
         return view('equipos.show', compact('equipo'));
     }
 

@@ -308,9 +308,19 @@
 
 {{-- Toolbar --}}
 <div class="toolbar">
+    @if($acta->id_linea_telefonica)
     <a href="{{ route('lineas_telefonicas.show', $acta->id_linea_telefonica) }}">
         <i class="bi bi-arrow-left"></i> Volver
     </a>
+    @elseif($acta->id_equipo)
+    <a href="{{ route('equipos.show', $acta->id_equipo) }}">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+    @else
+    <a href="{{ route('actas_entrega_telefono.index') }}">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+    @endif
     <a href="{{ route('actas_entrega_telefono.index') }}">
         <i class="bi bi-list-ul"></i> Actas
     </a>
@@ -325,7 +335,13 @@
     <div class="acta-band"></div>
     <div class="acta">
 
-        @php $soloSim = ($acta->tipo_acta ?? 'equipo_sim') === 'solo_sim'; @endphp
+        @php
+            $tipo       = $acta->tipo_acta ?? 'equipo_sim';
+            $conEquipo  = $tipo === 'equipo_sim' || $tipo === 'solo_equipo';
+            $conSim     = $tipo === 'equipo_sim' || $tipo === 'solo_sim';
+            $soloEquipo = $tipo === 'solo_equipo';
+            $soloSim    = $tipo === 'solo_sim';
+        @endphp
 
         {{-- Header --}}
         <div class="acta-header">
@@ -335,7 +351,7 @@
                 <div class="acta-logo-fallback">VTI</div>
             @endif
             <div class="acta-title-block">
-                <div class="acta-title">Acta de Entrega{{ $soloSim ? ' de SIM' : '' }}<br>Teléfono Móvil / Banda Ancha</div>
+                <div class="acta-title">Acta de Entrega{{ $soloSim ? ' de SIM' : ($soloEquipo ? ' de Equipo' : '') }}<br>{{ $soloEquipo ? 'Equipo Telefónico' : 'Teléfono Móvil / Banda Ancha' }}</div>
                 <div class="acta-num">N° {{ str_pad($acta->id, 6, '0', STR_PAD_LEFT) }} &nbsp;·&nbsp; Emitida el {{ $acta->fecha_emision->format('d/m/Y') }}</div>
             </div>
         </div>
@@ -354,7 +370,7 @@
                 <div class="dato-label">Zona</div>
                 <div class="dato-value">{{ $acta->zona ?? '—' }}</div>
             </div>
-            @unless($soloSim)
+            @if($conEquipo)
             <div class="dato-cell">
                 <div class="dato-label">Marca</div>
                 <div class="dato-value">{{ $acta->marca ?? '—' }}</div>
@@ -363,22 +379,36 @@
                 <div class="dato-label">Modelo</div>
                 <div class="dato-value">{{ $acta->modelo ?? '—' }}</div>
             </div>
-            @endunless
+            @if($acta->propiedad)
+            <div class="dato-cell">
+                <div class="dato-label">Propiedad</div>
+                <div class="dato-value">{{ $acta->propiedad }}</div>
+            </div>
+            @endif
+            @endif
+            @if($conSim)
             <div class="dato-cell">
                 <div class="dato-label">Compañía</div>
                 <div class="dato-value">{{ $acta->compania ?? '—' }}</div>
             </div>
             <div class="dato-cell">
                 <div class="dato-label">N° Teléfono</div>
-                <div class="dato-value">{{ $acta->numero_telefono }}</div>
+                <div class="dato-value">{{ $acta->numero_telefono ?? '—' }}</div>
             </div>
-            @if($acta->imei_equipo)
+            @endif
+            @if($conEquipo && $acta->imei_equipo)
             <div class="dato-cell">
                 <div class="dato-label">IMEI Equipo</div>
                 <div class="dato-value mono">{{ $acta->imei_equipo }}</div>
             </div>
             @endif
-            @if($acta->imei_sim)
+            @if($conEquipo && $acta->mac_wifi)
+            <div class="dato-cell">
+                <div class="dato-label">MAC WiFi</div>
+                <div class="dato-value mono">{{ $acta->mac_wifi }}</div>
+            </div>
+            @endif
+            @if($conSim && $acta->imei_sim)
             <div class="dato-cell">
                 <div class="dato-label">IMEI SIM</div>
                 <div class="dato-value mono">{{ $acta->imei_sim }}</div>
@@ -386,7 +416,7 @@
             @endif
         </div>
 
-        @unless($soloSim)
+        @if($conEquipo)
         {{-- Condición --}}
         <div class="section-title">Condición del Equipo</div>
         <div class="condicion-row">
@@ -455,7 +485,7 @@
                 @endforeach
             </tbody>
         </table>
-        @endunless
+        @endif
 
         {{-- Observación --}}
         <div class="section-title">Observación</div>

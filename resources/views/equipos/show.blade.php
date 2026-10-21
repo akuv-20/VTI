@@ -13,6 +13,9 @@
             @endif
         </h4>
         <div class="d-flex gap-2">
+            @if(auth()->user()->tieneAcceso('actas_entrega_telefono.index'))
+                @include('equipos._btn_acta', ['equipo' => $equipo])
+            @endif
             <a href="{{ route('equipos.edit', $equipo) }}" class="btn btn-warning btn-sm"><i class="bi bi-pencil-fill me-1"></i>Editar</a>
             <a href="{{ route('equipos.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Volver</a>
         </div>
@@ -78,4 +81,8 @@
         </div>
     </div>
 </div>
+
+@if(auth()->user()->tieneAcceso('actas_entrega_telefono.index'))
+    @include('equipos._acta_modal')
+@endif
 @endsection

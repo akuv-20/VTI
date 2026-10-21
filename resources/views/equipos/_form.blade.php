@@ -34,6 +34,8 @@
         <option value="">-- Sin línea (solo inventario) --</option>
         @foreach ($lineasDisponibles as $l)
             <option value="{{ $l->id }}"
+                data-usuario="{{ $l->id_usuario }}"
+                data-usuario-nombre="{{ $l->usuario->nombre ?? '' }}"
                 {{ (string) old('id_linea', $lineaActualId ?? '') === (string) $l->id ? 'selected' : '' }}>
                 {{ $l->linea }} — {{ $l->usuario->nombre ?? '(sin usuario)' }} · {{ $l->emisor->nombre ?? 's/emisor' }}
             </option>
@@ -84,6 +86,9 @@
                 <i class="bi bi-plus-lg"></i>
             </button>
         </div>
+        <div class="form-text" id="usuarioHint" style="display:none">
+            <i class="bi bi-link-45deg"></i> Se toma de la línea asociada. Quita la línea para editarlo.
+        </div>
     </div>
     <div class="col-md-6 mb-3">
         <label for="id_ubicacion" class="form-label">Ubicación:</label>
@@ -108,3 +113,60 @@
     <label for="observacion" class="form-label">Observación:</label>
     <textarea name="observacion" id="observacion" class="form-control" rows="2">{{ old('observacion', $e->observacion ?? '') }}</textarea>
 </div>
+
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+@endpush
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+(function () {
+    const lineaSel   = document.getElementById('id_linea');
+    const usuarioSel = document.getElementById('id_usuario');
+    const hint       = document.getElementById('usuarioHint');
+    if (!lineaSel || !usuarioSel) return;
+
+    // Buscador en el desplegable de línea
+    let ts = null;
+    if (window.TomSelect) {
+        try {
+            ts = new TomSelect(lineaSel, {
+                placeholder: '— Buscar línea por número o usuario —',
+                allowEmptyOption: true,
+                maxOptions: null,
+            });
+        } catch (e) { /* si falla, queda el select normal */ }
+    }
+
+    // Usuario de la línea seleccionada (desde el <option> original)
+    function usuarioDeLinea() {
+        const opt = lineaSel.options[lineaSel.selectedIndex];
+        return opt ? (opt.dataset.usuario || '') : '';
+    }
+
+    function sincronizar() {
+        const hayLinea = !!lineaSel.value;
+        const uid = usuarioDeLinea();
+
+        if (hayLinea && uid) {
+            // La línea manda: fija el usuario y bloquea el campo
+            usuarioSel.value = uid;
+            usuarioSel.setAttribute('disabled', 'disabled');
+            if (hint) hint.style.display = '';
+        } else {
+            // Sin línea (o línea sin usuario): usuario editable
+            usuarioSel.removeAttribute('disabled');
+            if (hint) hint.style.display = 'none';
+        }
+    }
+
+    lineaSel.addEventListener('change', sincronizar);
+    sincronizar(); // estado inicial (al editar un equipo con línea)
+
+    // Un <select> deshabilitado no se envía: reactívalo justo antes del submit
+    const form = lineaSel.closest('form');
+    form?.addEventListener('submit', () => usuarioSel.removeAttribute('disabled'));
+})();
+</script>
+@endpush
