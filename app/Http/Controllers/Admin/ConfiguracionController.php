@@ -59,6 +59,8 @@ class ConfiguracionController extends Controller
             'port'     => Configuracion::get('glpiuni_db_port',     env('GLPIUNI_DB_PORT',     3306)),
             'database' => Configuracion::get('glpiuni_db_database', env('GLPIUNI_DB_DATABASE', 'glpi')),
             'username' => Configuracion::get('glpiuni_db_username', env('GLPIUNI_DB_USERNAME', '')),
+            'api_url'  => Configuracion::get('glpiuni_api_url', \App\Services\GlpiApi::URL_POR_DEFECTO),
+            'api_app_token_guardado' => (bool) Configuracion::get('glpiuni_api_app_token'),
         ];
 
         $checkmkCfg = [
@@ -268,6 +270,15 @@ class ConfiguracionController extends Controller
 
             if ($request->filled('glpiuni_db_password')) {
                 Configuracion::set('glpiuni_db_password', $request->input('glpiuni_db_password'));
+            }
+
+            // API REST: la usa Asistencia GLPI para asignar tickets. El App-Token
+            // se guarda cifrado y, como la contraseña, solo si viene uno nuevo.
+            $request->validate(['glpiuni_api_url' => 'nullable|url|max:255']);
+            Configuracion::set('glpiuni_api_url', rtrim(trim((string) $request->input('glpiuni_api_url')), '/') ?: \App\Services\GlpiApi::URL_POR_DEFECTO);
+
+            if ($request->filled('glpiuni_api_app_token')) {
+                Configuracion::set('glpiuni_api_app_token', \Illuminate\Support\Facades\Crypt::encryptString(trim($request->input('glpiuni_api_app_token'))));
             }
 
             return back()->with('success', 'Configuración de BD GLPI Unifrutti guardada.');

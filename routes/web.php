@@ -48,6 +48,8 @@ use App\Http\Controllers\Admin\ZonaController as AdminZonaController;
 use App\Http\Controllers\Auth\AzureController;
 use App\Http\Controllers\DhcpController;
 use App\Http\Controllers\DhcpIngestController;
+use App\Http\Controllers\AsistenciaController;
+use App\Http\Controllers\AsignacionController;
 
 // Route::get('/', function () {
 //     return view('home');
@@ -141,6 +143,26 @@ Route::middleware('auth')->prefix('dhcp')->name('dhcp.')->group(function () {
     Route::get('reservas',       [DhcpController::class, 'reservas'])->name('reservas');
     Route::get('configuracion',  [DhcpController::class, 'configuracion'])->name('configuracion');
     Route::post('configuracion', [DhcpController::class, 'guardarConfig'])->name('configuracion.guardar');
+});
+
+// ── Asistencia GLPI (tickets) ────────────────────────────────────────────────
+Route::middleware(['auth', 'can:acceso_asistencia'])->prefix('asistencia')->name('asistencia.')->group(function () {
+    Route::get('/',                [AsistenciaController::class, 'ranking'])->name('ranking');
+    Route::post('actualizar',      [AsistenciaController::class, 'actualizar'])->name('ranking.actualizar');
+
+    // Mesa de asignación. Además del módulo, exige perfil de GLPI que permita
+    // asignar; eso lo revisa el controlador, porque vive en GLPI y no en VTI.
+    Route::prefix('asignacion')->name('asignacion')->group(function () {
+        Route::get('/',                         [AsignacionController::class, 'index']);
+        Route::post('token',                    [AsignacionController::class, 'guardarToken'])->name('.token');
+        Route::delete('token',                  [AsignacionController::class, 'olvidarToken'])->name('.token.olvidar');
+        Route::get('nuevos',                    [AsignacionController::class, 'nuevos'])->name('.nuevos');
+        Route::get('asignados',                 [AsignacionController::class, 'asignados'])->name('.asignados');
+        Route::get('tecnicos',                  [AsignacionController::class, 'tecnicos'])->name('.tecnicos');
+        Route::get('ticket/{ticket}',           [AsignacionController::class, 'detalle'])->whereNumber('ticket')->name('.detalle');
+        Route::post('ticket/{ticket}/asignar',  [AsignacionController::class, 'asignar'])->whereNumber('ticket')->name('.asignar');
+        Route::post('tecnico/{tecnico}/pais',   [AsignacionController::class, 'paisTecnico'])->whereNumber('tecnico')->name('.pais');
+    });
 });
 
 // ── Inventario (multidominio) ────────────────────────────────────────────────

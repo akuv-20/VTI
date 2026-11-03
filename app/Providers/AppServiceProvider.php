@@ -265,6 +265,11 @@ class AppServiceProvider extends ServiceProvider
             return $user->tieneAcceso('admin.informes.sitios');
         });
 
+        Gate::define('acceso_asistencia', function ($user) {
+            if (!$user->activo) return false;
+            return $user->tieneAcceso('asistencia.ranking');
+        });
+
         // Compartir configuraciones globales con todas las vistas
         View::composer('*', function ($view) {
             try {

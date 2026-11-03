@@ -35,6 +35,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'glpi_api_token',
     ];
 
     /**
@@ -49,6 +50,8 @@ class User extends Authenticatable
             'password'          => 'hashed',
             'es_admin'          => 'boolean',
             'activo'            => 'boolean',
+            // Token personal de la API de GLPI: cifrado con la APP_KEY.
+            'glpi_api_token'    => 'encrypted',
         ];
     }
 

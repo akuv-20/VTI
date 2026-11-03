@@ -845,6 +845,24 @@
             </div>
             @endif
 
+            {{-- ── Asistencia GLPI ── --}}
+            @can('acceso_asistencia')
+            <div class="vti-nav-group" data-group="asistencia">
+                <button type="button" class="vti-nav-group-toggle">
+                    <i class="bi bi-headset"></i><span class="sb-text">Asistencia GLPI</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="vti-nav-group-items">
+                    <a href="{{ route('asistencia.ranking') }}" class="vti-nav-link {{ request()->routeIs('asistencia.ranking') ? 'active' : '' }}">
+                        <i class="bi bi-trophy"></i>Ranking técnicos
+                    </a>
+                    <a href="{{ route('asistencia.asignacion') }}" class="vti-nav-link {{ request()->routeIs('asistencia.asignacion*') ? 'active' : '' }}">
+                        <i class="bi bi-person-plus"></i>Asignación
+                    </a>
+                </div>
+            </div>
+            @endcan
+
             {{-- ── Active Directory ── --}}
             @if(auth()->user()->can('acceso_ad') || auth()->user()->can('acceso_ad2') || auth()->user()->can('acceso_ad3') || auth()->user()->can('acceso_entra'))
             <div class="vti-nav-group" data-group="ad">

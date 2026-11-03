@@ -754,6 +754,34 @@
                             <input type="password" name="glpiuni_db_password" class="form-control form-control-sm"
                                    placeholder="••••••••" autocomplete="new-password">
                         </div>
+
+                        <div class="col-12 pt-2 border-top">
+                            <div class="fw-semibold" style="font-size:.85rem">API REST (asignación de tickets)</div>
+                            <div class="text-muted" style="font-size:.78rem">
+                                La usa <strong>Asistencia GLPI → Asignación</strong>. Cada persona pone su propio token
+                                personal al entrar al módulo; aquí va solo el App-Token del cliente de API
+                                (GLPI → Configuración → General → API → cliente «api-legacy»).
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">URL de la API</label>
+                            <input type="url" name="glpiuni_api_url" class="form-control form-control-sm"
+                                   value="{{ old('glpiuni_api_url', $glpiUniCfg['api_url']) }}"
+                                   placeholder="https://helpdesk.unifrutti.com/apirest.php">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold" style="font-size:.83rem">
+                                App-Token
+                                @if($glpiUniCfg['api_app_token_guardado'])
+                                    <span class="badge text-bg-success fw-normal">guardado</span>
+                                @else
+                                    <span class="badge text-bg-warning fw-normal">falta</span>
+                                @endif
+                            </label>
+                            <input type="password" name="glpiuni_api_app_token" class="form-control form-control-sm"
+                                   placeholder="{{ $glpiUniCfg['api_app_token_guardado'] ? 'dejar en blanco para mantener el actual' : 'pegar el App-Token' }}"
+                                   autocomplete="new-password">
+                        </div>
                     </div>
 
                     @error('glpiuni_db_host') <div class="text-danger mt-2" style="font-size:.8rem">{{ $message }}</div> @enderror
