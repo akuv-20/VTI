@@ -50,8 +50,9 @@ class User extends Authenticatable
             'password'          => 'hashed',
             'es_admin'          => 'boolean',
             'activo'            => 'boolean',
-            // Token personal de la API de GLPI: cifrado con la APP_KEY.
-            'glpi_api_token'    => 'encrypted',
+            // glpi_api_token va SIN cifrar a propósito: desarrollo y producción
+            // comparten la base pero no la APP_KEY, y cifrado con una no se
+            // podría leer desde la otra.
         ];
     }
 

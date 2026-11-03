@@ -66,7 +66,7 @@
 
                     <ul class="small text-muted mt-3 mb-0 ps-3">
                         <li>Antes de guardarlo lo probamos contra GLPI y comprobamos que sea <strong>tuyo</strong>.</li>
-                        <li>Se guarda cifrado y solo se usa para lo que asignes desde esta pantalla.</li>
+                        <li>Se guarda en VTI y solo se usa para lo que hagas desde esta pantalla. Puedes eliminarlo cuando quieras.</li>
                         <li>En el historial del ticket en GLPI, la asignación queda a tu nombre.</li>
                     </ul>
                 </div>

@@ -6,8 +6,8 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Token personal de la API de GLPI (Unifrutti), para asignar tickets desde
- * Asistencia GLPI a nombre de quien está conectado. Se guarda cifrado con la
- * APP_KEY (cast `encrypted` del modelo), por eso la columna es `text`.
+ * Asistencia GLPI a nombre de quien está conectado. Nació cifrado con la
+ * APP_KEY; desde 2026_11_03_120000 va en claro (ver esa migración).
  */
 return new class extends Migration
 {

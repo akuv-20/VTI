@@ -272,13 +272,14 @@ class ConfiguracionController extends Controller
                 Configuracion::set('glpiuni_db_password', $request->input('glpiuni_db_password'));
             }
 
-            // API REST: la usa Asistencia GLPI para asignar tickets. El App-Token
-            // se guarda cifrado y, como la contraseña, solo si viene uno nuevo.
+            // API REST: la usa Asistencia GLPI para asignar tickets. El App-Token,
+            // como la contraseña, solo se reemplaza si viene uno nuevo. Va sin
+            // cifrar: desarrollo y producción comparten esta tabla pero no la APP_KEY.
             $request->validate(['glpiuni_api_url' => 'nullable|url|max:255']);
             Configuracion::set('glpiuni_api_url', rtrim(trim((string) $request->input('glpiuni_api_url')), '/') ?: \App\Services\GlpiApi::URL_POR_DEFECTO);
 
             if ($request->filled('glpiuni_api_app_token')) {
-                Configuracion::set('glpiuni_api_app_token', \Illuminate\Support\Facades\Crypt::encryptString(trim($request->input('glpiuni_api_app_token'))));
+                Configuracion::set('glpiuni_api_app_token', trim($request->input('glpiuni_api_app_token')));
             }
 
             return back()->with('success', 'Configuración de BD GLPI Unifrutti guardada.');

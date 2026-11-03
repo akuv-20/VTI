@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Configuracion;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -16,7 +15,11 @@ use Illuminate\Support\Facades\Http;
  * Cada llamada va a nombre de una persona: se abre la sesión con SU token
  * personal, así el historial del ticket dice quién asignó. Además del token
  * personal, GLPI exige el App-Token del cliente de API, que es global y se
- * guarda cifrado en Admin → Configuración.
+ * guarda en Admin → Configuración.
+ *
+ * Ninguno de los dos tokens se cifra con la APP_KEY: desarrollo y producción
+ * comparten la base de datos pero cada uno tiene su .env, y un token cifrado
+ * en un entorno no se podría leer en el otro.
  */
 class GlpiApi
 {
@@ -53,12 +56,12 @@ class GlpiApi
 
     private function appToken(): string
     {
-        $cifrado = Configuracion::get('glpiuni_api_app_token');
-        if (!$cifrado) {
+        $token = Configuracion::get('glpiuni_api_app_token');
+        if (!$token) {
             throw new GlpiApiException('Falta el App-Token de la API de GLPI en Admin → Configuración.');
         }
 
-        return Crypt::decryptString($cifrado);
+        return $token;
     }
 
     private function http(array $extra = [])

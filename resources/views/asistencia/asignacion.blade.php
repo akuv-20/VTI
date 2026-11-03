@@ -79,7 +79,7 @@
             <div class="dropdown">
                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-key"></i></button>
                 <div class="dropdown-menu dropdown-menu-end p-2 small" style="min-width:260px">
-                    <div class="text-muted mb-2">Tu token personal de GLPI está guardado (cifrado).</div>
+                    <div class="text-muted mb-2">Tu token personal de GLPI está guardado.</div>
                     <form method="POST" action="{{ route('asistencia.asignacion.token.olvidar') }}"
                           onsubmit="return confirm('¿Eliminar tu token de GLPI? Tendrás que ingresarlo de nuevo para asignar.')">
                         @csrf @method('DELETE')
