@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Inventario;
 use App\Http\Controllers\Controller;
 use App\Models\ActaEntregaEquipo;
 use App\Models\Configuracion;
+use App\Services\CruceAdGlpi;
 use App\Services\InventarioGlpi;
 use Illuminate\Http\Request;
 
@@ -43,9 +44,14 @@ class EquipoController extends BaseController
         }
 
         try {
+            $computadores = $glpi->equipos($search, $filtro, 25, $versionAgente, $so, $ubicacion, $boolDrills, $diasAgente);
+            [$logonAd, $errorAd] = $this->logonAd($dom, $computadores->getCollection());
+
             return view('inventario.equipos', [
                 'dom'           => $dom,
-                'computadores'  => $glpi->equipos($search, $filtro, 25, $versionAgente, $so, $ubicacion, $boolDrills, $diasAgente),
+                'computadores'  => $computadores,
+                'logonAd'       => $logonAd,
+                'errorAd'       => $errorAd,
                 'filtros'       => $filtros,
                 'conteos'       => $glpi->conteosFiltros($search),
                 'excepciones'   => $glpi->excepciones(),
@@ -74,6 +80,29 @@ class EquipoController extends BaseController
                 'diasAgente'    => $diasAgente,
                 'error'         => $this->mensajeError($e, $dom),
             ]);
+        }
+    }
+
+    /**
+     * Último logon en el AD de los equipos de la página, por id de GLPI.
+     *
+     * Si el AD no responde, el listado se muestra igual —sale de GLPI— con la
+     * columna vacía y el aviso del error: un AD caído no debe tumbar el
+     * inventario.
+     *
+     * @return array{0: array<int,?array>, 1: ?string}
+     */
+    private function logonAd($dom, $equipos): array
+    {
+        try {
+            $cruce   = new CruceAdGlpi($dom);
+            $logons  = $cruce->logonsAd();
+            $porId   = $equipos->mapWithKeys(fn($eq) => [$eq->id => $logons->get($cruce->claveDe($eq->nombre_equipo))])->all();
+
+            return [$porId, null];
+        } catch (\Throwable $e) {
+            report($e);
+            return [[], $e->getMessage()];
         }
     }
 

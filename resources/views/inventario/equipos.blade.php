@@ -14,6 +14,13 @@
     );
     // Los booleanos muestran su etiqueta completa; los demás, prefijo + valor.
     $boolDrillKeys = ['sin_agente', 'agente_inactivo', 'duplicados'];
+    // Semáforo de días sin conexión, para Logon AD y Logon GLPI:
+    // verde 0–14, amarillo 15–29, rojo 30 o más.
+    $semaforoDias = fn(int $d) => match (true) {
+        $d >= 30 => 'background:#fee2e2;color:#b91c1c;border-color:#fca5a5',
+        $d >= 15 => 'background:#fef3c7;color:#b45309;border-color:#fde68a',
+        default  => 'background:#dcfce7;color:#15803d;border-color:#86efac',
+    };
     $drillLabels = [
         'version_agente'  => ['Agente GLPI v',                          'bi-hdd-network'],
         'so'              => ['SO: ',                                   'bi-windows'],
@@ -134,6 +141,15 @@
         </div>
     @endif
 
+    @if($errorAd ?? null)
+        {{-- Sin la clase .alert: el layout borra las .alert a los pocos segundos. --}}
+        <div class="mb-2 px-3 py-2 rounded-3 small" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            No se pudo consultar el AD de {{ $dom->label() }}: la columna «Logon AD» queda vacía.
+            <span class="text-muted">({{ \Illuminate\Support\Str::limit($errorAd, 160) }})</span>
+        </div>
+    @endif
+
     <div class="vti-table-wrapper">
         <table class="vti-table">
             <thead>
@@ -146,7 +162,8 @@
                     <th>Sistema Operativo</th>
                     <th>Ubicación</th>
                     <th>{{ $dom->antivirus() ?: "Antivirus" }}</th>
-                    <th>Último reporte</th>
+                    <th title="Último inicio de sesión del equipo en el dominio (lastLogonTimestamp, puede atrasarse hasta ~14 días)">Logon AD</th>
+                    <th title="Último reporte del agente de GLPI">Logon GLPI</th>
                     <th></th>
                 </tr>
             </thead>
@@ -155,7 +172,6 @@
                 @php
                     $ultimo = $eq->last_contact ? \Carbon\Carbon::parse($eq->last_contact) : null;
                     $dias   = $ultimo ? (int) floor($ultimo->diffInDays(now())) : null;
-                    $mudo   = $dias === null || $dias > $diasAgente;
                     $avOk   = $eq->av_version !== null;
                     $avOn   = $avOk && (int) $eq->av_activo === 1;
                     $avSw   = !empty($eq->av_software);             // nombre del producto en el software, o null
@@ -171,6 +187,10 @@
                     // fila ya cargada para no consultar una vez por equipo.
                     $exc    = !$prot && \App\Models\InventarioExcepcion::algunaCoincide(
                                   $excepciones, $eq->nombre_equipo, $eq->sistema_operativo, $eq->usuario_alternativo);
+                    // Logon en el AD: null si el equipo no tiene cuenta en el dominio.
+                    $ad       = ($logonAd ?? [])[$eq->id] ?? null;
+                    $adLogon  = $ad['ultimo_login'] ?? null;
+                    $adDias   = $adLogon ? (int) floor($adLogon->diffInDays(now())) : null;
                 @endphp
                 <tr>
                     <td class="fw-semibold">{{ $eq->nombre_equipo }}</td>
@@ -216,11 +236,26 @@
                         @endif
                     </td>
                     <td style="font-size:.8rem">
-                        @if($ultimo)
-                            {{ $ultimo->format('d/m/Y') }}
-                            <span class="{{ $mudo ? 'text-danger fw-semibold' : 'text-muted' }}" style="font-size:.75rem">
-                                · {{ number_format($dias) }} d
+                        @if($errorAd ?? null)
+                            <span class="text-muted" title="No se pudo consultar el AD">—</span>
+                        @elseif(!$ad)
+                            <span class="text-muted fst-italic" title="No hay cuenta de equipo con este nombre en el AD">no está en AD</span>
+                        @elseif($ad['deshabilitada'])
+                            <span class="iue-badge" style="background:#f1f5f9;color:#64748b;border-color:#cbd5e1"
+                                  title="{{ $adLogon ? 'Último logon: ' . $adLogon->format('d/m/Y') : 'Nunca inició sesión' }}">
+                                <i class="bi bi-slash-circle"></i>deshabilitado
                             </span>
+                        @elseif($adLogon)
+                            <div class="text-nowrap">{{ $adLogon->format('d/m/Y') }}</div>
+                            <span class="iue-badge" style="{{ $semaforoDias($adDias) }}">{{ number_format($adDias) }} d</span>
+                        @else
+                            <span class="text-muted fst-italic">nunca</span>
+                        @endif
+                    </td>
+                    <td style="font-size:.8rem">
+                        @if($ultimo)
+                            <div class="text-nowrap">{{ $ultimo->format('d/m/Y') }}</div>
+                            <span class="iue-badge" style="{{ $semaforoDias($dias) }}">{{ number_format($dias) }} d</span>
                         @else
                             <span class="text-muted fst-italic">sin agente</span>
                         @endif
@@ -236,7 +271,7 @@
                 </tr>
                 @empty
                 <tr class="vti-empty">
-                    <td colspan="10">
+                    <td colspan="11">
                         <i class="bi bi-inbox" style="font-size:1.4rem"></i>
                         <div class="mt-1">No se encontraron equipos con este filtro.</div>
                     </td>

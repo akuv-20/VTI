@@ -174,6 +174,43 @@ class CruceAdGlpi
         ];
     }
 
+    /**
+     * Último logon en el AD y si la cuenta está deshabilitada, por nombre de
+     * equipo normalizado (ver claveDe()). Lo usa el listado de equipos, y
+     * comparte caché con el cruce: entrar a uno deja listo al otro.
+     *
+     * El fallo también se cachea, un minuto: con el AD caído, el listado
+     * esperaría el timeout de LDAP en cada página.
+     *
+     * @return Collection<string,array{ultimo_login:?Carbon,deshabilitada:bool}>
+     */
+    public function logonsAd(): Collection
+    {
+        $claveError = "cruce_ad_error_{$this->dominio->clave}";
+        if ($error = Cache::get($claveError)) {
+            throw new \RuntimeException($error);
+        }
+
+        try {
+            $equipos = Cache::remember($this->claveAd(), self::CACHE_TTL, fn() => $this->traerEquiposAd());
+        } catch (\Throwable $e) {
+            Cache::put($claveError, $e->getMessage(), 60);
+            throw $e;
+        }
+
+        // Si un nombre se repite en el AD, gana el logon más reciente.
+        return $equipos
+            ->sortBy(fn($e) => $e['ultimo_login']?->timestamp ?? 0)
+            ->keyBy('clave')
+            ->map(fn($e) => ['ultimo_login' => $e['ultimo_login'], 'deshabilitada' => $e['deshabilitada']]);
+    }
+
+    /** Clave con la que se busca un nombre de equipo en logonsAd(). */
+    public function claveDe(mixed $nombre): string
+    {
+        return $this->normalizar($nombre);
+    }
+
     /* ── Clasificación ───────────────────────────────────────────────────── */
 
     private function clasificar(bool $deshabilitada, ?int $diasSinLogin, bool $enGlpi, ?int $diasSinReporte): string
