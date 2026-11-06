@@ -203,6 +203,98 @@ class CheckMkClient
             });
     }
 
+    /**
+     * Consulta libre a la tabla de hosts de monitoreo (livestatus).
+     *
+     * @param  string[]   $columnas  columnas de livestatus (name, state, filename…)
+     * @param  array|null $filtro    expresión de consulta de la API, p. ej.
+     *                               ['op' => '~', 'left' => 'filename', 'right' => '^/wato/ssl/']
+     * @return Collection<int,array>  una fila por host con las columnas pedidas
+     */
+    public function consultarHosts(array $columnas, ?array $filtro = null): Collection
+    {
+        return $this->consultarLivestatus('host', $columnas, $filtro);
+    }
+
+    /** Igual que consultarHosts(), sobre la tabla de servicios. */
+    public function consultarServicios(array $columnas, ?array $filtro = null): Collection
+    {
+        return $this->consultarLivestatus('service', $columnas, $filtro);
+    }
+
+    private function consultarLivestatus(string $tabla, array $columnas, ?array $filtro): Collection
+    {
+        $this->asegurarConfigurado();
+
+        // `columns` repetido y querystring a mano (ver listarServicios()).
+        $qs = implode('&', array_map(fn($c) => 'columns=' . urlencode($c), $columnas));
+        if ($filtro) {
+            $qs .= '&query=' . urlencode(json_encode($filtro));
+        }
+
+        $resp = $this->http(15)->get($this->apiBase() . "/domain-types/{$tabla}/collections/all?" . $qs);
+
+        if (!$resp->successful()) {
+            throw new \RuntimeException("Error al consultar {$tabla}s en CheckMK: " . ($resp->json('title') ?? $resp->body()));
+        }
+
+        return collect($resp->json('value') ?? [])->map(fn($f) => $f['extensions'] ?? [])->values();
+    }
+
+    /**
+     * Series históricas de varias métricas a la vez, pedidas en paralelo.
+     *
+     * Usa el endpoint de métricas de la API («single_metric»). Ojo: no todas
+     * las métricas se pueden pedir sueltas; `util` de CPU, por ejemplo,
+     * responde «graph does not exist», y hay que sumar `user` + `privileged`.
+     *
+     * @param  array<string,array{host:string,servicio:string,metrica:string,desde:int,hasta:int}> $pedidos
+     * @return array<string,?array{inicio:int,paso:int,datos:array<int,?float>}>  null si esa serie falló
+     */
+    public function seriesHistoricas(array $pedidos): array
+    {
+        $this->asegurarConfigurado();
+
+        $url = $this->apiBase() . '/domain-types/metric/actions/get/invoke';
+
+        $respuestas = Http::pool(fn(\Illuminate\Http\Client\Pool $pool) => collect($pedidos)->map(fn($p, $clave) =>
+            $pool->as((string) $clave)
+                ->withHeaders(['Authorization' => "Bearer {$this->user} {$this->secret}", 'Accept' => 'application/json'])
+                ->withOptions(['verify' => false])
+                ->timeout(20)
+                ->post($url, [
+                    'time_range'          => ['start' => Carbon::createFromTimestamp($p['desde'])->toIso8601String(),
+                                              'end'   => Carbon::createFromTimestamp($p['hasta'])->toIso8601String()],
+                    'reduce'              => 'average',
+                    'site'                => $this->site,
+                    'host_name'           => $p['host'],
+                    'service_description' => $p['servicio'],
+                    'type'                => 'single_metric',
+                    'metric_id'           => $p['metrica'],
+                ])
+        )->values()->all());
+
+        $res = [];
+        foreach ($pedidos as $clave => $p) {
+            $r = $respuestas[(string) $clave] ?? null;
+
+            // Un pedido que no conectó vuelve como excepción, no como respuesta.
+            if (!$r instanceof \Illuminate\Http\Client\Response || !$r->successful()) {
+                $res[$clave] = null;
+                continue;
+            }
+
+            $inicio = $r->json('time_range.start');
+            $res[$clave] = [
+                'inicio' => $inicio ? (int) Carbon::parse($inicio)->timestamp : $p['desde'],
+                'paso'   => (int) $r->json('step'),
+                'datos'  => array_map(fn($v) => $v === null ? null : (float) $v, $r->json('metrics.0.data_points') ?? []),
+            ];
+        }
+
+        return $res;
+    }
+
     /* ── Disponibilidad histórica ────────────────────────────────────────── */
 
     /**

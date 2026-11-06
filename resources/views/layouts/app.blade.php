@@ -919,6 +919,9 @@
                     <a href="{{ route('admin.monitoreo.mapas.index') }}" class="vti-nav-link {{ request()->routeIs('admin.monitoreo.mapas.*') ? 'active' : '' }}">
                         <i class="bi bi-diagram-2"></i>Mapa de red
                     </a>
+                    <a href="{{ route('admin.monitoreo.muro') }}" class="vti-nav-link {{ request()->routeIs('admin.monitoreo.muro*') ? 'active' : '' }}">
+                        <i class="bi bi-tv"></i>Muro de monitoreo
+                    </a>
                     @endcan
                     @can('acceso_sitios')
                     <a href="{{ route('admin.sitios.index') }}" class="vti-nav-link {{ request()->routeIs('admin.sitios.index') || request()->routeIs('admin.sitios.show') ? 'active' : '' }}">

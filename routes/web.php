@@ -40,6 +40,7 @@ use App\Http\Controllers\Admin\MfaController;
 use App\Http\Controllers\Admin\ActividadBuzonesController;
 use App\Http\Controllers\Admin\KpiDisponibilidadController as AdminKpiDisponibilidadController;
 use App\Http\Controllers\Admin\MonitoreoMapaController as AdminMonitoreoMapaController;
+use App\Http\Controllers\Admin\MonitoreoMuroController as AdminMonitoreoMuroController;
 use App\Http\Controllers\Admin\SitioController as AdminSitioController;
 use App\Http\Controllers\Admin\SitioPanelController as AdminSitioPanelController;
 use App\Http\Controllers\Admin\InformeController as AdminInformeController;
@@ -334,6 +335,9 @@ Route::middleware(['auth', 'can:acceso_kpi'])->prefix('admin')->name('admin.')->
 // ── Monitoreo: mapa de red en vivo (CheckMK) ─────────────────────────────────
 Route::middleware(['auth', 'can:acceso_monitoreo'])->prefix('admin')->name('admin.')->group(function () {
     Route::prefix('monitoreo')->name('monitoreo.')->group(function () {
+        Route::get('muro',                      [AdminMonitoreoMuroController::class, 'index'])->name('muro');
+        Route::get('muro/estado',               [AdminMonitoreoMuroController::class, 'estado'])->name('muro.estado');
+        Route::get('muro/graficos',             [AdminMonitoreoMuroController::class, 'graficos'])->name('muro.graficos');
         Route::get('mapas',                     [AdminMonitoreoMapaController::class, 'index'])->name('mapas.index');
         Route::post('mapas',                    [AdminMonitoreoMapaController::class, 'store'])->name('mapas.store');
         Route::get('mapas/hosts',               [AdminMonitoreoMapaController::class, 'hosts'])->name('mapas.hosts');
@@ -431,6 +435,9 @@ Route::middleware(['auth', 'can:acceso_sitios'])->prefix('admin')->name('admin.'
 Route::get('monitoreo/mapas/{mapa}/fondo', [AdminMonitoreoMapaController::class, 'fondo'])->name('monitoreo.mapas.fondo');
 
 // Modo TV público (sin login; autenticado por token largo regenerable)
+Route::get('monitoreo/tv/{token}/muro',          [AdminMonitoreoMuroController::class, 'tv'])->name('monitoreo.tv.muro');
+Route::get('monitoreo/tv/{token}/muro/estado',   [AdminMonitoreoMuroController::class, 'tvEstado'])->name('monitoreo.tv.muro.estado');
+Route::get('monitoreo/tv/{token}/muro/graficos', [AdminMonitoreoMuroController::class, 'tvGraficos'])->name('monitoreo.tv.muro.graficos');
 Route::get('monitoreo/tv/{token}',               [AdminMonitoreoMapaController::class, 'tv'])->name('monitoreo.tv');
 Route::get('monitoreo/tv/{token}/estado/{mapa}', [AdminMonitoreoMapaController::class, 'tvEstado'])->name('monitoreo.tv.estado');
 
