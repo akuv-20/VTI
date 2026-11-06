@@ -1154,7 +1154,7 @@
                 const n = Math.round(innerWidth * innerHeight / 14000);   // ~150 en 1920×1080
                 copos = Array.from({ length: n }, () => ({
                     x: Math.random() * cv.width, y: Math.random() * cv.height,
-                    r: .6 + Math.random() * 1.9, v: .25 + Math.random() * .7,
+                    r: 1.1 + Math.random() * 2.6, v: .25 + Math.random() * .7,
                     a: .25 + Math.random() * .45, f: Math.random() * Math.PI * 2,
                 }));
             }
