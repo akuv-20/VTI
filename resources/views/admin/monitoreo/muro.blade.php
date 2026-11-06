@@ -303,6 +303,20 @@
         @keyframes duende-parpadeo { 0%, 92%, 100% { transform:scaleY(1); } 95% { transform:scaleY(.1); } }
         .duende .cascabel { transform-box:fill-box; transform-origin:top center; animation:duende-cascabel .5s ease-in-out infinite alternate; }
         @keyframes duende-cascabel { from { transform:rotate(-15deg); } to { transform:rotate(15deg); } }
+        /* Monstruito verde que aparece bailando en cualquier parte. */
+        .grunon { position:fixed; z-index:48; width:clamp(100px, 7.5vw, 160px); pointer-events:none; display:none; }
+        .grunon.baila { display:block; }
+        .grunon svg { display:block; width:100%; height:auto; overflow:visible;
+                      filter:drop-shadow(0 0 .7rem rgba(120,220,60,.45)); }
+        .grunon .cuerpo { transform-box:view-box; transform-origin:50px 135px; animation:gr-baile .5s ease-in-out infinite alternate; }
+        @keyframes gr-baile { from { transform:translateY(0) rotate(-9deg); } to { transform:translateY(-7px) rotate(9deg); } }
+        .grunon .brazo { transform-box:fill-box; animation:gr-brazo .25s ease-in-out infinite alternate; }
+        .grunon .brazo.i { transform-origin:right bottom; }
+        .grunon .brazo.d { transform-origin:left bottom; animation-delay:-.12s; }
+        @keyframes gr-brazo { from { transform:rotate(-30deg); } to { transform:rotate(30deg); } }
+        .grunon .pierna { transform-box:fill-box; transform-origin:top center; animation:gr-pierna .5s ease-in-out infinite alternate; }
+        .grunon .pierna.d { animation-direction:alternate-reverse; }
+        @keyframes gr-pierna { from { transform:rotate(-18deg); } to { transform:rotate(18deg); } }
         #nieve { position:fixed; inset:0; z-index:46; pointer-events:none; display:none; }
         #nieve.activa { display:block; }
         .chispa { position:fixed; z-index:47; width:var(--t); height:var(--t); margin:calc(var(--t) / -2) 0 0 calc(var(--t) / -2);
@@ -317,7 +331,7 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .noel, .chispa, #nieve, .duende { display:none !important; }
+            .noel, .chispa, #nieve, .duende, .grunon { display:none !important; }
             .t-fila.alarma, .l-fila.alarma, .panel.alarma-hex .hex, .aviso .ico, .alarma::after { animation:none; }
             #lluvia { display:none; }
             body.hud .graf::before, body.hud .graf::after, .pulso::after, body.hud .m-anillo, body.hud .hex-anillo,
@@ -330,6 +344,35 @@
 
 {{-- Viejito pascuero, duende y nieve: solo en noviembre y diciembre (ver el script). --}}
 <canvas id="nieve" aria-hidden="true"></canvas>
+<div class="grunon" id="grunon" aria-hidden="true">
+    <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
+        <g class="cuerpo">
+            {{-- piernas --}}
+            <g class="pierna i"><path d="M40 108 L36 130" stroke="#5fa82a" stroke-width="7" stroke-linecap="round"/><ellipse cx="33" cy="132" rx="8" ry="4" fill="#3d6e1a"/></g>
+            <g class="pierna d"><path d="M60 108 L64 130" stroke="#5fa82a" stroke-width="7" stroke-linecap="round"/><ellipse cx="67" cy="132" rx="8" ry="4" fill="#3d6e1a"/></g>
+            {{-- brazos --}}
+            <path class="brazo i" d="M30 80 Q18 72 12 58" stroke="#5fa82a" stroke-width="6" fill="none" stroke-linecap="round"/>
+            <path class="brazo d" d="M70 80 Q82 72 88 58" stroke="#5fa82a" stroke-width="6" fill="none" stroke-linecap="round"/>
+            {{-- cuerpo peludo con chaleco rojo --}}
+            <path d="M28 76 Q24 112 40 112 L60 112 Q76 112 72 76 Q50 66 28 76 Z" fill="#6cbf2e"/>
+            <path d="M38 74 L44 112 L56 112 L62 74 Q50 70 38 74 Z" fill="#c62828"/>
+            <path d="M44 112 h12" stroke="#fafafa" stroke-width="3"/>
+            {{-- cabeza --}}
+            <path d="M26 52 Q22 30 40 26 Q50 22 60 26 Q78 30 74 52 Q74 72 50 74 Q26 72 26 52 Z" fill="#6cbf2e"/>
+            <path d="M27 46 l-5 -2 l5 -2 M73 46 l5 -2 l-5 -2 M30 62 l-5 1 l4 -4 M70 62 l5 1 l-4 -4" stroke="#4c9420" stroke-width="2" fill="none"/>
+            {{-- cejas pícaras, ojos y sonrisa ladina --}}
+            <path d="M33 38 L45 42 M67 38 L55 42" stroke="#2f5c12" stroke-width="3" stroke-linecap="round"/>
+            <ellipse cx="40" cy="47" rx="5.5" ry="4.5" fill="#f4e04d"/><circle cx="41.5" cy="47.5" r="2.2" fill="#1a1a1a"/>
+            <ellipse cx="60" cy="47" rx="5.5" ry="4.5" fill="#f4e04d"/><circle cx="58.5" cy="47.5" r="2.2" fill="#1a1a1a"/>
+            <path d="M34 58 Q50 72 68 56" stroke="#2f5c12" stroke-width="2.6" fill="#3d6e1a" stroke-linecap="round"/>
+            <path d="M44 63 l2 3 l2 -3 M54 63 l2 3 l2 -3" stroke="#fafafa" stroke-width="1.5" fill="none"/>
+            {{-- gorro navideño ladeado --}}
+            <path d="M30 30 Q44 2 74 8 Q86 12 90 26 Q78 18 70 28 Z" fill="#c62828"/>
+            <path d="M27 31 Q50 20 72 29 L72 35 Q50 26 27 37 Z" fill="#fafafa"/>
+            <circle cx="91" cy="28" r="5" fill="#fafafa"/>
+        </g>
+    </svg>
+</div>
 <div class="duende" id="duende" aria-hidden="true"><div>
     <svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
         {{-- cuerpo --}}
@@ -1169,6 +1212,30 @@
             (function programar(espera) {
                 setTimeout(() => { asomar(); programar(12000 + Math.random() * 6000); }, espera);
             })(forzado ? 1500 : 8000);
+        })();
+
+        /* Monstruito verde: cada ~30 s aparece en un lugar al azar de la
+           pantalla, baila 5 segundos y desaparece. */
+        (function grunon() {
+            const g = $('grunon');
+            function bailar() {
+                if (!enTemporada() || document.hidden) return;
+                g.classList.add('baila');
+                const W = g.offsetWidth, H = g.offsetHeight;
+                g.style.left = (Math.random() * (innerWidth - W)) + 'px';
+                g.style.top  = (Math.random() * (innerHeight - H)) + 'px';
+                const anim = g.animate([
+                    { transform: 'scale(0) rotate(-180deg)', opacity: 0 },
+                    { transform: 'scale(1.15) rotate(8deg)', opacity: 1, offset: .07 },
+                    { transform: 'scale(1) rotate(0deg)',    opacity: 1, offset: .1 },
+                    { transform: 'scale(1) rotate(0deg)',    opacity: 1, offset: .9 },
+                    { transform: 'scale(0) rotate(180deg)',  opacity: 0 },
+                ], { duration: 5000, easing: 'ease-in-out' });
+                anim.onfinish = anim.oncancel = () => g.classList.remove('baila');
+            }
+            (function programar(espera) {
+                setTimeout(() => { bailar(); programar(25000 + Math.random() * 10000); }, espera);
+            })(forzado ? 2500 : 20000);
         })();
 
         (function programar(espera) {
