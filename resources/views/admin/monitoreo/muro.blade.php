@@ -293,6 +293,16 @@
         @keyframes noel-saludo { from { transform:rotate(-12deg); } to { transform:rotate(22deg); } }
         .noel .nariz { animation:noel-nariz 1s ease-in-out infinite; }
         @keyframes noel-nariz { 50% { opacity:.45; } }
+        /* Duende que se asoma por un borde de la pantalla. */
+        .duende { position:fixed; z-index:48; width:clamp(80px, 6.5vw, 140px); aspect-ratio:100/120; overflow:hidden;
+                  pointer-events:none; display:none; }
+        .duende.asoma { display:block; }
+        .duende > div { width:100%; height:100%; transform:translateY(105%); }
+        .duende svg { display:block; width:100%; height:100%; filter:drop-shadow(0 0 .4rem rgba(255,255,255,.2)); }
+        .duende .ojo { transform-box:fill-box; transform-origin:center; animation:duende-parpadeo 3s infinite; }
+        @keyframes duende-parpadeo { 0%, 92%, 100% { transform:scaleY(1); } 95% { transform:scaleY(.1); } }
+        .duende .cascabel { transform-box:fill-box; transform-origin:top center; animation:duende-cascabel .5s ease-in-out infinite alternate; }
+        @keyframes duende-cascabel { from { transform:rotate(-15deg); } to { transform:rotate(15deg); } }
         #nieve { position:fixed; inset:0; z-index:46; pointer-events:none; display:none; }
         #nieve.activa { display:block; }
         .chispa { position:fixed; z-index:47; width:var(--t); height:var(--t); margin:calc(var(--t) / -2) 0 0 calc(var(--t) / -2);
@@ -307,7 +317,7 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .noel, .chispa, #nieve { display:none !important; }
+            .noel, .chispa, #nieve, .duende { display:none !important; }
             .t-fila.alarma, .l-fila.alarma, .panel.alarma-hex .hex, .aviso .ico, .alarma::after { animation:none; }
             #lluvia { display:none; }
             body.hud .graf::before, body.hud .graf::after, .pulso::after, body.hud .m-anillo, body.hud .hex-anillo,
@@ -318,8 +328,34 @@
 <body class="{{ $modoTv ? 'tv' : '' }} hud encendiendo">
 <canvas id="lluvia" aria-hidden="true"></canvas>
 
-{{-- Viejito pascuero y nieve: solo en noviembre y diciembre (ver el script). --}}
+{{-- Viejito pascuero, duende y nieve: solo en noviembre y diciembre (ver el script). --}}
 <canvas id="nieve" aria-hidden="true"></canvas>
+<div class="duende" id="duende" aria-hidden="true"><div>
+    <svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+        {{-- cuerpo --}}
+        <path d="M14 120 Q16 92 50 90 Q84 92 86 120 Z" fill="#2e7d32"/>
+        <path d="M38 92 L50 104 L62 92" fill="#c62828"/>
+        {{-- orejas puntiagudas --}}
+        <path d="M24 60 L4 46 L26 72 Z" fill="#f2c9a0"/>
+        <path d="M76 60 L96 46 L74 72 Z" fill="#f2c9a0"/>
+        {{-- cara --}}
+        <circle cx="50" cy="64" r="26" fill="#f6d2ad"/>
+        <circle cx="36" cy="72" r="5" fill="#ff8a80" opacity=".6"/>
+        <circle cx="64" cy="72" r="5" fill="#ff8a80" opacity=".6"/>
+        <ellipse class="ojo" cx="41" cy="62" rx="3.2" ry="4" fill="#1a1a1a"/>
+        <ellipse class="ojo" cx="59" cy="62" rx="3.2" ry="4" fill="#1a1a1a"/>
+        <circle cx="42" cy="60.5" r="1.1" fill="#fff"/><circle cx="60" cy="60.5" r="1.1" fill="#fff"/>
+        <ellipse cx="50" cy="69" rx="3" ry="2.4" fill="#e8a27c"/>
+        <path d="M41 77 Q50 85 59 77" stroke="#8d3b2a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        {{-- gorro --}}
+        <path d="M24 46 Q30 10 66 6 Q84 4 92 18 Q72 14 76 44 Z" fill="#2e7d32"/>
+        <path d="M22 44 Q50 34 78 44 L78 51 Q50 41 22 51 Z" fill="#c62828"/>
+        <g class="cascabel"><path d="M92 18 v4" stroke="#e0b23a" stroke-width="1.5"/><circle cx="92" cy="25" r="4.5" fill="#ffd34d"/></g>
+        {{-- manos agarradas del borde --}}
+        <ellipse cx="22" cy="112" rx="9" ry="7" fill="#f6d2ad"/>
+        <ellipse cx="78" cy="112" rx="9" ry="7" fill="#f6d2ad"/>
+    </svg>
+</div></div>
 <div class="noel" id="noel" aria-hidden="true">
     <svg viewBox="0 0 400 120" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -1098,6 +1134,41 @@
                     ctx.fill();
                 });
             }, 33);
+        })();
+
+        /* Duende: cada ~15 s se asoma por un borde al azar (abajo, arriba,
+           izquierda o derecha), mira un momento y se esconde. El dibujo
+           siempre "sube desde abajo"; para los otros bordes se gira la caja. */
+        (function duende() {
+            const d = $('duende'), dentro = d.firstElementChild;
+            function asomar() {
+                if (!enTemporada() || document.hidden) return;
+                d.classList.add('asoma');
+                const W = d.offsetWidth, H = d.offsetHeight;
+                const borde = ['abajo', 'arriba', 'izquierda', 'derecha'][Math.floor(Math.random() * 4)];
+                const azar = (max) => max * (.1 + Math.random() * .8);
+                let cx, cy, giro;
+                if (borde === 'abajo')     { cx = azar(innerWidth);  cy = innerHeight - H / 2; giro = 0; }
+                if (borde === 'arriba')    { cx = azar(innerWidth);  cy = H / 2;               giro = 180; }
+                if (borde === 'izquierda') { cx = H / 2;              cy = azar(innerHeight);  giro = 90; }
+                if (borde === 'derecha')   { cx = innerWidth - H / 2; cy = azar(innerHeight);  giro = -90; }
+                d.style.left = (cx - W / 2) + 'px';
+                d.style.top  = (cy - H / 2) + 'px';
+                d.style.transform = `rotate(${giro}deg)`;
+                const ladeo = Math.random() < .5 ? -8 : 8;
+                const anim = dentro.animate([
+                    { transform: 'translateY(105%)' },
+                    { transform: 'translateY(6%) rotate(0deg)',          offset: .18 },
+                    { transform: `translateY(6%) rotate(${ladeo}deg)`,   offset: .35 },
+                    { transform: `translateY(6%) rotate(${-ladeo}deg)`,  offset: .55 },
+                    { transform: 'translateY(6%) rotate(0deg)',          offset: .75 },
+                    { transform: 'translateY(105%)' },
+                ], { duration: 4200, easing: 'ease-in-out' });
+                anim.onfinish = anim.oncancel = () => d.classList.remove('asoma');
+            }
+            (function programar(espera) {
+                setTimeout(() => { asomar(); programar(12000 + Math.random() * 6000); }, espera);
+            })(forzado ? 1500 : 8000);
         })();
 
         (function programar(espera) {
