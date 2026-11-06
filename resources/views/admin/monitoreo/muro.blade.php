@@ -278,7 +278,36 @@
         body.hud .numero b { color:#eafff5; text-shadow:0 0 .9rem rgba(var(--hud-rgb),.55); }
         body.hud .numero span { color:#8fe2bd; }
 
+        /* Modo navidad (noviembre y diciembre): el trineo cruza la pantalla cada ~1 min. */
+        .noel { position:fixed; left:0; top:0; z-index:48; width:clamp(320px, 30vw, 620px); pointer-events:none;
+                display:none; will-change:transform; }
+        .noel.vuela { display:block; }
+        .noel svg { display:block; width:100%; height:auto; overflow:visible;
+                    filter:drop-shadow(0 0 .5rem rgba(255,255,255,.25)); animation:noel-flota 1.6s ease-in-out infinite; }
+        .noel.izq svg { transform:scaleX(-1); }
+        @keyframes noel-flota { 50% { translate:0 -6%; } }
+        .noel .pata { transform-box:fill-box; transform-origin:top center; animation:noel-galope .45s ease-in-out infinite alternate; }
+        .noel .pata.b { animation-delay:-.22s; }
+        @keyframes noel-galope { from { transform:rotate(-28deg); } to { transform:rotate(24deg); } }
+        .noel .brazo { transform-box:fill-box; transform-origin:left bottom; animation:noel-saludo .7s ease-in-out infinite alternate; }
+        @keyframes noel-saludo { from { transform:rotate(-12deg); } to { transform:rotate(22deg); } }
+        .noel .nariz { animation:noel-nariz 1s ease-in-out infinite; }
+        @keyframes noel-nariz { 50% { opacity:.45; } }
+        #nieve { position:fixed; inset:0; z-index:46; pointer-events:none; display:none; }
+        #nieve.activa { display:block; }
+        .chispa { position:fixed; z-index:47; width:var(--t); height:var(--t); margin:calc(var(--t) / -2) 0 0 calc(var(--t) / -2);
+                  pointer-events:none; border-radius:50%;
+                  background:radial-gradient(circle, #fff 0 30%, #fff3b0 50%, rgba(255,215,90,.6) 65%, transparent 72%);
+                  box-shadow:0 0 .6rem .15rem rgba(255,230,140,.85), 0 0 1.6rem .3rem rgba(255,200,80,.45);
+                  animation:chispa var(--d) ease-out forwards; }
+        @keyframes chispa {
+            0%   { transform:translate(0, 0) scale(1); opacity:1; }
+            60%  { opacity:.85; }
+            100% { transform:translate(var(--dx), var(--dy)) scale(.15); opacity:0; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
+            .noel, .chispa, #nieve { display:none !important; }
             .t-fila.alarma, .l-fila.alarma, .panel.alarma-hex .hex, .aviso .ico, .alarma::after { animation:none; }
             #lluvia { display:none; }
             body.hud .graf::before, body.hud .graf::after, .pulso::after, body.hud .m-anillo, body.hud .hex-anillo,
@@ -288,6 +317,56 @@
 </head>
 <body class="{{ $modoTv ? 'tv' : '' }} hud encendiendo">
 <canvas id="lluvia" aria-hidden="true"></canvas>
+
+{{-- Viejito pascuero y nieve: solo en noviembre y diciembre (ver el script). --}}
+<canvas id="nieve" aria-hidden="true"></canvas>
+<div class="noel" id="noel" aria-hidden="true">
+    <svg viewBox="0 0 400 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <g id="noel-reno">
+                <path class="pata" d="M40 31 l5 14" stroke="#6b4423" stroke-width="3.2" stroke-linecap="round"/>
+                <path class="pata b" d="M35 32 l-3 13" stroke="#6b4423" stroke-width="3.2" stroke-linecap="round"/>
+                <path class="pata b" d="M15 31 l-7 12" stroke="#6b4423" stroke-width="3.2" stroke-linecap="round"/>
+                <path class="pata" d="M19 32 l2 13" stroke="#6b4423" stroke-width="3.2" stroke-linecap="round"/>
+                <ellipse cx="26" cy="25" rx="20" ry="9" fill="#8b5a2b"/>
+                <circle cx="6" cy="21" r="3.2" fill="#f4ead9"/>
+                <path d="M37 21 L45 7 L52 10 L44 27 Z" fill="#8b5a2b"/>
+                <ellipse cx="52" cy="8" rx="8" ry="5.2" fill="#8b5a2b"/>
+                <ellipse cx="46" cy="3" rx="3.2" ry="1.6" fill="#6b4423" transform="rotate(-30 46 3)"/>
+                <path d="M49 3 L45 -8 M47 -2 L41 -4 M53 2 L56 -9 M54.5 -3 L60 -5" stroke="#e0c08f" stroke-width="2" stroke-linecap="round" fill="none"/>
+                <circle cx="54" cy="6.5" r="1.1" fill="#1a1a1a"/>
+                <path d="M20 23 Q30 30 40 22" stroke="#c62828" stroke-width="3" fill="none"/>
+                <circle cx="30" cy="27.5" r="1.8" fill="#ffd34d"/>
+            </g>
+        </defs>
+        {{-- riendas --}}
+        <path d="M150 50 Q215 40 265 47 M150 50 Q260 52 335 40" stroke="#e0b23a" stroke-width="1.4" fill="none"/>
+        <use href="#noel-reno" x="222" y="32"/>
+        <use href="#noel-reno" x="292" y="24"/>
+        <circle class="nariz" cx="351" cy="33" r="3" fill="#ff3b3b" style="filter:drop-shadow(0 0 4px #ff3b3b)"/>
+        {{-- saco de regalos --}}
+        <ellipse cx="62" cy="44" rx="17" ry="14" fill="#2e7d32"/>
+        <rect x="52" y="24" width="12" height="12" rx="1.5" fill="#1e88e5"/><path d="M58 24 v12" stroke="#ffd34d" stroke-width="2"/>
+        <rect x="64" y="20" width="11" height="13" rx="1.5" fill="#e53935"/><path d="M69.5 20 v13" stroke="#fff" stroke-width="2"/>
+        {{-- viejito --}}
+        <circle cx="100" cy="45" r="15" fill="#d32f2f"/>
+        <rect x="86" y="46" width="28" height="4" fill="#212121"/><rect x="97" y="45.5" width="5" height="5" fill="#ffd34d"/>
+        <path class="brazo" d="M108 40 L122 27" stroke="#d32f2f" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="123" cy="25" r="3.6" fill="#f4ead9"/>
+        <circle cx="106" cy="27" r="8" fill="#f2c9a0"/>
+        <path d="M98 28 Q100 44 108 42 Q116 40 114 28 Q106 34 98 28 Z" fill="#fafafa"/>
+        <circle cx="109" cy="25" r="1.1" fill="#1a1a1a"/>
+        <path d="M98 22 Q104 8 120 12 L112 22 Z" fill="#d32f2f"/>
+        <rect x="96" y="20" width="18" height="4.5" rx="2.2" fill="#fafafa"/>
+        <circle cx="121" cy="12" r="3.4" fill="#fafafa"/>
+        {{-- trineo --}}
+        <path d="M44 34 L56 34 L62 54 L140 54 Q154 54 157 44 L164 44 Q164 68 140 70 L62 70 Q46 70 44 34 Z"
+              fill="#c62828" stroke="#e0b23a" stroke-width="2"/>
+        <path d="M70 62 h60" stroke="#e0b23a" stroke-width="1.2" stroke-dasharray="3 4"/>
+        <path d="M66 70 v10 M136 70 v10" stroke="#e0b23a" stroke-width="2.4"/>
+        <path d="M34 80 L148 80 Q168 80 172 66" stroke="#e0b23a" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </svg>
+</div>
 
 <header class="cab">
     <div>
@@ -934,6 +1013,96 @@
                 g.y = g.y * tam > cv.height && Math.random() > .97 ? 0 : g.y + g.v;
             });
         }, 70);
+    })();
+
+    /* Modo navidad: en noviembre y diciembre el viejito pascuero cruza la
+       pantalla en trineo, a una altura y en un sentido al azar, más o menos
+       cada 30 segundos. ?navidad=1 lo fuerza fuera de temporada (pruebas). */
+    (function navidad() {
+        const forzado = new URLSearchParams(location.search).get('navidad') === '1';
+        const enTemporada = () => forzado || [10, 11].includes(new Date().getMonth());
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const noel = $('noel');
+
+        function chispa(x, y) {
+            const c = document.createElement('i');
+            c.className = 'chispa';
+            c.style.left = x + 'px'; c.style.top = y + 'px';
+            const dur = 2.4 + Math.random() * 1.4;                // estela larga: cada chispa dura 2,4–3,8 s
+            c.style.setProperty('--t',  (.4 + Math.random() * .7).toFixed(2) + 'rem');
+            c.style.setProperty('--dx', (Math.random() * 3 - 1.5).toFixed(2) + 'rem');
+            c.style.setProperty('--dy', (3 + Math.random() * 4).toFixed(2) + 'rem');
+            c.style.setProperty('--d',  dur.toFixed(2) + 's');
+            document.body.appendChild(c);
+            setTimeout(() => c.remove(), dur * 1000 + 100);
+        }
+
+        function volar() {
+            if (!enTemporada() || document.hidden) return;
+            const izq  = Math.random() < .5;                     // de derecha a izquierda
+            noel.style.transform = 'translate(-200vw, 0)';      // medirlo sin que asome
+            noel.classList.add('vuela');
+            const ancho = noel.offsetWidth || 300;
+            const y    = innerHeight * (.06 + Math.random() * .5);
+            const ida  = [-ancho - 20, innerWidth + 20];
+            const [x0, x1] = izq ? [ida[1], ida[0]] : ida;
+            const ola  = innerHeight * .04;
+            noel.classList.toggle('izq', izq);
+            const anim = noel.animate([
+                { transform: `translate(${x0}px, ${y}px)` },
+                { transform: `translate(${x0 + (x1 - x0) * .25}px, ${y - ola}px)` },
+                { transform: `translate(${x0 + (x1 - x0) * .5}px, ${y + ola}px)` },
+                { transform: `translate(${x0 + (x1 - x0) * .75}px, ${y - ola}px)` },
+                { transform: `translate(${x1}px, ${y - ola * 2}px)` },
+            ], { duration: 9000 + Math.random() * 4000, easing: 'linear' });
+            // Estela de polvo de estrellas que sale del trineo.
+            const estela = setInterval(() => {
+                const r = noel.getBoundingClientRect();
+                const x = izq ? r.right - r.width * .12 : r.left + r.width * .12;
+                for (let k = 0; k < 2; k++) chispa(x + (Math.random() - .5) * r.width * .06, r.top + r.height * (.55 + Math.random() * .2));
+            }, 50);
+            anim.onfinish = anim.oncancel = () => { clearInterval(estela); noel.classList.remove('vuela'); };
+        }
+
+        /* Nieve sutil sobre toda la pantalla: copos chicos, lentos y casi
+           transparentes, a ~30 cuadros por segundo; se detiene con la
+           pestaña oculta o fuera de temporada. */
+        (function nevar() {
+            const cv = $('nieve'), ctx = cv.getContext('2d');
+            let copos = [];
+            function medir() {
+                cv.width = innerWidth; cv.height = innerHeight;
+                const n = Math.round(innerWidth * innerHeight / 14000);   // ~150 en 1920×1080
+                copos = Array.from({ length: n }, () => ({
+                    x: Math.random() * cv.width, y: Math.random() * cv.height,
+                    r: .6 + Math.random() * 1.9, v: .25 + Math.random() * .7,
+                    a: .25 + Math.random() * .45, f: Math.random() * Math.PI * 2,
+                }));
+            }
+            medir();
+            window.addEventListener('resize', medir);
+            setInterval(() => {
+                const activa = enTemporada() && !document.hidden;
+                cv.classList.toggle('activa', activa);
+                if (!activa) return;
+                ctx.clearRect(0, 0, cv.width, cv.height);
+                copos.forEach(c => {
+                    c.f += .02;
+                    c.y += c.v;
+                    c.x += Math.sin(c.f) * .35 + .1;
+                    if (c.y > cv.height + 4) { c.y = -4; c.x = Math.random() * cv.width; }
+                    if (c.x > cv.width + 4) c.x = -4;
+                    ctx.beginPath();
+                    ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255,255,255,${c.a})`;
+                    ctx.fill();
+                });
+            }, 33);
+        })();
+
+        (function programar(espera) {
+            setTimeout(() => { volar(); programar(25000 + Math.random() * 10000); }, espera);
+        })(forzado ? 3000 : 15000);
     })();
 
     const reloj = () => { $('reloj').textContent = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }); };
