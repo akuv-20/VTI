@@ -19,45 +19,57 @@ use Illuminate\Support\Facades\Cache;
  * Qué carpetas y métricas pinta cada panel lo dice config/muro.php; acá solo
  * se juntan los datos, y la pantalla los reparte.
  *
- * Se cachea poco (10 s): es un muro de alarmas y tiene que estar al día, pero
- * si hay varias pantallas abiertas comparten la misma consulta. El fallo se
- * cachea igual que el éxito, para no golpear a CheckMK si está caído.
+ * Cada parte se cachea según cuánto cambia, y todas las pantallas abiertas
+ * comparten esa caché:
+ *   - Hosts, 4 s: es lo que dispara la alarma, y CheckMK (smart ping) detecta
+ *     una caída en segundos. Es una consulta liviana.
+ *   - Métricas y servicios, 30 s: CheckMK solo los actualiza al chequear el
+ *     servicio (normalmente una vez por minuto); pedirlos más seguido no trae
+ *     nada nuevo y es la consulta más pesada.
+ * El fallo se cachea igual que el éxito, para no golpear a CheckMK si está caído.
  */
 class MuroCheckMk
 {
-    private const CACHE_TTL = 10; // segundos
+    private const CACHE_HOSTS    = 4;  // segundos
+    private const CACHE_METRICAS = 30;
 
     /** Servicios cuyas métricas se muestran en tablas, medidores y números. */
     private const SERVICIOS_METRICAS = ['CPU utilization', 'Memory', 'Filesystem C:/', 'Interface 1', 'Uptime'];
 
     public function __construct(private CheckMkClient $cmk = new CheckMkClient()) {}
 
-    /** Estado completo para la pantalla, cacheado. */
+    /** Estado completo para la pantalla: hosts al día y métricas de hace a lo más 30 s. */
     public function estado(): array
     {
-        $guardado = Cache::get('muro_estado');
+        $hosts    = $this->recordar('muro_hosts', self::CACHE_HOSTS, fn() => $this->hosts());
+        $metricas = $this->recordar('muro_metricas', self::CACHE_METRICAS, fn() => [
+            'metricas'  => $this->metricas(),
+            'servicios' => $this->serviciosPorCarpeta(),
+        ]);
+
+        if (!$hosts['ok'] || !$metricas['ok']) {
+            return ['ok' => false, 'error' => $hosts['error'] ?? $metricas['error'], 'generado' => now()->timestamp];
+        }
+
+        return ['ok' => true, 'hosts' => $hosts['datos']] + $metricas['datos'] + ['generado' => $hosts['generado']];
+    }
+
+    /** Consulta cacheada; el error también se guarda, el mismo tiempo. */
+    private function recordar(string $clave, int $ttl, \Closure $consulta): array
+    {
+        $guardado = Cache::get($clave);
         if ($guardado !== null) return $guardado;
 
         try {
-            $resultado = ['ok' => true] + $this->leer();
+            $resultado = ['ok' => true, 'datos' => $consulta(), 'generado' => now()->timestamp];
         } catch (\Throwable $e) {
             report($e);
             $resultado = ['ok' => false, 'error' => $e->getMessage()];
         }
 
-        $resultado['generado'] = now()->timestamp;
-        Cache::put('muro_estado', $resultado, self::CACHE_TTL);
+        Cache::put($clave, $resultado, $ttl);
 
         return $resultado;
-    }
-
-    private function leer(): array
-    {
-        return [
-            'hosts'     => $this->hosts(),
-            'metricas'  => $this->metricas(),
-            'servicios' => $this->serviciosPorCarpeta(),
-        ];
     }
 
     /* ── Hosts ────────────────────────────────────────────────────────────── */

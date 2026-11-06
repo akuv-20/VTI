@@ -37,6 +37,11 @@
             --perf-out:   #4f8fd6;
             --perf-up:    #b0ac52;
             --perf-mem:   #b9a3f0;
+
+            /* Capa HUD: un solo color de acento, el verde de CheckMK, para que nunca compita con el rojo de las caídas. */
+            --hud:       #13d389;
+            --hud-rgb:   19,211,137;
+            --hud-suave: rgba(19,211,137,.22);
         }
 
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -181,12 +186,108 @@
         .aviso b { display:block; font-size:2rem; line-height:1.05; }
         .aviso span { font-size:1rem; opacity:.92; }
 
+        /* ══ Capa HUD ═══════════════════════════════════════════════════════
+           Todo vive bajo body.hud y se apaga con el botón «HUD». Lo que se
+           anima es opacidad, transform o la posición de un fondo: barato
+           para una TV encendida todo el día. */
+        .btn-hud { border:1px solid rgba(var(--hud-rgb),.55); background:transparent; border-radius:3px; padding:.3rem .7rem;
+                   font-size:.8rem; color:var(--hud); letter-spacing:.08em; }
+        .btn-hud.off { border-color:var(--line); color:var(--muted); }
+
+        #lluvia { position:fixed; inset:0; z-index:0; pointer-events:none; opacity:0; transition:opacity 1.2s; }
+        body.hud #lluvia { opacity:.14; }
+        .cab, .muro { position:relative; z-index:1; }
+
+        body.hud { background:radial-gradient(ellipse at 50% -10%, #0d2a20 0%, var(--bg) 62%) fixed; }
+        /* Grilla holográfica de fondo */
+        body.hud .muro::before { content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+            background-image:linear-gradient(rgba(var(--hud-rgb),.04) 1px, transparent 1px), linear-gradient(90deg, rgba(var(--hud-rgb),.04) 1px, transparent 1px);
+            background-size:2.4rem 2.4rem; }
+        /* Líneas de barrido, como un monitor de tubo: por encima de los paneles, por debajo de las caídas */
+        body.hud::after { content:""; position:fixed; inset:0; z-index:45; pointer-events:none;
+            background:repeating-linear-gradient(0deg, rgba(0,0,0,.10) 0 1px, transparent 1px 3px); }
+
+        /* Cabecera */
+        body.hud .cab { border-bottom-color:rgba(var(--hud-rgb),.35); background:linear-gradient(180deg, rgba(var(--hud-rgb),.07), transparent);
+                        box-shadow:0 1px 1.2rem rgba(var(--hud-rgb),.15); }
+        body.hud .cab h1 { letter-spacing:.06em; text-shadow:0 0 .8rem rgba(var(--hud-rgb),.7); }
+        body.hud .cab .ruta { color:#7fdcb4; letter-spacing:.12em; text-transform:uppercase; }
+        body.hud .reloj { color:#e0fff2; text-shadow:0 0 .8rem rgba(var(--hud-rgb),.85); }
+
+        /* Paneles: vidrio oscuro con esquinas de mira que respiran */
+        body.hud .panel:not(.vacio) { background:rgba(16,27,35,.86); border-color:var(--hud-suave);
+            box-shadow:inset 0 0 1.8rem rgba(var(--hud-rgb),.05), 0 0 .8rem rgba(0,0,0,.45); }
+        body.hud .panel:not(.vacio)::before { content:""; position:absolute; inset:-1px; pointer-events:none; z-index:3;
+            --l:.9rem; --g:2px;
+            background:
+                linear-gradient(var(--hud), var(--hud)) top left     / var(--l) var(--g),
+                linear-gradient(var(--hud), var(--hud)) top left     / var(--g) var(--l),
+                linear-gradient(var(--hud), var(--hud)) top right    / var(--l) var(--g),
+                linear-gradient(var(--hud), var(--hud)) top right    / var(--g) var(--l),
+                linear-gradient(var(--hud), var(--hud)) bottom left  / var(--l) var(--g),
+                linear-gradient(var(--hud), var(--hud)) bottom left  / var(--g) var(--l),
+                linear-gradient(var(--hud), var(--hud)) bottom right / var(--l) var(--g),
+                linear-gradient(var(--hud), var(--hud)) bottom right / var(--g) var(--l);
+            background-repeat:no-repeat; filter:drop-shadow(0 0 3px var(--hud));
+            animation:respirar 4.5s ease-in-out infinite; animation-delay:calc(var(--i, 0) * -.35s); }
+        @keyframes respirar { 50% { opacity:.4; } }
+        body.hud .panel > h2 { background:linear-gradient(90deg, transparent, rgba(var(--hud-rgb),.15), transparent); color:#dcffef;
+            letter-spacing:.09em; text-transform:uppercase; font-size:.72rem; text-shadow:0 0 .5rem rgba(var(--hud-rgb),.6);
+            border-bottom:1px solid rgba(var(--hud-rgb),.16); }
+        body.hud .panel > h2::before, body.hud .panel > h2::after { content:"◢"; color:var(--hud); opacity:.7; margin:0 .55rem; font-size:.55rem; vertical-align:middle; }
+        body.hud .panel > h2::after { content:"◣"; }
+
+        /* Encendido: los paneles aparecen uno tras otro, como un sistema que arranca */
+        body.hud.encendiendo .panel:not(.vacio) { animation:encender .75s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i, 0) * 45ms); }
+        @keyframes encender {
+            0%   { opacity:0; clip-path:inset(0 0 100% 0); filter:brightness(2.6); }
+            55%  { opacity:1; filter:brightness(1.7); }
+            100% { clip-path:inset(0 0 0 0); filter:none; }
+        }
+
+        /* Gráficos: escáner que barre y ondas que corren por la base */
+        body.hud .graf::before { content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+            background:linear-gradient(90deg, transparent 0 47%, rgba(var(--hud-rgb),.3) 50%, transparent 53%);
+            background-size:300% 100%; animation:escaneo 9s linear infinite; animation-delay:calc(var(--i, 0) * -.7s); }
+        @keyframes escaneo { from { background-position:100% 0; } to { background-position:0% 0; } }
+        body.hud .graf::after { content:""; position:absolute; left:0; right:0; bottom:0; height:42%; z-index:1; pointer-events:none;
+            background:
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 22 Q25 8 50 22 T100 22 T150 22 T200 22 V40 H0Z' fill='%2313d389' fill-opacity='.5'/%3E%3C/svg%3E") repeat-x,
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 26 Q25 14 50 26 T100 26 T150 26 T200 26' fill='none' stroke='%2313d389' stroke-width='1.2'/%3E%3C/svg%3E") repeat-x;
+            background-size:18rem 100%, 12rem 85%; background-position:0 100%, 0 100%;
+            opacity:.12; animation:olas 16s linear infinite; }
+        @keyframes olas { to { background-position:18rem 100%, -12rem 100%; } }
+
+        /* Último valor de cada gráfico: un punto que late */
+        .pulso { position:absolute; width:.5rem; height:.5rem; margin:-.25rem 0 0 -.25rem; border-radius:50%; z-index:2; pointer-events:none;
+                 background:currentColor; box-shadow:0 0 .6rem currentColor; display:none; }
+        body.hud .pulso { display:block; }
+        .pulso[hidden] { display:none !important; }
+        .pulso::after { content:""; position:absolute; inset:-.35rem; border-radius:50%; border:1px solid currentColor; animation:pulso-punto 1.8s ease-out infinite; }
+        @keyframes pulso-punto { from { transform:scale(.4); opacity:1; } to { transform:scale(2.3); opacity:0; } }
+
+        /* Medidores y hexágonos: anillos que giran, estilo reactor */
+        .m-anillo, .hex-anillo { display:none; }
+        body.hud .m-anillo, body.hud .hex-anillo { display:inline; transform-box:fill-box; transform-origin:center; animation:girar 20s linear infinite; }
+        body.hud .m-anillo.inv { animation-duration:28s; animation-direction:reverse; }
+        body.hud .hex-anillo { animation-duration:24s; }
+        @keyframes girar { to { transform:rotate(360deg); } }
+        body.hud .medidor svg { filter:drop-shadow(0 0 .35rem rgba(var(--hud-rgb),.35)); }
+        body.hud .hex-in { transform-box:fill-box; transform-origin:center; animation:latido-suave 3.2s ease-in-out infinite; }
+        @keyframes latido-suave { 50% { transform:scale(.84); opacity:.8; } }
+        body.hud .numero b { color:#eafff5; text-shadow:0 0 .9rem rgba(var(--hud-rgb),.55); }
+        body.hud .numero span { color:#8fe2bd; }
+
         @media (prefers-reduced-motion: reduce) {
             .t-fila.alarma, .l-fila.alarma, .panel.alarma-hex .hex, .aviso .ico, .alarma::after { animation:none; }
+            #lluvia { display:none; }
+            body.hud .graf::before, body.hud .graf::after, .pulso::after, body.hud .m-anillo, body.hud .hex-anillo,
+            body.hud .hex-in, body.hud .panel::before, body.hud.encendiendo .panel { animation:none; }
         }
     </style>
 </head>
-<body class="{{ $modoTv ? 'tv' : '' }}">
+<body class="{{ $modoTv ? 'tv' : '' }} hud encendiendo">
+<canvas id="lluvia" aria-hidden="true"></canvas>
 
 <header class="cab">
     <div>
@@ -194,6 +295,7 @@
         <div class="ruta">Muro de monitoreo · CheckMK</div>
     </div>
     <div class="der">
+        <button type="button" class="btn-hud" id="btn-hud" title="Activar o desactivar los efectos visuales">HUD ●</button>
         <button type="button" class="btn-sonido" id="btn-sonido">Activar sonido</button>
         <div class="estado-api" id="estado-api"><i></i><span>conectando…</span></div>
         @if(!$modoTv)
@@ -385,7 +487,10 @@
         return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`;
     }).join(' ');
     function hexSvg() {
-        return `<svg class="hex" viewBox="0 0 100 100"><polygon points="${HEX(46)}" fill="#1a2a26" stroke="#1f6e52" stroke-width="2"/><polygon class="hex-in" points="${HEX(20)}" fill="var(--ok)"/></svg>`;
+        return `<svg class="hex" viewBox="-4 -4 108 108" overflow="visible">
+            <polygon class="hex-anillo" points="${HEX(52)}" fill="none" stroke="var(--hud)" stroke-width="1" stroke-dasharray="4 7" opacity=".7"/>
+            <polygon points="${HEX(46)}" fill="#1a2a26" stroke="#1f6e52" stroke-width="2"/>
+            <polygon class="hex-in" points="${HEX(20)}" fill="var(--ok)"/></svg>`;
     }
     function leyenda(filas) {
         return filas.map(([n, color, txt]) => `<div><b>${n}</b><i style="background:${color}"></i><span>${txt}</span></div>`).join('');
@@ -426,7 +531,9 @@
         return `M${x1} ${y1} A${r} ${r} 0 ${hasta - desde > 180 ? 1 : 0} 1 ${x2} ${y2}`;
     }
     function crearMedidor(panel, p) {
-        const caja = el('div', 'medidor', `<svg viewBox="0 0 120 100">
+        const caja = el('div', 'medidor', `<svg viewBox="0 0 120 100" overflow="visible">
+            <circle class="m-anillo" cx="60" cy="60" r="55" fill="none" stroke="var(--hud)" stroke-width=".8" stroke-dasharray="1.5 5" opacity=".8"/>
+            <circle class="m-anillo inv" cx="60" cy="60" r="35" fill="none" stroke="var(--hud)" stroke-width=".6" stroke-dasharray="10 4 2 4" opacity=".45"/>
             <path d="${arco(44, -135, 135)}" fill="none" stroke="#e8ecef" stroke-width="9"/>
             <path class="m-val" d="" fill="none" stroke="var(--ok)" stroke-width="9"/>
             <rect class="m-caja" x="22" y="44" width="76" height="24" rx="3" fill="var(--ok)"/>
@@ -444,7 +551,7 @@
             caja.querySelector('.m-val').setAttribute('stroke', color);
             caja.querySelector('.m-caja').setAttribute('fill', color);
             caja.querySelector('.m-svc').setAttribute('fill', color);
-            caja.querySelector('.m-txt').textContent = v == null ? '—' : `${v.toFixed(2)}%`;
+            decodificar(caja.querySelector('.m-txt'), v == null ? '—' : `${v.toFixed(2)}%`);
             caja.querySelector('.m-svc-t').textContent = svc;
         };
     }
@@ -455,9 +562,29 @@
         return d => {
             const v = (d.metricas[p.host] || {})[p.metrica];
             const [num, unidad] = v == null ? ['—', ''] : bits(v).split(' ');
-            caja.querySelector('b').textContent = num;
+            decodificar(caja.querySelector('b'), num);
             caja.querySelector('span').textContent = unidad;
         };
+    }
+
+    /* Efecto Matrix: al cambiar, un número muestra caracteres al azar que se
+       van fijando de izquierda a derecha hasta quedar en el valor real. */
+    const GLIFOS = '0123456789ABCDEF#%&@$';
+    function decodificar(nodo, final) {
+        if (nodo._final === final) return;
+        const primera = nodo._final === undefined;
+        nodo._final = final;
+        clearInterval(nodo._dec);
+        if (!conHud() || primera) { nodo.textContent = final; return; }
+
+        const fijo = c => c === ' ' || c === '.' || c === '%' || c === '—';
+        let paso = 0;
+        const pasos = 14;
+        nodo._dec = setInterval(() => {
+            paso++;
+            nodo.textContent = [...final].map((c, i) => fijo(c) || i < final.length * paso / pasos ? c : GLIFOS[Math.floor(Math.random() * GLIFOS.length)]).join('');
+            if (paso >= pasos) { clearInterval(nodo._dec); nodo.textContent = final; }
+        }, 45);
     }
 
     /* Gráficos históricos: se crean vacíos y se llenan con cargarGraficos(),
@@ -472,13 +599,59 @@
         return null;
     }
 
-    // Colores de las series, como los pinta CheckMK.
+    // Colores de las series, como los pinta CheckMK (rgb del relleno y su opacidad sin HUD).
     const ESTILO_GRAFICO = {
-        cpu:         [{ borde: '#9ad85a', relleno: 'rgba(126,200,64,.55)' }],
-        ram:         [{ borde: '#5a9be6', relleno: 'rgba(61,120,216,.7)' }],
-        ancho_banda: [{ borde: '#2ecc71', relleno: 'rgba(46,204,113,.18)' }, { borde: '#5a9be6', relleno: 'rgba(61,120,216,.7)' }],
-        perdida:     [{ borde: '#e5b52a', relleno: 'rgba(229,181,42,.25)' }],
+        cpu:         [{ borde: '#9ad85a', rgb: '126,200,64', alfa: .55 }],
+        ram:         [{ borde: '#5a9be6', rgb: '61,120,216', alfa: .7 }],
+        ancho_banda: [{ borde: '#2ecc71', rgb: '46,204,113', alfa: .18 }, { borde: '#5a9be6', rgb: '61,120,216', alfa: .7 }],
+        perdida:     [{ borde: '#e5b52a', rgb: '229,181,42', alfa: .25 }],
     };
+    const conHud = () => document.body.classList.contains('hud');
+
+    /* Relleno: con HUD, un degradado que se desvanece hacia el eje (en la
+       salida de red, que va hacia abajo, se invierte); sin HUD, color plano. */
+    function relleno(estilo, haciaAbajo) {
+        return ctx => {
+            const { chart } = ctx, area = chart.chartArea;
+            if (!conHud() || !area) return `rgba(${estilo.rgb},${estilo.alfa})`;
+            const g = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+            const fuerte = `rgba(${estilo.rgb},.75)`, tenue = `rgba(${estilo.rgb},.04)`;
+            g.addColorStop(0, haciaAbajo ? tenue : fuerte);
+            g.addColorStop(1, haciaAbajo ? fuerte : tenue);
+            return g;
+        };
+    }
+
+    if (window.Chart) {
+        Chart.register({
+            // Brillo de neón en las líneas.
+            id: 'brillo',
+            beforeDatasetDraw(chart, args) {
+                if (!conHud()) return;
+                chart.ctx.save();
+                chart.ctx.shadowColor = chart.data.datasets[args.index].borderColor;
+                chart.ctx.shadowBlur = 10;
+                chart._brillo = true;
+            },
+            afterDatasetDraw(chart) {
+                if (chart._brillo) { chart.ctx.restore(); chart._brillo = false; }
+            },
+        }, {
+            // Punto que late sobre el último valor: es un elemento de la página
+            // (anima con CSS sin redibujar el gráfico) y se reubica en cada dibujo.
+            id: 'pulso',
+            afterDraw(chart) {
+                const caja = chart.canvas.parentNode, ds = chart.data.datasets[0];
+                let punto = caja.querySelector('.pulso');
+                if (!punto) { punto = el('span', 'pulso'); caja.appendChild(punto); }
+                let k = ds ? ds.data.length - 1 : -1;
+                while (k >= 0 && ds.data[k] == null) k--;
+                const p = k >= 0 ? chart.getDatasetMeta(0).data[k] : null;
+                punto.hidden = !p;
+                if (p) { punto.style.left = `${p.x}px`; punto.style.top = `${p.y}px`; punto.style.color = ds.borderColor; }
+            },
+        });
+    }
     // Cómo se transforma y rotula cada clase.
     const ESCALA_GRAFICO = {
         cpu:         { valor: v => v,              eje: v => `${v}%`,      tope: 10 },
@@ -503,7 +676,7 @@
             label: s.nombre,
             data: s.datos.slice(0, largo).map(v => v == null ? null : escala.valor(v, i)),
             borderColor: ESTILO_GRAFICO[g.p.clase][i].borde,
-            backgroundColor: ESTILO_GRAFICO[g.p.clase][i].relleno,
+            backgroundColor: relleno(ESTILO_GRAFICO[g.p.clase][i], g.p.clase === 'ancho_banda' && i === 1),
             fill: 'origin', borderWidth: 1.2, pointRadius: 0, tension: 0, spanGaps: false,
         }));
 
@@ -667,9 +840,15 @@
        cambiar el tamaño de la ventana y cuando cambia la cantidad de filas. */
     const raiz = document.documentElement;
     const muro = document.querySelector('.muro');
+    // Se mide dónde terminan los paneles, no scrollHeight: las decoraciones del
+    // HUD (anillos, esquinas, el punto que late) sobresalen a propósito, y
+    // scrollHeight las contaría como desborde y achicaría todo de más.
+    function fondoDe(cont) {
+        return Math.max(...[...cont.children].map(c => c.getBoundingClientRect().bottom), cont.getBoundingClientRect().top);
+    }
     function cabe() {
-        if (muro.scrollHeight > muro.clientHeight + 1) return false;
-        return [...document.querySelectorAll('.area')].every(a => a.scrollHeight <= a.clientHeight + 1);
+        if (fondoDe(muro) > muro.getBoundingClientRect().bottom + 1) return false;
+        return [...document.querySelectorAll('.area')].every(a => fondoDe(a) <= a.getBoundingClientRect().bottom + 1);
     }
     function encajar() {
         // El techo depende del ancho, para que las columnas no se queden angostas para el texto.
@@ -710,6 +889,52 @@
         const cont = $(`area-${area}`);
         lista.forEach(p => cont.appendChild(crear(p)));
     });
+
+    // Orden de encendido: cada panel arranca un poco después del anterior.
+    document.querySelectorAll('.panel').forEach((p, i) => p.style.setProperty('--i', i));
+    setTimeout(() => document.body.classList.remove('encendiendo'), 3200);
+
+    /* Botón HUD: los efectos se pueden apagar, y la pantalla lo recuerda. */
+    let hud = (() => { try { return localStorage.getItem('muro-hud') !== '0'; } catch (e) { return true; } })();
+    function aplicarHud() {
+        document.body.classList.toggle('hud', hud);
+        $('btn-hud').classList.toggle('off', !hud);
+        $('btn-hud').textContent = hud ? 'HUD ●' : 'HUD ○';
+        graficos.forEach(g => g.chart && g.chart.update('none'));   // degradado y brillo van en el dibujo
+    }
+    $('btn-hud').addEventListener('click', () => {
+        hud = !hud;
+        try { localStorage.setItem('muro-hud', hud ? '1' : '0'); } catch (e) {}
+        aplicarHud();
+    });
+    aplicarHud();
+
+    /* Lluvia de caracteres de fondo, muy tenue (la opacidad la da el CSS).
+       Se dibuja a ~14 cuadros por segundo y se detiene sin HUD o con la
+       pestaña oculta: en una TV encendida todo el día, eso importa. */
+    (function lluvia() {
+        const cv = $('lluvia'), ctx = cv.getContext('2d');
+        const glifos = 'アカサタナハマヤラワ0123456789ABCDEF<>/\\|=+-*:';
+        let tam = 16, gotas = [];
+        function medir() {
+            cv.width = innerWidth; cv.height = innerHeight;
+            tam = Math.max(12, Math.round(parseFloat(getComputedStyle(raiz).fontSize) * 1.25));
+            gotas = Array.from({ length: Math.ceil(cv.width / tam) }, () => ({ y: Math.random() * -60, v: .35 + Math.random() * .65 }));
+        }
+        medir();
+        window.addEventListener('resize', medir);
+        setInterval(() => {
+            if (!conHud() || document.hidden) return;
+            ctx.fillStyle = 'rgba(17,24,29,.2)';
+            ctx.fillRect(0, 0, cv.width, cv.height);
+            ctx.font = `${tam}px monospace`;
+            gotas.forEach((g, i) => {
+                ctx.fillStyle = Math.random() < .05 ? '#d6ffe9' : '#13d389';
+                ctx.fillText(glifos[Math.floor(Math.random() * glifos.length)], i * tam, g.y * tam);
+                g.y = g.y * tam > cv.height && Math.random() > .97 ? 0 : g.y + g.v;
+            });
+        }, 70);
+    })();
 
     const reloj = () => { $('reloj').textContent = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }); };
     reloj(); setInterval(reloj, 10000);

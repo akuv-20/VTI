@@ -44,9 +44,10 @@ $fila = fn(array $paneles) => ['tipo' => 'fila', 'paneles' => $paneles];
 
 return [
 
-    // Segundos entre consultas de la pantalla. El servicio cachea 10 s, así
-    // que bajar de eso no trae datos más frescos.
-    'intervalo' => 15,
+    // Segundos entre consultas de la pantalla. El estado de los hosts se
+    // cachea 4 s y las métricas 30 s (ver MuroCheckMk): bajar de 5 no trae
+    // datos más frescos.
+    'intervalo' => 5,
 
     // Segundos que una caída nueva queda resaltada (latiendo y encima del
     // resto) antes de volver a su lugar en rojo.
