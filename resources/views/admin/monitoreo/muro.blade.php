@@ -878,7 +878,22 @@
         Chart.defaults.color = '#9aa5af';
         Chart.defaults.font.size = Math.max(8, parseFloat(getComputedStyle(document.documentElement).fontSize) * .72);
         graficos.forEach(g => g.chart && g.chart.update('none'));
+        ajustarGraficos();
     }
+
+    /* Chart.js se redimensiona solo, pero lo hace en el siguiente cuadro de
+       animación: si la pantalla cambia de tamaño mientras la página no se
+       pinta (TV apagada o en reposo, pestaña de fondo), el aviso se pierde y
+       el gráfico queda chico dentro de su marco. Se compara a mano y se corrige. */
+    function ajustarGraficos() {
+        graficos.forEach(g => {
+            if (!g.chart) return;
+            const cv = g.chart.canvas;
+            if (Math.abs(cv.clientWidth - g.caja.clientWidth) > 1 || Math.abs(cv.clientHeight - g.caja.clientHeight) > 1) g.chart.resize();
+        });
+    }
+    setInterval(ajustarGraficos, 5000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) ajustarGraficos(); });
 
     async function cargarGraficos() {
         if (!window.Chart) return;
@@ -887,6 +902,7 @@
             const d = await r.json();
             if (!d.ok) throw new Error(d.error);
             graficos.forEach((g, titulo) => pintarGrafico(g, d.graficos[titulo]));
+            ajustarGraficos();
         } catch (e) {
             // Se dejan los últimos gráficos dibujados; el estado de conexión lo muestra el sondeo.
         }
