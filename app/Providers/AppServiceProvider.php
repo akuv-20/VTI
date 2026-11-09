@@ -121,6 +121,34 @@ class AppServiceProvider extends ServiceProvider
             // Tercera conexión no configurada aún
         }
 
+        // ── Conexión LDAP cuaternaria (Unistgont) ────────────────────────────
+        try {
+            $ldap4Host = Configuracion::get('ldap4_host');
+            $ldap4User = Configuracion::get('ldap4_username');
+            $ldap4Pass = Configuracion::get('ldap4_password');
+            $ldap4Base = Configuracion::get('ldap4_base_dn', '');
+            $ldap4Port = (int)(Configuracion::get('ldap4_port') ?: 389);
+
+            if ($ldap4Host && $ldap4User && $ldap4Pass) {
+                $hosts4 = array_values(array_filter(array_map('trim', explode(',', $ldap4Host))));
+                LdapContainer::addConnection(
+                    new LdapConnection([
+                        'hosts'        => $hosts4,
+                        'username'     => $ldap4User,
+                        'password'     => $ldap4Pass,
+                        'base_dn'      => $ldap4Base,
+                        'port'         => $ldap4Port,
+                        'timeout'      => 5,
+                        'use_tls'      => $ldap4Port === 636,
+                        'use_starttls' => false,
+                    ]),
+                    'quaternary'
+                );
+            }
+        } catch (\Throwable) {
+            // Cuarta conexión no configurada aún
+        }
+
         // ── Conexión a la base de GLPI desde BD ──────────────────────────────
         // Lo guardado en Admin → Configuración manda sobre el .env.
         // Va aquí y no en config/database.php porque allá la base de datos
@@ -208,6 +236,16 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('acceso_ad3', function ($user) {
             if (!$user->activo) return false;
             return $user->tieneAcceso('admin.active_directory3.index');
+        });
+
+        Gate::define('acceso_ad4', function ($user) {
+            if (!$user->activo) return false;
+            return $user->tieneAcceso('admin.active_directory4.index');
+        });
+
+        Gate::define('acceso_ad_consolidado', function ($user) {
+            if (!$user->activo) return false;
+            return $user->tieneAcceso('admin.ad_consolidado.index');
         });
 
         // ── Inventario: un permiso por dominio ───────────────────────────

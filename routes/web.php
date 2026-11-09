@@ -35,6 +35,8 @@ use App\Http\Controllers\Admin\ConfiguracionController as AdminConfiguracionCont
 use App\Http\Controllers\Admin\ActiveDirectoryController as AdminADController;
 use App\Http\Controllers\Admin\ActiveDirectory2Controller as AdminAD2Controller;
 use App\Http\Controllers\Admin\ActiveDirectory3Controller as AdminAD3Controller;
+use App\Http\Controllers\Admin\ActiveDirectory4Controller as AdminAD4Controller;
+use App\Http\Controllers\Admin\AdConsolidadoController;
 use App\Http\Controllers\Admin\EntraIDController as AdminEntraIDController;
 use App\Http\Controllers\Admin\MfaController;
 use App\Http\Controllers\Admin\ActividadBuzonesController;
@@ -469,8 +471,30 @@ Route::middleware(['auth', 'can:acceso_ad3'])->prefix('admin')->name('admin.')->
     });
 });
 
+// ── Active Directory Unistgont (admins + usuarios con permiso AD4) ───────────
+Route::middleware(['auth', 'can:acceso_ad4'])->prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('active-directory-4')->name('active_directory4.')->group(function () {
+        Route::get('/',                           [AdminAD4Controller::class, 'index'])->name('index');
+        Route::get('/importar-correos',           [AdminAD4Controller::class, 'importarCorreos'])->name('importar_correos');
+        Route::post('/importar-correos',          [AdminAD4Controller::class, 'procesarImportacion'])->name('procesar_importacion');
+        Route::get('/{username}/editar',          [AdminAD4Controller::class, 'edit'])->name('edit');
+        Route::put('/{username}',                 [AdminAD4Controller::class, 'update'])->name('update');
+        Route::post('/{username}/toggle',         [AdminAD4Controller::class, 'toggleEnabled'])->name('toggle');
+        Route::post('/{username}/desbloquear',    [AdminAD4Controller::class, 'desbloquear'])->name('desbloquear');
+        Route::post('/{username}/reset-password', [AdminAD4Controller::class, 'resetPassword'])->name('reset-password');
+    });
+});
+
+// ── Consolidado AD: entorno y cuentas de todos los dominios ─────────────────
+Route::middleware(['auth', 'can:acceso_ad_consolidado'])->prefix('admin/ad-consolidado')->name('admin.ad_consolidado.')->group(function () {
+    Route::get('/',                  [AdConsolidadoController::class, 'index'])->name('index');
+    Route::get('/datos/{conexion}',  [AdConsolidadoController::class, 'datos'])->name('datos');
+    Route::post('/actualizar',       [AdConsolidadoController::class, 'actualizar'])->name('actualizar');
+});
+
 // Test LDAP secundario (también admin)
 Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::post('configuracion/test-ldap2', [AdminConfiguracionController::class, 'testLdap2'])->name('configuracion.test-ldap2');
     Route::post('configuracion/test-ldap3', [AdminConfiguracionController::class, 'testLdap3'])->name('configuracion.test-ldap3');
+    Route::post('configuracion/test-ldap4', [AdminConfiguracionController::class, 'testLdap4'])->name('configuracion.test-ldap4');
 });

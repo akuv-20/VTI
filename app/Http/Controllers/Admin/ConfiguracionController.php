@@ -47,6 +47,13 @@ class ConfiguracionController extends Controller
             'username' => Configuracion::get('ldap3_username',''),
         ];
 
+        $ldap4Cfg = [
+            'host'     => Configuracion::get('ldap4_host',    '172.18.8.172'),
+            'port'     => Configuracion::get('ldap4_port',    389),
+            'base_dn'  => Configuracion::get('ldap4_base_dn', 'DC=unistgont,DC=local'),
+            'username' => Configuracion::get('ldap4_username',''),
+        ];
+
         $glpiCfg = [
             'host'     => Configuracion::get('glpi_db_host',     env('GLPI_DB_HOST',     '127.0.0.1')),
             'port'     => Configuracion::get('glpi_db_port',     env('GLPI_DB_PORT',     3306)),
@@ -75,7 +82,7 @@ class ConfiguracionController extends Controller
             'api_version' => Configuracion::get('veeam_api_version', ''),
         ];
 
-        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'favicon', 'azureCfg', 'ldapCfg', 'ldap2Cfg', 'ldap3Cfg', 'glpiCfg', 'glpiUniCfg', 'checkmkCfg', 'veeamCfg'));
+        return view('admin.configuracion.index', compact('loginBg', 'appNombre', 'appLogo', 'favicon', 'azureCfg', 'ldapCfg', 'ldap2Cfg', 'ldap3Cfg', 'ldap4Cfg', 'glpiCfg', 'glpiUniCfg', 'checkmkCfg', 'veeamCfg'));
     }
 
     public function update(Request $request)
@@ -327,6 +334,27 @@ class ConfiguracionController extends Controller
             return back()->with('success', 'Configuración de Active Directory (Unifrutti) guardada.');
         }
 
+        // ── Active Directory cuaternario (Unistgont) ────────────────────────
+        if ($request->input('seccion') === 'ldap4') {
+            $request->validate([
+                'ldap4_host'     => 'required|string|max:500',
+                'ldap4_port'     => 'required|integer|between:1,65535',
+                'ldap4_base_dn'  => 'required|string|max:200',
+                'ldap4_username' => 'required|string|max:200',
+            ]);
+
+            Configuracion::set('ldap4_host',    trim($request->input('ldap4_host')));
+            Configuracion::set('ldap4_port',    $request->input('ldap4_port'));
+            Configuracion::set('ldap4_base_dn', trim($request->input('ldap4_base_dn')));
+            Configuracion::set('ldap4_username', trim($request->input('ldap4_username')));
+
+            if ($request->filled('ldap4_password')) {
+                Configuracion::set('ldap4_password', $request->input('ldap4_password'));
+            }
+
+            return back()->with('success', 'Configuración de Active Directory (Unistgont) guardada.');
+        }
+
         // ── CheckMK (KPI de disponibilidad) ──────────────────────────────────
         if ($request->input('seccion') === 'checkmk') {
             $request->validate([
@@ -540,6 +568,18 @@ class ConfiguracionController extends Controller
             Configuracion::get('ldap3_password'),
             Configuracion::get('ldap3_base_dn', ''),
             (int)(Configuracion::get('ldap3_port') ?: 389)
+        );
+    }
+
+    /** Test de conexión LDAP cuaternaria (Unistgont) — responde JSON */
+    public function testLdap4(Request $request)
+    {
+        return $this->probarConexionLdap(
+            Configuracion::get('ldap4_host'),
+            Configuracion::get('ldap4_username'),
+            Configuracion::get('ldap4_password'),
+            Configuracion::get('ldap4_base_dn', ''),
+            (int)(Configuracion::get('ldap4_port') ?: 389)
         );
     }
 

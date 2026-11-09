@@ -97,6 +97,17 @@
                     </button>
                 </li>
                 <li class="nav-item">
+                    <button class="nav-link" id="tab-ldap4"
+                            data-bs-toggle="tab" data-bs-target="#pane-ldap4" type="button"
+                            data-cfg-test="{{ route('admin.configuracion.test-ldap4') }}"
+                            data-cfg-lista="{{ $ldap4Cfg['username'] ? '1' : '0' }}"
+                            data-cfg-panel="ldap4Estado">
+                        <i class="bi bi-diagram-3 cfg-ico"></i>
+                        <span class="cfg-txt">AD Unistgont</span>
+                        <span class="cfg-dot" data-estado="sin"></span>
+                    </button>
+                </li>
+                <li class="nav-item">
                     <button class="nav-link" id="tab-glpi"
                             data-bs-toggle="tab" data-bs-target="#pane-glpi" type="button"
                             data-cfg-test="{{ route('admin.configuracion.test-glpi') }}"
@@ -639,6 +650,87 @@
             </div>{{-- /pane-ldap3 --}}
 
             {{-- ══════════════════════════════════════════════════════════
+                 Tab: Active Directory — Unistgont
+            ══════════════════════════════════════════════════════════ --}}
+            <div class="tab-pane fade" id="pane-ldap4">
+
+                <div class="cfg-estado-pane" id="ldap4Estado"></div>
+
+                <form action="{{ route('admin.configuracion.update') }}" method="POST" data-loader id="formLdap4">
+                    @csrf
+                    <input type="hidden" name="seccion" value="ldap4">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-9">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">
+                                Servidores (Domain Controllers) <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="ldap4_host"
+                                   class="form-control form-control-sm font-monospace @error('ldap4_host') is-invalid @enderror"
+                                   value="{{ old('ldap4_host', $ldap4Cfg['host']) }}"
+                                   placeholder="172.18.8.172">
+                            <div class="form-text">Separados por coma si hay más de uno.</div>
+                            @error('ldap4_host')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Puerto <span class="text-danger">*</span></label>
+                            <input type="number" name="ldap4_port"
+                                   class="form-control form-control-sm @error('ldap4_port') is-invalid @enderror"
+                                   value="{{ old('ldap4_port', $ldap4Cfg['port']) }}"
+                                   min="1" max="65535">
+                            <div class="form-text">389 LDAP · 636 LDAPS</div>
+                            @error('ldap4_port')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Base DN <span class="text-danger">*</span></label>
+                            <input type="text" name="ldap4_base_dn"
+                                   class="form-control form-control-sm font-monospace @error('ldap4_base_dn') is-invalid @enderror"
+                                   value="{{ old('ldap4_base_dn', $ldap4Cfg['base_dn']) }}"
+                                   placeholder="DC=unistgont,DC=local">
+                            <div class="form-text">Raíz del directorio desde donde se buscarán los objetos.</div>
+                            @error('ldap4_base_dn')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Usuario de servicio <span class="text-danger">*</span></label>
+                            <input type="text" name="ldap4_username"
+                                   class="form-control form-control-sm font-monospace @error('ldap4_username') is-invalid @enderror"
+                                   value="{{ old('ldap4_username', $ldap4Cfg['username']) }}"
+                                   placeholder="usuario@unistgont.local">
+                            <div class="form-text">Formato UPN: usuario@unistgont.local</div>
+                            @error('ldap4_username')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" style="font-size:.82rem">Contraseña</label>
+                            <input type="password" name="ldap4_password"
+                                   class="form-control form-control-sm"
+                                   autocomplete="new-password"
+                                   placeholder="{{ $ldap4Cfg['username'] ? 'Dejar en blanco para no cambiar' : 'Ingresar contraseña' }}">
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded-2 mb-3 d-flex align-items-start gap-2"
+                         style="background:#f0f9ff;border:1px solid #bae6fd;font-size:.8rem">
+                        <i class="bi bi-info-circle-fill flex-shrink-0 mt-1" style="color:#0284c7"></i>
+                        <span>
+                            Esta es la conexión cuaternaria para el dominio <strong>Unistgont</strong>.
+                            Para <strong>resetear contraseñas</strong> se requiere <strong>LDAPS (puerto 636)</strong>.
+                        </span>
+                    </div>
+
+                    <div class="d-flex gap-2 align-items-center">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-check-lg me-1"></i>Guardar configuración
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTestLdap4">
+                            <i class="bi bi-plug me-1"></i>Probar conexión
+                        </button>
+                        <span id="ldap4TestResult" class="small ms-1"></span>
+                    </div>
+                </form>
+
+            </div>{{-- /pane-ldap4 --}}
+
+            {{-- ══════════════════════════════════════════════════════════
                  Tab: Microsoft 365
             ══════════════════════════════════════════════════════════ --}}
             {{-- ══════════════════ GLPI ══════════════════════════════════ --}}
@@ -1165,6 +1257,7 @@
         ['btnTestLdap',    'ldapTestResult',    'tab-ldap',    null],
         ['btnTestLdap2',   'ldap2TestResult',   'tab-ldap2',   null],
         ['btnTestLdap3',   'ldap3TestResult',   'tab-ldap3',   null],
+        ['btnTestLdap4',   'ldap4TestResult',   'tab-ldap4',   null],
         ['btnTestGlpi',    'glpiTestResult',    'tab-glpi',    { glpi_db_host: 'host', glpi_db_port: 'port', glpi_db_database: 'database', glpi_db_username: 'username', glpi_db_password: 'password' }],
         ['btnTestGlpiuni', 'glpiuniTestResult', 'tab-glpiuni', { glpiuni_db_host: 'host', glpiuni_db_port: 'port', glpiuni_db_database: 'database', glpiuni_db_username: 'username', glpiuni_db_password: 'password' }],
         ['btnTestAzure',   'azureTestResult',   'tab-azure',   null],

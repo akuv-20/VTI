@@ -864,7 +864,7 @@
             @endcan
 
             {{-- ── Active Directory ── --}}
-            @if(auth()->user()->can('acceso_ad') || auth()->user()->can('acceso_ad2') || auth()->user()->can('acceso_ad3') || auth()->user()->can('acceso_entra'))
+            @if(auth()->user()->can('acceso_ad') || auth()->user()->can('acceso_ad2') || auth()->user()->can('acceso_ad3') || auth()->user()->can('acceso_ad4') || auth()->user()->can('acceso_ad_consolidado') || auth()->user()->can('acceso_entra'))
             <div class="vti-nav-group" data-group="ad">
                 <button type="button" class="vti-nav-group-toggle">
                     <i class="bi bi-diagram-3-fill"></i><span class="sb-text">AD | EntraID</span>
@@ -884,6 +884,16 @@
                     @can('acceso_ad3')
                     <a href="{{ route('admin.active_directory3.index') }}" class="vti-nav-link {{ request()->routeIs('admin.active_directory3.*') ? 'active' : '' }}">
                         <i class="bi bi-diagram-3"></i>AD Unifrutti
+                    </a>
+                    @endcan
+                    @can('acceso_ad4')
+                    <a href="{{ route('admin.active_directory4.index') }}" class="vti-nav-link {{ request()->routeIs('admin.active_directory4.*') ? 'active' : '' }}">
+                        <i class="bi bi-diagram-3"></i>AD Unistgont
+                    </a>
+                    @endcan
+                    @can('acceso_ad_consolidado')
+                    <a href="{{ route('admin.ad_consolidado.index') }}" class="vti-nav-link {{ request()->routeIs('admin.ad_consolidado.*') ? 'active' : '' }}">
+                        <i class="bi bi-table"></i>Consolidado AD
                     </a>
                     @endcan
                     @can('acceso_entra')
@@ -1064,6 +1074,8 @@
             'inventario.unifrutti.actas'     => ['Inventario TI', 'Actas de Entrega'],
             'inventario.elegir.actas'        => ['Inventario TI', 'Actas de Entrega'],
             'admin.active_directory3'     => ['AD | EntraID', 'AD Unifrutti'],
+            'admin.active_directory4'     => ['AD | EntraID', 'AD Unistgont'],
+            'admin.ad_consolidado'        => ['AD | EntraID', 'Consolidado AD'],
             'admin.active_directory2'     => ['Active Directory', 'AD Grupo Verfrut (Perú)'],
             'admin.active_directory'      => ['Active Directory', 'AD Verfrut'],
             'admin.entra_id.mfa'          => ['AD | EntraID', 'MFA'],
