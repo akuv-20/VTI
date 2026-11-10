@@ -25,6 +25,9 @@
 |                         ancho_banda  entrada y salida de la Interface 1
 |                         perdida      pérdida de paquetes del servicio PING
 |                       con el rango en minutos.
+|   ranking             podio del mes de los técnicos (tickets del GLPI de
+|                       Unifrutti), que alterna entre los países de
+|                       'paises' cada 'cada' segundos
 |   fila                agrupa paneles lado a lado
 |   vacio               hueco, para respetar la distribución original
 |
@@ -115,6 +118,7 @@ return [
                 $grafico('Monitoreo PERU Enlace PARWIL',   'perdida', 'VFPE-PARWIL',  240),
                 $grafico('Monitoreo PERU Enlace CLARO',    'perdida', 'VFPE-CLARO',   240),
                 $grafico('Monitoreo PERU Enlace CHICLAYO', 'perdida', '200.CHICLAYO', 240),
+                ['tipo' => 'ranking', 'titulo' => 'Ranking técnicos', 'paises' => ['chile', 'peru'], 'cada' => 20],
             ]),
         ],
     ],

@@ -150,6 +150,33 @@
         .graf-ley .m { display:flex; align-items:center; gap:.35rem; }
         .graf-ley .m i { width:.65rem; height:.65rem; display:inline-block; }
 
+        /* ── Ranking de técnicos: podio 2º · 1º · 3º ──────────────────────────
+           Como los gráficos, va en absoluto para no empujar la grilla, y se
+           mide en unidades del contenedor (cqh/cqw) para caber en el alto que
+           le toque sin que encajar() tenga que achicar el muro entero. */
+        .rkm-caja { flex:1; position:relative; min-height:0; container-type:size; }
+        .rkm { position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; gap:4cqw;
+               padding:2cqh 5cqw 0; transition:opacity .4s ease; }
+        .rkm.cambia { opacity:0; }
+        .rkm-plaza { flex:1; max-width:30cqw; min-width:0; display:flex; flex-direction:column; align-items:center; }
+        .rkm-av { width:min(19cqh, 15cqw); aspect-ratio:1; border-radius:50%; display:flex; align-items:center; justify-content:center;
+                  font-weight:700; font-size:min(7.5cqh, 6cqw); color:#fff; flex-shrink:0; }
+        .rkm-plaza.p1 .rkm-av { width:min(25cqh, 19cqw); font-size:min(10cqh, 8cqw);
+                                box-shadow:0 0 0 min(1.2cqh, .25rem) #fbbf24, 0 0 1.2rem rgba(251,191,36,.45); }
+        .rkm-corona { font-size:min(11cqh, 8cqw); line-height:1.05; }
+        /* Nombre y apellido en dos líneas si no caben: el panel es angosto. */
+        .rkm-nom { font-size:min(6.5cqh, 4.6cqw); font-weight:700; margin-top:1.5cqh; max-width:100%; text-align:center;
+                   line-height:1.1; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow-wrap:anywhere; }
+        .rkm-n { font-size:min(12cqh, 8cqw); font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; }
+        .rkm-n small { font-size:.42em; font-weight:500; color:var(--muted); margin-left:.25em; }
+        .rkm-esc { width:100%; border-radius:.3rem .3rem 0 0; color:#fff; font-weight:800; font-size:min(10cqh, 7cqw);
+                   display:flex; align-items:center; justify-content:center; margin-top:1cqh; }
+        .rkm-plaza.p1 .rkm-esc { height:24cqh; background:linear-gradient(180deg,#fbbf24,#d97706); }
+        .rkm-plaza.p2 .rkm-esc { height:16cqh; background:linear-gradient(180deg,#cbd5e1,#64748b); }
+        .rkm-plaza.p3 .rkm-esc { height:10cqh; background:linear-gradient(180deg,#fdba74,#b45309); }
+        .rkm-vacio { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#4b5865; font-size:.78rem; }
+        .rkm-vacio[hidden] { display:none; }
+
         /* ── Caída nueva: la fila crece, late y queda encima de todo ──────── */
         .alarma { z-index:50 !important; }
         .t-fila.alarma, .l-fila.alarma {
@@ -480,6 +507,7 @@
     const AREAS      = @json($areas);
     const URL_ESTADO = @json($urlEstado);
     const URL_GRAFICOS = @json($urlGraficos);
+    const URL_RANKING  = @json($urlRanking);
     const INTERVALO  = @json($intervalo) * 1000;
     const RESALTADO  = @json($resaltado) * 1000;
     // Una caída que ya estaba al abrir la pantalla no suena, salvo que sea así de reciente:
@@ -532,7 +560,8 @@
         const panel = el('section', 'panel');
         panel.appendChild(el('h2', '', esc(p.titulo)));
         const fabrica = { tabla: crearTabla, lista: crearLista, hexagono_hosts: crearHexHosts,
-                          hexagono_servicios: crearHexServicios, medidor: crearMedidor, numero: crearNumero, grafico: crearGrafico }[p.tipo];
+                          hexagono_servicios: crearHexServicios, medidor: crearMedidor, numero: crearNumero, grafico: crearGrafico,
+                          ranking: crearRanking }[p.tipo];
         if (!fabrica) return panel;
         const actualizar = fabrica(panel, p);
         if (actualizar) paneles.push({ p, actualizar, panel });
@@ -913,6 +942,56 @@
     setInterval(ajustarGraficos, 5000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) ajustarGraficos(); });
 
+    /* Ranking de técnicos: el podio del mes, que va alternando de país. Los
+       datos vienen del GLPI de Unifrutti y cambian lento: se piden cada 5 min. */
+    const NOMBRE_PAIS = { chile: 'Chile', peru: 'Perú' };
+    const rankings = [];
+    let datosRanking = null;
+    function crearRanking(panel, p) {
+        const caja = el('div', 'rkm-caja', '<div class="rkm"></div><div class="rkm-vacio">cargando…</div>');
+        panel.appendChild(caja);
+        const r = { p, panel, caja, i: 0, paises: (p.paises && p.paises.length) ? p.paises : ['chile', 'peru'] };
+        rankings.push(r);
+        if (r.paises.length > 1) {
+            setInterval(() => {
+                const podio = caja.querySelector('.rkm');
+                podio.classList.add('cambia');
+                setTimeout(() => { r.i = (r.i + 1) % r.paises.length; pintarRanking(r); podio.classList.remove('cambia'); }, 400);
+            }, (p.cada || 20) * 1000);
+        }
+        return null;
+    }
+    function pintarRanking(r) {
+        if (!datosRanking) return;
+        const pais = r.paises[r.i % r.paises.length];
+        const d = datosRanking.paises[pais] || { error: true, tecnicos: [] };
+        r.panel.querySelector('h2').textContent = `${r.p.titulo} · ${NOMBRE_PAIS[pais] || pais} · ${datosRanking.mes}`;
+        const podio = r.caja.querySelector('.rkm'), vacio = r.caja.querySelector('.rkm-vacio');
+        vacio.hidden = d.tecnicos.length > 0;
+        vacio.textContent = d.error ? 'sin conexión con GLPI' : 'sin tickets resueltos este mes';
+        podio.innerHTML = [1, 0, 2].filter(k => d.tecnicos[k]).map(k => {
+            const t = d.tecnicos[k], n = k + 1;
+            return `<div class="rkm-plaza p${n}">
+                ${n === 1 ? '<span class="rkm-corona">👑</span>' : ''}
+                <div class="rkm-av" style="background:${esc(t.color)}">${esc(t.iniciales)}</div>
+                <div class="rkm-nom">${esc(t.nombre)}</div>
+                <div class="rkm-n">${t.total}<small>tickets</small></div>
+                <div class="rkm-esc">${t.puesto}º</div>
+            </div>`;
+        }).join('');
+    }
+    async function cargarRanking() {
+        if (!rankings.length || !URL_RANKING) return;
+        try {
+            const r = await fetch(URL_RANKING, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+            if (!r.ok) throw new Error(r.status);
+            datosRanking = await r.json();
+            rankings.forEach(pintarRanking);
+        } catch (e) {
+            // Se deja el último podio; si nunca cargó, queda «cargando…».
+        }
+    }
+
     async function cargarGraficos() {
         if (!window.Chart) return;
         try {
@@ -1282,6 +1361,7 @@
     sondear(); setInterval(sondear, INTERVALO);
     // Los gráficos avanzan de a un punto por minuto en CheckMK: basta con refrescarlos cada minuto.
     cargarGraficos(); setInterval(cargarGraficos, 60000);
+    cargarRanking(); setInterval(cargarRanking, 300000);
 })();
 </script>
 </body>

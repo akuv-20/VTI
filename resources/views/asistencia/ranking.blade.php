@@ -60,7 +60,8 @@
     $haySla    = $tecnicos->sum('con_sla') > 0;
     $haySatisf = $tecnicos->sum('satisfaccion_n') > 0;
     $podio     = $tecnicos->take(3)->values();
-    $filtrosUrl = ['periodo' => $periodo, 'grupo' => $grupo,
+    $nombresPais = ['chile' => 'Chile', 'peru' => 'Perú'];
+    $filtrosUrl = ['periodo' => $periodo, 'grupo' => $grupo, 'pais' => $pais,
                    'desde' => request('desde'), 'hasta' => request('hasta')];
 @endphp
 
@@ -71,6 +72,7 @@
             <h4 class="mb-0"><i class="bi bi-trophy-fill me-2" style="color:#d97706"></i>Ranking de técnicos</h4>
             <small class="text-muted">
                 Tickets solucionados y cerrados por técnico asignado en el GLPI de Unifrutti &nbsp;·&nbsp; {{ $etiquetaPeriodo }}
+                @if($pais) &nbsp;·&nbsp; Técnicos de {{ $nombresPais[$pais] }} @endif
                 @if($grupo) &nbsp;·&nbsp; Grupo {{ $grupo }} @endif
             </small>
         </div>
@@ -104,6 +106,15 @@
                            value="{{ $periodo === 'rango' ? $hasta?->format('Y-m-d') : '' }}">
                 </div>
                 <button class="btn btn-primary btn-sm">Aplicar</button>
+            </div>
+            <div>
+                <label class="form-label small text-muted mb-1" for="rk-pais" title="Según la ubicación del técnico en GLPI">País del técnico</label>
+                <select name="pais" id="rk-pais" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todos los países</option>
+                    @foreach($nombresPais as $clave => $label)
+                        <option value="{{ $clave }}" @selected($pais === $clave)>{{ $label }}</option>
+                    @endforeach
+                </select>
             </div>
             <div>
                 <label class="form-label small text-muted mb-1" for="rk-grupo">Grupo técnico</label>

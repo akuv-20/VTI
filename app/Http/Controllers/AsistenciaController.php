@@ -29,19 +29,20 @@ class AsistenciaController extends Controller
     {
         $periodo = array_key_exists($request->query('periodo'), self::PERIODOS) ? $request->query('periodo') : 'mes';
         $grupo   = $request->query('grupo') ?: null;
+        $pais    = array_key_exists((string) $request->query('pais'), RankingTickets::PAISES) ? $request->query('pais') : null;
 
         [$desde, $hasta]         = $this->rango($periodo, $request);
         [$prevDesde, $prevHasta] = $this->rangoAnterior($periodo, $desde, $hasta);
 
         $servicio = new RankingTickets();
-        $ranking  = $servicio->calcular($desde, $hasta, $grupo);
+        $ranking  = $servicio->calcular($desde, $hasta, $grupo, $pais);
         $grupos  = $servicio->gruposDisponibles();
 
         // Movimiento respecto del periodo anterior: cuántos puestos subió o
         // bajó cada técnico. Sin periodo anterior (histórico) no se calcula.
         $puestosPrevios = [];
         if ($prevDesde) {
-            $anterior = $servicio->calcular($prevDesde, $prevHasta, $grupo);
+            $anterior = $servicio->calcular($prevDesde, $prevHasta, $grupo, $pais);
             $puestosPrevios = $anterior['tecnicos']->pluck('puesto', 'clave')->all();
         }
 
@@ -65,6 +66,7 @@ class AsistenciaController extends Controller
             'prevHasta'    => $prevHasta,
             'grupos'       => $grupos,
             'grupo'        => $grupo,
+            'pais'         => $pais,
             'etiquetaPeriodo' => $this->etiqueta($periodo, $desde, $hasta),
         ]);
     }
@@ -73,7 +75,7 @@ class AsistenciaController extends Controller
     {
         RankingTickets::olvidarCache();
 
-        return redirect()->route('asistencia.ranking', $request->only('periodo', 'grupo', 'desde', 'hasta'))
+        return redirect()->route('asistencia.ranking', $request->only('periodo', 'grupo', 'pais', 'desde', 'hasta'))
             ->with('success', 'Datos actualizados desde GLPI.');
     }
 

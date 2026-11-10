@@ -32,6 +32,10 @@ use Illuminate\Support\Str;
  *     zona de la sesión, y el servidor de Unifrutti está en UTC. Por eso cada
  *     consulta fija la sesión en hora de Chile y los periodos se arman en esa
  *     misma zona: sin eso, el corte de mes queda corrido tres horas.
+ *
+ *  5. El país del técnico sale de su ubicación en GLPI (glpi_locations, la
+ *     raíz de completename: «Chile», «Perú > Lima»). Quien no tiene ubicación
+ *     solo aparece con «Todos los países».
  * ─────────────────────────────────────────────────────────────────────────────
  */
 class RankingTickets
@@ -48,6 +52,12 @@ class RankingTickets
     /** Mínimo de tickets para competir por las insignias de rapidez, SLA y satisfacción. */
     private const MINIMO_INSIGNIA = 5;
 
+    /** Países del filtro: clave de la URL → nombres de la raíz de la ubicación en GLPI (punto 5). */
+    public const PAISES = [
+        'chile' => ['Chile'],
+        'peru'  => ['Perú', 'Peru'],
+    ];
+
     private DominioInventario $dominio;
 
     public function __construct()
@@ -57,10 +67,10 @@ class RankingTickets
 
     /* ── Caché ────────────────────────────────────────────────────────────── */
 
-    private static function clave(string $que, ?Carbon $desde, ?Carbon $hasta, ?string $grupo): string
+    private static function clave(string $que, ?Carbon $desde, ?Carbon $hasta, ?string $grupo, ?string $pais = null): string
     {
         return 'ranking_tickets_' . md5(implode('|', [
-            self::version(), $que, $desde?->toDateTimeString(), $hasta?->toDateTimeString(), $grupo,
+            self::version(), $que, $desde?->toDateTimeString(), $hasta?->toDateTimeString(), $grupo, $pais,
         ]));
     }
 
@@ -113,8 +123,30 @@ class RankingTickets
         return $db;
     }
 
-    /** Tickets solucionados o cerrados del periodo, con el filtro de grupo. */
-    private function baseTickets(?Carbon $desde, ?Carbon $hasta, ?string $grupo)
+    /** Condición «la ubicación l es de este país» (la raíz o cualquier hija). */
+    private static function wherePais($q, string $pais): void
+    {
+        foreach (self::PAISES[$pais] as $nombre) {
+            $q->orWhere('l.completename', $nombre)->orWhere('l.completename', 'like', $nombre . ' > %');
+        }
+    }
+
+    /** País de una ubicación de GLPI, o null si no es de ninguno conocido. */
+    public static function paisDe(?string $ubicacion): ?string
+    {
+        $raiz = mb_strtolower(trim(Str::before((string) $ubicacion, '>')));
+        foreach (self::PAISES as $clave => $nombres) {
+            if (in_array($raiz, array_map('mb_strtolower', $nombres), true)) return $clave;
+        }
+
+        return null;
+    }
+
+    /**
+     * Tickets solucionados o cerrados del periodo, con los filtros de grupo y
+     * de país (algún técnico asignado de ese país).
+     */
+    private function baseTickets(?Carbon $desde, ?Carbon $hasta, ?string $grupo, ?string $pais = null)
     {
         return $this->conexion()->table('glpi_tickets as t')
             ->where('t.is_deleted', 0)
@@ -126,17 +158,25 @@ class RankingTickets
                 ->join('glpi_groups as g', 'g.id', '=', 'gt.groups_id')
                 ->whereColumn('gt.tickets_id', 't.id')
                 ->where('gt.type', 2)
-                ->where('g.completename', $grupo)));
+                ->where('g.completename', $grupo)))
+            ->when($pais, fn($q) => $q->whereExists(fn($s) => $s->selectRaw('1')
+                ->from('glpi_tickets_users as px')
+                ->join('glpi_users as pu', 'pu.id', '=', 'px.users_id')
+                ->join('glpi_locations as l', 'l.id', '=', 'pu.locations_id')
+                ->whereColumn('px.tickets_id', 't.id')
+                ->where('px.type', 2)
+                ->where(fn($w) => self::wherePais($w, $pais))));
     }
 
     /** Una fila por técnico asignado, con sus contadores crudos. */
-    private function porTecnico(?Carbon $desde, ?Carbon $hasta, ?string $grupo): array
+    private function porTecnico(?Carbon $desde, ?Carbon $hasta, ?string $grupo, ?string $pais): array
     {
-        return $this->baseTickets($desde, $hasta, $grupo)
+        return $this->baseTickets($desde, $hasta, $grupo, $pais)
             ->join('glpi_tickets_users as tu', fn($j) => $j->on('tu.tickets_id', '=', 't.id')->where('tu.type', 2))
             ->join('glpi_users as u', 'u.id', '=', 'tu.users_id')
+            ->leftJoin('glpi_locations as ul', 'ul.id', '=', 'u.locations_id')
             ->leftJoin('glpi_ticketsatisfactions as s', 's.tickets_id', '=', 't.id')
-            ->selectRaw('u.id, u.name, u.firstname, u.realname, u.is_active, u.is_deleted')
+            ->selectRaw('u.id, u.name, u.firstname, u.realname, u.is_active, u.is_deleted, ul.completename as ubicacion')
             ->selectRaw('count(distinct t.id) as total')
             ->selectRaw('count(distinct case when t.status = 5 then t.id end) as solucionados')
             ->selectRaw('count(distinct case when t.status = 6 then t.id end) as cerrados')
@@ -146,16 +186,16 @@ class RankingTickets
             ->selectRaw('sum(t.time_to_resolve is not null and t.solvedate <= t.time_to_resolve) as sla_ok')
             ->selectRaw('coalesce(sum(s.satisfaction), 0) as satisfaccion_suma')
             ->selectRaw('count(s.satisfaction) as satisfaccion_n')
-            ->groupBy('u.id', 'u.name', 'u.firstname', 'u.realname', 'u.is_active', 'u.is_deleted')
+            ->groupBy('u.id', 'u.name', 'u.firstname', 'u.realname', 'u.is_active', 'u.is_deleted', 'ul.completename')
             ->get()
             ->map(fn($r) => (array) $r)
             ->all();
     }
 
     /** Totales del periodo contando cada ticket una sola vez. */
-    private function totales(?Carbon $desde, ?Carbon $hasta, ?string $grupo): array
+    private function totales(?Carbon $desde, ?Carbon $hasta, ?string $grupo, ?string $pais): array
     {
-        $r = $this->baseTickets($desde, $hasta, $grupo)
+        $r = $this->baseTickets($desde, $hasta, $grupo, $pais)
             ->selectRaw('count(*) as total')
             ->selectRaw('sum(t.status = 5) as solucionados')
             ->selectRaw('sum(t.status = 6) as cerrados')
@@ -192,10 +232,12 @@ class RankingTickets
      *   error: ?string
      * }
      */
-    public function calcular(?Carbon $desde, ?Carbon $hasta, ?string $grupo = null): array
+    public function calcular(?Carbon $desde, ?Carbon $hasta, ?string $grupo = null, ?string $pais = null): array
     {
-        $filas = $this->recordar(self::clave('tecnicos', $desde, $hasta, $grupo), fn() => $this->porTecnico($desde, $hasta, $grupo));
-        $tot   = $this->recordar(self::clave('totales', $desde, $hasta, $grupo), fn() => $this->totales($desde, $hasta, $grupo));
+        if ($pais !== null && !array_key_exists($pais, self::PAISES)) $pais = null;
+
+        $filas = $this->recordar(self::clave('tecnicos', $desde, $hasta, $grupo, $pais), fn() => $this->porTecnico($desde, $hasta, $grupo, $pais));
+        $tot   = $this->recordar(self::clave('totales', $desde, $hasta, $grupo, $pais), fn() => $this->totales($desde, $hasta, $grupo, $pais));
 
         $resumen = ['total' => 0, 'solucionados' => 0, 'cerrados' => 0, 'sin_tecnico' => 0, 'seg_resolucion' => 0, 'con_tiempo' => 0];
 
@@ -209,7 +251,12 @@ class RankingTickets
 
         $resumen = array_merge($resumen, $tot['datos']);
 
-        $tecnicos = $this->ordenar(collect($filas['datos'])->map(fn($f) => self::tecnico($f))->values());
+        // Con país, los tickets compartidos traen también a sus técnicos del
+        // otro país: solo compiten los de este.
+        $tecnicos = collect($filas['datos'])->map(fn($f) => self::tecnico($f))
+            ->when($pais, fn($c) => $c->where('pais', $pais))
+            ->values();
+        $tecnicos = $this->ordenar($tecnicos);
         $this->asignarInsignias($tecnicos);
 
         $resumen['tecnicos']        = $tecnicos->count();
@@ -230,6 +277,7 @@ class RankingTickets
             'iniciales'       => self::iniciales($f),
             'login'           => Str::before($f['name'], '@'),
             'activo'          => (int) $f['is_active'] === 1 && (int) $f['is_deleted'] === 0,
+            'pais'            => self::paisDe($f['ubicacion'] ?? null),
             'insignias'       => [],
         ];
 

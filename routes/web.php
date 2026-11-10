@@ -340,6 +340,7 @@ Route::middleware(['auth', 'can:acceso_monitoreo'])->prefix('admin')->name('admi
         Route::get('muro',                      [AdminMonitoreoMuroController::class, 'index'])->name('muro');
         Route::get('muro/estado',               [AdminMonitoreoMuroController::class, 'estado'])->name('muro.estado');
         Route::get('muro/graficos',             [AdminMonitoreoMuroController::class, 'graficos'])->name('muro.graficos');
+        Route::get('muro/ranking',              [AdminMonitoreoMuroController::class, 'ranking'])->name('muro.ranking');
         Route::get('mapas',                     [AdminMonitoreoMapaController::class, 'index'])->name('mapas.index');
         Route::post('mapas',                    [AdminMonitoreoMapaController::class, 'store'])->name('mapas.store');
         Route::get('mapas/hosts',               [AdminMonitoreoMapaController::class, 'hosts'])->name('mapas.hosts');
@@ -440,6 +441,7 @@ Route::get('monitoreo/mapas/{mapa}/fondo', [AdminMonitoreoMapaController::class,
 Route::get('monitoreo/tv/{token}/muro',          [AdminMonitoreoMuroController::class, 'tv'])->name('monitoreo.tv.muro');
 Route::get('monitoreo/tv/{token}/muro/estado',   [AdminMonitoreoMuroController::class, 'tvEstado'])->name('monitoreo.tv.muro.estado');
 Route::get('monitoreo/tv/{token}/muro/graficos', [AdminMonitoreoMuroController::class, 'tvGraficos'])->name('monitoreo.tv.muro.graficos');
+Route::get('monitoreo/tv/{token}/muro/ranking',  [AdminMonitoreoMuroController::class, 'tvRanking'])->name('monitoreo.tv.muro.ranking');
 Route::get('monitoreo/tv/{token}',               [AdminMonitoreoMapaController::class, 'tv'])->name('monitoreo.tv');
 Route::get('monitoreo/tv/{token}/estado/{mapa}', [AdminMonitoreoMapaController::class, 'tvEstado'])->name('monitoreo.tv.estado');
 
