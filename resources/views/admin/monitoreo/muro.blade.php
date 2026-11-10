@@ -753,7 +753,10 @@
         panel.appendChild(caja);
         const ley = p.clase === 'perdida' ? el('div', 'graf-ley') : null;
         if (ley) panel.appendChild(ley);
-        graficos.set(p.titulo, { p, caja, ley, chart: null });
+        const g = { p, caja, ley, chart: null };
+        graficos.set(p.titulo, g);
+        // Lienzo devuelto tras un reinicio de la tarjeta gráfica: se rehace al tiro (ver ajustarGraficos).
+        caja.querySelector('canvas').addEventListener('contextrestored', () => g.chart && rehacerGrafico(g));
         return null;
     }
 
@@ -821,6 +824,7 @@
 
     function pintarGrafico(g, d) {
         const vacio = g.caja.querySelector('.sin-datos');
+        g.d = d;   // para poder rehacerlo si el navegador pierde el lienzo
         if (!d || !d.series.length) { vacio.textContent = 'sin datos de CheckMK'; vacio.hidden = false; return; }
         vacio.hidden = true;
 
@@ -884,12 +888,26 @@
     /* Chart.js se redimensiona solo, pero lo hace en el siguiente cuadro de
        animación: si la pantalla cambia de tamaño mientras la página no se
        pinta (TV apagada o en reposo, pestaña de fondo), el aviso se pierde y
-       el gráfico queda chico dentro de su marco. Se compara a mano y se corrige. */
+       el gráfico queda chico dentro de su marco. Se compara a mano y se corrige.
+
+       Además, cuando la TV entra en reposo la tarjeta gráfica puede reiniciarse
+       y el navegador devuelve el lienzo con su estado de fábrica: conserva el
+       tamaño pero pierde la escala de pantalla (devicePixelRatio), y el gráfico
+       se dibuja a la mitad, en la esquina. Chart.js no se entera, así que se
+       revisa la escala del lienzo y, si no calza, el gráfico se arma de nuevo. */
+    function rehacerGrafico(g) {
+        g.chart.destroy();
+        g.chart = null;
+        if (g.d) pintarGrafico(g, g.d);
+    }
     function ajustarGraficos() {
         graficos.forEach(g => {
             if (!g.chart) return;
-            const cv = g.chart.canvas;
-            if (Math.abs(cv.clientWidth - g.caja.clientWidth) > 1 || Math.abs(cv.clientHeight - g.caja.clientHeight) > 1) g.chart.resize();
+            const cv = g.chart.canvas, ctx = g.chart.ctx;
+            const escala = ctx.getTransform ? ctx.getTransform().a : g.chart.currentDevicePixelRatio;
+            if (Math.abs(escala - g.chart.currentDevicePixelRatio) > .01) return rehacerGrafico(g);
+            if (Math.abs(cv.clientWidth - g.caja.clientWidth) > 1 || Math.abs(cv.clientHeight - g.caja.clientHeight) > 1
+                || g.chart.currentDevicePixelRatio !== (window.devicePixelRatio || 1)) g.chart.resize();
         });
     }
     setInterval(ajustarGraficos, 5000);
