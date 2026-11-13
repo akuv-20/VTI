@@ -37,7 +37,11 @@
 |   fila                agrupa paneles lado a lado ('crece' => true para que
 |                       ocupe el alto libre de su columna)
 |
-| Cualquier panel acepta 'ancho' => n para ocupar n partes de su fila.
+|   mesa                mesa de ayuda del GLPI de Unifrutti: cola, movimiento
+|                       del día y últimos tickets, con aviso de lo que cambia
+|
+| Cualquier panel acepta 'ancho' => n para ocupar n partes de su fila, y
+| 'alto' => '13rem' para fijarle la altura.
 |   vacio               hueco, para respetar la distribución original
 |   libre               hueco marcado que ocupa el alto libre de su columna,
 |                       reservado para un panel futuro ('titulo', 'nota')
@@ -127,8 +131,13 @@ return [
                 ['tipo' => 'servidor', 'titulo' => 'VFSTBD01', 'host' => 'VFSTBD01'],
                 ['tipo' => 'servidor', 'titulo' => 'VFSTBD02', 'host' => 'VFSTBD02'],
             ]),
-            // Lo que liberó compactar las BD. Reemplazar por el próximo panel.
-            ['tipo' => 'libre', 'titulo' => 'Espacio liberado', 'nota' => 'Antes: 4 medidores, 8 gráficos, 4 números y 2 gráficos de red'],
+            // Mesa de ayuda (GLPI de Unifrutti): ocupa lo que liberó compactar las BD.
+            ['tipo' => 'mesa', 'titulo' => 'Mesa de ayuda · GLPI'],
+            // Un podio por país, lado a lado (con un solo país no rota).
+            $fila([
+                ['tipo' => 'ranking', 'titulo' => 'Ranking técnicos', 'paises' => ['chile'], 'alto' => '13rem'],
+                ['tipo' => 'ranking', 'titulo' => 'Ranking técnicos', 'paises' => ['peru'],  'alto' => '13rem'],
+            ]),
         ],
 
         'abajo_izq' => [
@@ -138,8 +147,7 @@ return [
         'abajo' => [
             $fila([
                 // Reemplaza los seis gráficos de pérdida que había (tres aquí y tres en el centro).
-                ['tipo' => 'enlaces', 'titulo' => 'Monitoreo de enlaces', 'ancho' => 3],
-                ['tipo' => 'ranking', 'titulo' => 'Ranking técnicos', 'paises' => ['chile', 'peru'], 'cada' => 20],
+                ['tipo' => 'enlaces', 'titulo' => 'Monitoreo de enlaces'],
             ]),
         ],
     ],

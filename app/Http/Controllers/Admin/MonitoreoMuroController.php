@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Configuracion;
+use App\Services\MesaAyuda;
 use App\Services\MuroCheckMk;
 use App\Services\RankingTickets;
 use App\Services\ServiciosCriticos;
@@ -31,6 +32,7 @@ class MonitoreoMuroController extends Controller
             'urlServicios' => route('admin.monitoreo.muro.servicios'),
             'urlCarpeta'   => route('admin.monitoreo.muro.carpeta'),
             'urlEnlaces'   => route('admin.monitoreo.muro.enlaces'),
+            'urlMesa'      => route('admin.monitoreo.muro.mesa'),
             'urlEnlace'    => route('admin.monitoreo.muro.enlace'),
             // Enlace a CheckMK desde el modal; en modo TV no hay quien lo use.
             'urlCheckmk'   => ($u = rtrim((string) Configuracion::get('checkmk_url', ''), '/')) && ($s = trim((string) Configuracion::get('checkmk_site', '')))
@@ -72,6 +74,18 @@ class MonitoreoMuroController extends Controller
         return response()->json($d);
     }
 
+    public function mesa(MesaAyuda $mesa)
+    {
+        return response()->json($mesa->estado());
+    }
+
+    public function tvMesa(string $token, MesaAyuda $mesa)
+    {
+        $this->validarTokenTv($token);
+
+        return response()->json($mesa->estado());
+    }
+
     public function ranking()
     {
         return response()->json($this->podio());
@@ -95,6 +109,7 @@ class MonitoreoMuroController extends Controller
             'urlServicios' => route('monitoreo.tv.muro.servicios', $token),
             'urlCarpeta'   => route('monitoreo.tv.muro.carpeta', $token),
             'urlEnlaces'   => route('monitoreo.tv.muro.enlaces', $token),
+            'urlMesa'      => route('monitoreo.tv.muro.mesa', $token),
             'urlEnlace'    => route('monitoreo.tv.muro.enlace', $token),
             'urlCheckmk'   => null,
             'urlTv'       => null,

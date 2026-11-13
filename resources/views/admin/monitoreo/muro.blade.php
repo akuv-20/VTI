@@ -541,6 +541,39 @@
         .muro .hex-ley b { font-family:var(--f-mono); }
         .muro .hex-ley i { border-radius:2px; width:.65rem; height:.65rem; }
 
+        /* ── Mesa de ayuda (GLPI): cifras, últimos tickets y eventos ──────── */
+        .mesa-c { flex:1; min-height:0; display:flex; flex-direction:column; }
+        .mesa-k { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:1px; background:rgba(255,255,255,.05); border-bottom:1px solid rgba(255,255,255,.06); }
+        .mk { --c:var(--muted); position:relative; background:#0b1417; padding:.45rem .65rem .4rem; overflow:hidden; }
+        .mk::before { content:""; position:absolute; left:0; top:0; bottom:0; width:.18rem; background:var(--c); opacity:.8; }
+        .mk small { display:block; font-family:var(--f-display); font-weight:700; font-size:.58rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .mk b { display:block; font-family:var(--f-mono); font-weight:600; font-size:1.55rem; line-height:1.1; font-variant-numeric:tabular-nums; color:#e8f1f2; }
+        .mk span { display:block; font-family:var(--f-mono); font-size:.6rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .mk.alerta b { color:var(--c); }
+        .mk.mas  { animation:mk-mas 2.2s ease-out; }
+        .mk.menos { animation:mk-menos 2.2s ease-out; }
+        @keyframes mk-mas   { 0%, 20% { background:color-mix(in srgb, var(--fx, var(--warn)) 34%, #0b1417); box-shadow:inset 0 0 0 1px var(--fx, var(--warn)); } 100% { background:#0b1417; box-shadow:none; } }
+        @keyframes mk-menos { 0%, 20% { background:color-mix(in srgb, var(--fx, var(--ok)) 30%, #0b1417); box-shadow:inset 0 0 0 1px var(--fx, var(--ok)); } 100% { background:#0b1417; box-shadow:none; } }
+        .mk .delta { position:absolute; right:.5rem; top:.35rem; font-family:var(--f-mono); font-weight:700; font-size:.85rem; color:var(--fx); animation:mk-delta 2.4s ease-out forwards; pointer-events:none; }
+        @keyframes mk-delta { 0% { opacity:0; transform:translateY(.6rem) scale(.8); } 15% { opacity:1; transform:none; } 70% { opacity:1; } 100% { opacity:0; transform:translateY(-.8rem); } }
+        .mesa-t { display:flex; justify-content:space-between; align-items:center; padding:.3rem .65rem .15rem; font-family:var(--f-display); font-weight:700; font-size:.6rem; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; }
+        .mesa-l { flex:1; min-height:0; overflow:hidden; position:relative; }
+        .mt { --c:var(--muted); display:grid; grid-template-columns:3.4rem minmax(0, 1fr) 6.2rem 4.4rem; gap:.6rem; align-items:center; padding:.32rem .65rem; border-bottom:1px solid rgba(255,255,255,.035); font-size:.74rem; }
+        .mt .id { font-family:var(--f-mono); color:var(--muted); font-size:.7rem; }
+        .mt .ti { min-width:0; }
+        .mt .ti b { display:block; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .mt .ti span { display:block; font-size:.62rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .mt .es { justify-self:start; font-family:var(--f-display); font-weight:700; font-size:.56rem; letter-spacing:.1em; color:var(--c); border:1px solid color-mix(in srgb, var(--c) 50%, transparent); padding:.02rem .35rem; border-radius:2px; white-space:nowrap; }
+        .mt .ha { font-family:var(--f-mono); font-size:.64rem; color:var(--muted); text-align:right; white-space:nowrap; }
+        .mt.nuevo { animation:mt-nuevo 3s ease-out; }
+        .mt.cambia { animation:mt-cambia 2.6s ease-out; }
+        @keyframes mt-nuevo { 0% { transform:translateX(-1.2rem); opacity:0; background:rgba(255,215,3,.35); } 15% { transform:none; opacity:1; } 100% { background:transparent; } }
+        @keyframes mt-cambia { 0%, 15% { background:rgba(19,211,137,.32); } 100% { background:transparent; } }
+        .mesa-ev { display:flex; gap:1rem; align-items:center; padding:.3rem .65rem; border-top:1px solid rgba(255,255,255,.06); font-family:var(--f-mono); font-size:.64rem; color:var(--muted); white-space:nowrap; overflow:hidden; }
+        .mesa-ev .rot { font-family:var(--f-display); font-weight:700; letter-spacing:.12em; color:var(--hud); font-size:.58rem; }
+        .mesa-ev .ev b { color:#e8f1f2; font-weight:400; }
+        .mesa-ev .ev.nuevo { animation:mt-nuevo 1.2s ease-out; }
+
         /* Hueco reservado (tipo «libre»). */
         .libre { border:1px dashed rgba(var(--hud-rgb),.32); border-radius:.35rem; display:grid; place-items:center; text-align:center;
                  color:rgba(var(--hud-rgb),.7); font-family:var(--f-display); font-weight:600; letter-spacing:.16em; font-size:.72rem; text-transform:uppercase;
@@ -760,6 +793,7 @@
     const URL_CARPETA  = @json($urlCarpeta);
     const URL_CHECKMK  = @json($urlCheckmk);
     const URL_ENLACES  = @json($urlEnlaces);
+    const URL_MESA     = @json($urlMesa);
     const URL_ENLACE   = @json($urlEnlace);
     const INTERVALO  = @json($intervalo) * 1000;
     const RESALTADO  = @json($resaltado) * 1000;
@@ -817,11 +851,13 @@
         panel.appendChild(el('h2', '', esc(p.titulo)));
         const fabrica = { tabla: crearTabla, lista: crearLista, hexagono_hosts: crearHexHosts,
                           hexagono_servicios: crearHexServicios, medidor: crearMedidor, numero: crearNumero, grafico: crearGrafico,
-                          ranking: crearRanking, servicios: crearServicios, enlaces: crearEnlaces, servidor: crearServidor }[p.tipo];
+                          ranking: crearRanking, servicios: crearServicios, enlaces: crearEnlaces, servidor: crearServidor,
+                          mesa: crearMesa }[p.tipo];
         if (!fabrica) return panel;
         const actualizar = fabrica(panel, p);
         if (actualizar) paneles.push({ p, actualizar, panel });
-        if (['grafico', 'servicios', 'enlaces'].includes(p.tipo)) panel.classList.add('crece');
+        if (['grafico', 'servicios', 'enlaces', 'mesa'].includes(p.tipo)) panel.classList.add('crece');
+        if (p.alto) { panel.style.height = p.alto; panel.style.flexShrink = '0'; }
         return panel;
     }
 
@@ -1720,6 +1756,117 @@
             : '<div style="color:var(--muted)">Sin pérdida en el periodo.</div>');
     }
 
+    /* ── Mesa de ayuda (GLPI) ───────────────────────────────────────────────
+       Cifras de la cola y del día, los últimos tickets y una línea de
+       eventos. Cada lectura (cada 30 s) se compara con la anterior: la cifra
+       que cambia destella y muestra «+1»/«−1», un ticket nuevo entra
+       deslizándose en amarillo y uno que se soluciona destella en verde. */
+    const MESA_EST = { 1: ['NUEVO', 'var(--warn)'], 2: ['ASIGNADO', 'var(--dt)'], 3: ['PLANIFICADO', 'var(--dt)'],
+                       4: ['EN ESPERA', 'var(--unknown)'], 5: ['SOLUCIONADO', 'var(--ok)'], 6: ['CERRADO', 'var(--pending)'] };
+    // [clave, etiqueta, color de la franja, color del destello al subir, al bajar]
+    const MESA_KPI = [
+        ['total', 'En cola', 'var(--hud)', 'var(--warn)', 'var(--ok)'],
+        ['nuevos', 'Nuevos', 'var(--warn)', 'var(--warn)', 'var(--ok)'],
+        ['asignados', 'Asignados', 'var(--dt)', 'var(--dt)', 'var(--ok)'],
+        ['espera', 'En espera', 'var(--unknown)', 'var(--unknown)', 'var(--ok)'],
+        ['vencidos', 'Vencidos', 'var(--crit)', 'var(--crit)', 'var(--ok)'],
+        ['creados', 'Creados hoy', 'var(--warn)', 'var(--warn)', 'var(--muted)'],
+        ['solucionados', 'Solucionados hoy', 'var(--ok)', 'var(--ok)', 'var(--muted)'],
+        ['cerrados', 'Cerrados hoy', 'var(--pending)', 'var(--ok)', 'var(--muted)'],
+    ];
+    const mesa = { cajas: [], antes: null, eventos: [] };
+
+    function crearMesa(panel) {
+        const caja = el('div', 'mesa-c', `<div class="mesa-k">${MESA_KPI.map(([k, t, c]) =>
+                `<div class="mk" data-k="${k}" style="--c:${c}"><small>${t}</small><b>—</b><span>&nbsp;</span></div>`).join('')}</div>
+            <div class="mesa-t"><span>Últimos tickets</span><span class="act"></span></div>
+            <div class="mesa-l"></div>
+            <div class="mesa-ev"><span class="rot">EVENTOS</span><span class="evs">esperando novedades…</span></div>`);
+        panel.appendChild(caja);
+        mesa.cajas.push(caja);
+        return null;
+    }
+
+    async function cargarMesa() {
+        if (!mesa.cajas.length || !URL_MESA) return;
+        try {
+            const r = await fetch(URL_MESA, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+            const d = await r.json();
+            if (!d.ok) throw new Error(d.error);
+            pintarMesa(d);
+        } catch (e) {
+            mesa.cajas.forEach(c => { c.querySelector('.act').textContent = 'sin conexión con GLPI'; });
+        }
+    }
+
+    // Cuenta del valor anterior al nuevo, para que el cambio se vea.
+    function contar(nodo, desde, hasta) {
+        if (desde == null || desde === hasta || matchMedia('(prefers-reduced-motion: reduce)').matches) { nodo.textContent = hasta; return; }
+        const t0 = performance.now(), dur = 900;
+        const paso = t => { const k = Math.min(1, (t - t0) / dur); nodo.textContent = Math.round(desde + (hasta - desde) * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(paso); };
+        requestAnimationFrame(paso);
+    }
+
+    function eventoMesa(txt) {
+        mesa.eventos.unshift({ t: new Date(), txt });
+        mesa.eventos.length = Math.min(mesa.eventos.length, 4);
+        mesa.cajas.forEach(c => c.querySelector('.evs').innerHTML = mesa.eventos.map((e, i) =>
+            `<span class="ev ${i === 0 ? 'nuevo' : ''}">${e.t.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} <b>${esc(e.txt)}</b></span>`).join(' · '));
+    }
+
+    function pintarMesa(d) {
+        const v = { ...d.cola, ...d.hoy }, a = mesa.antes;
+        const subt = {
+            total: `CL ${d.cola.por_pais.chile} · PE ${d.cola.por_pais.peru}`,
+            nuevos: `${d.cola.sin_tecnico} sin técnico`,
+            asignados: d.cola.planificados ? `+${d.cola.planificados} planificados` : 'en curso',
+            espera: 'esperando al usuario',
+            vencidos: 'fuera de plazo',
+            creados: 'desde las 00:00',
+            solucionados: 'esperan aprobación',
+            cerrados: 'aprobados por el usuario',
+        };
+        mesa.cajas.forEach(caja => {
+            MESA_KPI.forEach(([k, , , fxMas, fxMenos]) => {
+                const t = caja.querySelector(`[data-k="${k}"]`), b = t.querySelector('b');
+                contar(b, a ? a.v[k] : null, v[k]);
+                t.querySelector('span').textContent = subt[k];
+                t.classList.toggle('alerta', k === 'vencidos' ? v[k] > 0 : k === 'nuevos' && d.cola.sin_tecnico > 0);
+                if (a && a.v[k] !== v[k]) {
+                    const sube = v[k] > a.v[k];
+                    t.style.setProperty('--fx', sube ? fxMas : fxMenos);
+                    t.classList.remove('mas', 'menos'); void t.offsetWidth; t.classList.add(sube ? 'mas' : 'menos');
+                    t.querySelector('.delta')?.remove();
+                    t.insertAdjacentHTML('beforeend', `<span class="delta">${sube ? '+' : '−'}${Math.abs(v[k] - a.v[k])}</span>`);
+                }
+            });
+
+            const lista = caja.querySelector('.mesa-l');
+            lista.innerHTML = d.ultimos.map(t => {
+                const [txt, col] = MESA_EST[t.estado] || ['—', 'var(--muted)'];
+                const previo = a?.tickets.get(t.id);
+                const clase = !a ? '' : previo == null ? 'nuevo' : previo !== t.estado ? 'cambia' : '';
+                return `<div class="mt ${clase}" style="--c:${col}"><span class="id">#${t.id}</span>
+                    <div class="ti"><b title="${esc(t.titulo)}">${esc(t.titulo)}</b><span>${esc(t.categoria || 'Sin categoría')} · ${t.tecnico ? esc(t.tecnico) : '<span style="color:var(--warn);display:inline">sin asignar</span>'}</span></div>
+                    <span class="es">${txt}</span><span class="ha">hace ${hace(t.fecha)}</span></div>`;
+            }).join('');
+            caja.querySelector('.act').textContent = 'actualizado ' + new Date(d.generado * 1000).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        });
+
+        // Eventos: tickets que entran y tickets que cambian de estado.
+        if (a) {
+            [...d.ultimos].reverse().forEach(t => {
+                const previo = a.tickets.get(t.id);
+                if (previo == null && t.id > a.maxId) eventoMesa(`#${t.id} nuevo · ${t.titulo}`);
+                else if (previo != null && previo !== t.estado) eventoMesa(`#${t.id} ${(MESA_EST[t.estado] || ['cambió'])[0].toLowerCase()}${t.tecnico ? ' · ' + t.tecnico : ''}`);
+            });
+            if (v.solucionados > a.v.solucionados && !d.ultimos.some(t => a.tickets.get(t.id) != null && a.tickets.get(t.id) !== t.estado && t.estado === 5)) {
+                eventoMesa(`${v.solucionados - a.v.solucionados} ticket${v.solucionados - a.v.solucionados > 1 ? 's' : ''} solucionado${v.solucionados - a.v.solucionados > 1 ? 's' : ''}`);
+            }
+        }
+        mesa.antes = { v, tickets: new Map(d.ultimos.map(t => [t.id, t.estado])), maxId: Math.max(0, ...d.ultimos.map(t => t.id)) };
+    }
+
     /* ── Servidor ───────────────────────────────────────────────────────────
        Una tarjeta por host con lo que antes eran 9 paneles: CPU y RAM (anillo
        con el valor actual y gráfico de 8 h con los últimos 30 min
@@ -2269,6 +2416,7 @@
     cargarRanking(); setInterval(cargarRanking, 300000);
     cargarServicios(); setInterval(cargarServicios, 60000);
     cargarEnlaces(); setInterval(cargarEnlaces, 60000);
+    cargarMesa(); setInterval(cargarMesa, 30000);
 })();
 </script>
 </body>
