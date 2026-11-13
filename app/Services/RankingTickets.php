@@ -16,10 +16,13 @@ use Illuminate\Support\Str;
  * ─────────────────────────────────────────────────────────────────────────────
  *  Criterios que hay que tener presentes al leer los números:
  *
- *  1. Un ticket cuenta para el TÉCNICO ASIGNADO (glpi_tickets_users, type=2),
- *     no para el autor de la solución; en el 98% de los casos son la misma
- *     persona. Un ticket con dos técnicos suma uno a cada uno, así que la
- *     suma de la columna puede superar el total de tickets del periodo.
+ *  1. Un ticket cuenta para QUIEN LO SOLUCIONÓ: el autor de su última
+ *     solución no rechazada (glpi_itilsolutions, status ≠ 4). Si el usuario
+ *     rechaza una solución y otro técnico escribe la siguiente, cuenta para
+ *     el segundo. Así cada ticket suma una sola vez, aunque tenga varios
+ *     técnicos asignados. Los tickets cerrados sin solución registrada (se
+ *     cierran a mano, ~6%) cuentan para su técnico asignado (type=2), para
+ *     no perderlos; si tienen dos, suma a ambos.
  *
  *  2. El periodo se mide por `solvedate`, no por `closedate`: todo ticket
  *     cerrado pasó antes por solucionado, y así un ticket no cambia de mes
@@ -159,21 +162,49 @@ class RankingTickets
                 ->whereColumn('gt.tickets_id', 't.id')
                 ->where('gt.type', 2)
                 ->where('g.completename', $grupo)))
-            ->when($pais, fn($q) => $q->whereExists(fn($s) => $s->selectRaw('1')
-                ->from('glpi_tickets_users as px')
-                ->join('glpi_users as pu', 'pu.id', '=', 'px.users_id')
-                ->join('glpi_locations as l', 'l.id', '=', 'pu.locations_id')
-                ->whereColumn('px.tickets_id', 't.id')
-                ->where('px.type', 2)
-                ->where(fn($w) => self::wherePais($w, $pais))));
+            // País de quien se lleva el ticket (punto 1): el autor de la
+            // solución o, si no hay solución, algún técnico asignado.
+            ->when($pais, fn($q) => $q->where(fn($w) => $w
+                ->whereExists(fn($s) => $s->selectRaw('1')
+                    ->from('glpi_itilsolutions as ps')
+                    ->join('glpi_users as pu', 'pu.id', '=', 'ps.users_id')
+                    ->join('glpi_locations as l', 'l.id', '=', 'pu.locations_id')
+                    ->whereColumn('ps.items_id', 't.id')
+                    ->where('ps.itemtype', 'Ticket')
+                    ->where('ps.status', '<>', 4)
+                    ->where(fn($x) => self::wherePais($x, $pais)))
+                ->orWhere(fn($o) => $o
+                    ->whereNotExists(fn($s) => self::solucionVigente($s))
+                    ->whereExists(fn($s) => $s->selectRaw('1')
+                        ->from('glpi_tickets_users as px')
+                        ->join('glpi_users as pu', 'pu.id', '=', 'px.users_id')
+                        ->join('glpi_locations as l', 'l.id', '=', 'pu.locations_id')
+                        ->whereColumn('px.tickets_id', 't.id')
+                        ->where('px.type', 2)
+                        ->where(fn($x) => self::wherePais($x, $pais))))));
+    }
+
+    /** Subconsulta «el ticket t tiene una solución no rechazada». */
+    private static function solucionVigente($s)
+    {
+        return $s->selectRaw('1')->from('glpi_itilsolutions as sv')
+            ->whereColumn('sv.items_id', 't.id')->where('sv.itemtype', 'Ticket')->where('sv.status', '<>', 4);
     }
 
     /** Una fila por técnico asignado, con sus contadores crudos. */
     private function porTecnico(?Carbon $desde, ?Carbon $hasta, ?string $grupo, ?string $pais): array
     {
+        // Última solución no rechazada de cada ticket (punto 1).
+        $ultimaSolucion = DB::connection($this->dominio->glpi())->table('glpi_itilsolutions')
+            ->where('itemtype', 'Ticket')->where('status', '<>', 4)
+            ->selectRaw('items_id, max(id) as id')->groupBy('items_id');
+
         return $this->baseTickets($desde, $hasta, $grupo, $pais)
-            ->join('glpi_tickets_users as tu', fn($j) => $j->on('tu.tickets_id', '=', 't.id')->where('tu.type', 2))
-            ->join('glpi_users as u', 'u.id', '=', 'tu.users_id')
+            ->leftJoinSub($ultimaSolucion, 'us', 'us.items_id', '=', 't.id')
+            ->leftJoin('glpi_itilsolutions as so', 'so.id', '=', 'us.id')
+            // Sin solución registrada: cuenta para los técnicos asignados.
+            ->leftJoin('glpi_tickets_users as tu', fn($j) => $j->on('tu.tickets_id', '=', 't.id')->where('tu.type', 2)->whereNull('us.id'))
+            ->join('glpi_users as u', 'u.id', '=', DB::raw('coalesce(so.users_id, tu.users_id)'))
             ->leftJoin('glpi_locations as ul', 'ul.id', '=', 'u.locations_id')
             ->leftJoin('glpi_ticketsatisfactions as s', 's.tickets_id', '=', 't.id')
             ->selectRaw('u.id, u.name, u.firstname, u.realname, u.is_active, u.is_deleted, ul.completename as ubicacion')
@@ -199,7 +230,9 @@ class RankingTickets
             ->selectRaw('count(*) as total')
             ->selectRaw('sum(t.status = 5) as solucionados')
             ->selectRaw('sum(t.status = 6) as cerrados')
-            ->selectRaw('sum(not exists (select 1 from glpi_tickets_users x where x.tickets_id = t.id and x.type = 2)) as sin_tecnico')
+            // Sin nadie a quien contarlo: ni solución con autor ni técnico asignado.
+            ->selectRaw("sum(not exists (select 1 from glpi_itilsolutions s where s.items_id = t.id and s.itemtype = 'Ticket' and s.status <> 4)
+                             and not exists (select 1 from glpi_tickets_users x where x.tickets_id = t.id and x.type = 2)) as sin_tecnico")
             ->selectRaw('coalesce(sum(t.solve_delay_stat), 0) as seg_resolucion')
             ->selectRaw('sum(t.solve_delay_stat > 0) as con_tiempo')
             ->first();

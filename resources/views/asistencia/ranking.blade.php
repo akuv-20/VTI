@@ -71,7 +71,7 @@
         <div>
             <h4 class="mb-0"><i class="bi bi-trophy-fill me-2" style="color:#d97706"></i>Ranking de técnicos</h4>
             <small class="text-muted">
-                Tickets solucionados y cerrados por técnico asignado en el GLPI de Unifrutti &nbsp;·&nbsp; {{ $etiquetaPeriodo }}
+                Tickets solucionados y cerrados por quien los solucionó en el GLPI de Unifrutti &nbsp;·&nbsp; {{ $etiquetaPeriodo }}
                 @if($pais) &nbsp;·&nbsp; Técnicos de {{ $nombresPais[$pais] }} @endif
                 @if($grupo) &nbsp;·&nbsp; Grupo {{ $grupo }} @endif
             </small>
@@ -145,7 +145,7 @@
         ['Técnicos con tickets',   $resumen['tecnicos'],                          'bi-people-fill',    '#ede9fe', '#7c3aed', null],
         ['Promedio por técnico',   number_format($promedio, 1, ',', '.'),         'bi-bar-chart-fill', '#dcfce7', '#15803d', null],
         ['Tiempo medio resolución', $duracion($resumen['prom_resolucion']),       'bi-stopwatch-fill', '#fef3c7', '#d97706', 'Desde la apertura hasta la solución'],
-        ['Sin técnico asignado',   number_format($resumen['sin_tecnico'], 0, ',', '.'), 'bi-person-x-fill', '#fee2e2', '#dc2626', 'Resueltos sin técnico: no cuentan para nadie'],
+        ['Sin técnico',            number_format($resumen['sin_tecnico'], 0, ',', '.'), 'bi-person-x-fill', '#fee2e2', '#dc2626', 'Resueltos sin solución registrada ni técnico asignado: no cuentan para nadie'],
     ];
     @endphp
     <div class="row g-3 mb-4">
@@ -283,8 +283,8 @@
         </div>
         <div class="card-footer bg-white small text-muted">
             <i class="bi bi-info-circle me-1"></i>
-            Cada ticket cuenta para el técnico asignado en GLPI y se ubica en el periodo por su fecha de solución.
-            Un ticket con varios técnicos suma uno a cada uno, por eso la columna puede superar el total de tickets.
+            Cada ticket cuenta una sola vez, para quien escribió su última solución no rechazada en GLPI, y se ubica en el periodo por su fecha de solución.
+            Los cerrados sin solución registrada cuentan para su técnico asignado.
         </div>
     </div>
     @endif
