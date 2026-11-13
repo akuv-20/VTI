@@ -89,17 +89,9 @@ return [
     // (con servicio PING). Agregar un host a la carpeta basta para que
     // aparezca. El orden en pantalla lo decide su salud (el que falla sube).
     'enlaces' => [
+        // El nombre en pantalla es el alias del host en CheckMK; si no tiene
+        // alias, el nombre del host.
         'carpeta' => '/redes/monitoreo_enlaces_principales',
-        // Nombre en pantalla por host. Un host que no esté aquí se muestra con
-        // su alias de CheckMK, o con su nombre si no tiene alias.
-        'nombres' => [
-            '24.PLANTAOROVERDE'    => 'Planta Oro Verde',
-            '32.PLANTARAPEL.ADMIN' => 'Planta Rapel',
-            '8.PLANTAELNEVADO_VPN' => 'Planta El Nevado',
-            'VFPE-PARWIL'          => 'Perú · Parwil',
-            'VFPE-CLARO'           => 'Perú · Claro',
-            '200.CHICLAYO'         => 'Perú · Chiclayo',
-        ],
     ],
 
     'areas' => [

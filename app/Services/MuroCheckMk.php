@@ -255,15 +255,14 @@ class MuroCheckMk
      * Resumen de los enlaces para el panel: todos los hosts de la carpeta de
      * CheckMK 'enlaces.carpeta' de config/muro.php (con sus subcarpetas), así
      * que un host nuevo en esa carpeta aparece solo, en a lo más un minuto.
-     * El nombre en pantalla sale de 'enlaces.nombres'; si el host no está ahí,
-     * del alias de CheckMK, y si no tiene alias, del nombre del host.
+     * El nombre en pantalla es el alias del host en CheckMK; si no tiene
+     * alias, el nombre del host.
      */
     public function enlaces(): array
     {
         $r = $this->recordar('muro_enlaces', 55, function () {
             $carpeta = trim((string) config('muro.enlaces.carpeta', ''), '/');
             if ($carpeta === '') throw new \RuntimeException('Falta enlaces.carpeta en config/muro.php');
-            $nombres = config('muro.enlaces.nombres', []);
 
             $hosts = $this->cmk->consultarHosts(
                 ['name', 'alias', 'address', 'last_hard_state_change'],
@@ -271,7 +270,7 @@ class MuroCheckMk
             )->keyBy('name');
             $lista = $hosts->map(fn($h) => [
                 'host'   => $h['name'],
-                'nombre' => $nombres[$h['name']] ?? (($h['alias'] ?? '') !== '' ? $h['alias'] : $h['name']),
+                'nombre' => trim((string) ($h['alias'] ?? '')) ?: $h['name'],
             ])->sortBy('nombre', SORT_NATURAL | SORT_FLAG_CASE)->values();
 
             $hasta = now()->timestamp;
