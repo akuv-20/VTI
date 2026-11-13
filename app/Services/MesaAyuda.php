@@ -22,6 +22,7 @@ class MesaAyuda
 {
     private const CACHE     = 20;   // segundos; la pantalla pide cada 30
     private const ULTIMOS   = 8;
+    private const NUEVOS    = 4;
     private const ABIERTOS  = [1, 2, 3, 4];
 
     public function estado(): array
@@ -63,12 +64,28 @@ class MesaAyuda
                 if ($p) $porPais[$p] += (int) $r->n;
             });
 
+        // «ultimos» alimenta los eventos (entra un ticket, cambia de estado);
+        // «nuevos» es lo que se lista: los tickets que nadie ha tomado aún.
+        $columnas = ['t.id', 't.name', 't.status', 't.date', 't.solvedate', 't.priority', 'c.name as categoria'];
         $ultimos = $base()->orderByDesc('t.id')->limit(self::ULTIMOS)
-            ->leftJoin('glpi_itilcategories as c', 'c.id', '=', 't.itilcategories_id')
-            ->get(['t.id', 't.name', 't.status', 't.date', 't.solvedate', 't.priority', 'c.name as categoria']);
-        $tecnicos = $db->table('glpi_tickets_users as tu')->where('tu.type', 2)->whereIn('tu.tickets_id', $ultimos->pluck('id'))
+            ->leftJoin('glpi_itilcategories as c', 'c.id', '=', 't.itilcategories_id')->get($columnas);
+        $nuevos = $base()->where('t.status', 1)->orderByDesc('t.id')->limit(self::NUEVOS)
+            ->leftJoin('glpi_itilcategories as c', 'c.id', '=', 't.itilcategories_id')->get($columnas);
+        $tecnicos = $db->table('glpi_tickets_users as tu')->where('tu.type', 2)->whereIn('tu.tickets_id', $ultimos->pluck('id')->merge($nuevos->pluck('id'))->unique())
             ->join('glpi_users as u', 'u.id', '=', 'tu.users_id')
             ->get(['tu.tickets_id', 'u.firstname', 'u.realname', 'u.name'])->groupBy('tickets_id');
+        $ficha = fn($t) => [
+            'id'        => (int) $t->id,
+            'titulo'    => Str::limit(trim($t->name), 90),
+            'estado'    => (int) $t->status,
+            // La sesión está en hora de Chile y la app en UTC: hay que decirle la zona.
+            'fecha'     => $t->date ? \Illuminate\Support\Carbon::parse($t->date, RankingTickets::ZONA)->timestamp : null,
+            'categoria' => $t->categoria,
+            'prioridad' => (int) $t->priority,
+            'tecnico'   => optional(($tecnicos[$t->id] ?? collect())->first(), fn($u) => trim(
+                Str::before(Str::title(mb_strtolower((string) $u->firstname)) . ' ', ' ') . ' ' . Str::before(Str::title(mb_strtolower((string) $u->realname)) . ' ', ' ')
+            ) ?: Str::before($u->name, '@')),
+        ];
 
         return [
             'cola' => [
@@ -87,18 +104,8 @@ class MesaAyuda
                 'solucionados' => $base()->where('t.solvedate', '>=', $hoy)->count(),
                 'cerrados'     => $base()->where('t.closedate', '>=', $hoy)->count(),
             ],
-            'ultimos' => $ultimos->map(fn($t) => [
-                'id'        => (int) $t->id,
-                'titulo'    => Str::limit(trim($t->name), 90),
-                'estado'    => (int) $t->status,
-                // La sesión está en hora de Chile y la app en UTC: hay que decirle la zona.
-                'fecha'     => $t->date ? \Illuminate\Support\Carbon::parse($t->date, RankingTickets::ZONA)->timestamp : null,
-                'categoria' => $t->categoria,
-                'prioridad' => (int) $t->priority,
-                'tecnico'   => optional(($tecnicos[$t->id] ?? collect())->first(), fn($u) => trim(
-                    Str::before(Str::title(mb_strtolower((string) $u->firstname)) . ' ', ' ') . ' ' . Str::before(Str::title(mb_strtolower((string) $u->realname)) . ' ', ' ')
-                ) ?: Str::before($u->name, '@')),
-            ])->values()->all(),
+            'ultimos' => $ultimos->map($ficha)->values()->all(),
+            'nuevos'  => $nuevos->map($ficha)->values()->all(),
         ];
     }
 }

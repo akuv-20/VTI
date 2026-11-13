@@ -40,8 +40,10 @@
 |   mesa                mesa de ayuda del GLPI de Unifrutti: cola, movimiento
 |                       del día y últimos tickets, con aviso de lo que cambia
 |
-| Cualquier panel acepta 'ancho' => n para ocupar n partes de su fila, y
-| 'alto' => '13rem' para fijarle la altura.
+| Cualquier panel acepta 'ancho' => n para ocupar n partes de su fila,
+| 'alto' => '13rem' para fijarle la altura y 'crece' => true para que tome el
+| alto libre de su columna (sin bajar de lo que necesita su contenido). En una
+| fila con 'crece', 'alto' es la altura mínima.
 |   vacio               hueco, para respetar la distribución original
 |   libre               hueco marcado que ocupa el alto libre de su columna,
 |                       reservado para un panel futuro ('titulo', 'nota')
@@ -83,17 +85,21 @@ return [
         ['nombre' => 'ChatGPT',    'fuente' => 'statuspage', 'url' => 'https://status.openai.com/api/v2/summary.json'],
     ],
 
-    // Enlaces del panel «enlaces»: un host de CheckMK con servicio PING cada
-    // uno. El orden en pantalla lo decide su salud (el que falla sube).
+    // Enlaces del panel «enlaces»: todos los hosts de esta carpeta de CheckMK
+    // (con servicio PING). Agregar un host a la carpeta basta para que
+    // aparezca. El orden en pantalla lo decide su salud (el que falla sube).
     'enlaces' => [
-        // Longaví no tiene host de red propio en CheckMK; se mide con el NVR
-        // de portería. Cambiar aquí si el enlace es otro equipo.
-        ['nombre' => 'Planta Longaví',   'host' => 'NVR-Longavi_Porteria'],
-        ['nombre' => 'Planta Oro Verde', 'host' => '24.PLANTAOROVERDE'],
-        ['nombre' => 'Planta Rapel',     'host' => '3.PLANTARAPEL'],
-        ['nombre' => 'Perú · Parwil',    'host' => 'VFPE-PARWIL'],
-        ['nombre' => 'Perú · Claro',     'host' => 'VFPE-CLARO'],
-        ['nombre' => 'Perú · Chiclayo',  'host' => '200.CHICLAYO'],
+        'carpeta' => '/redes/monitoreo_enlaces_principales',
+        // Nombre en pantalla por host. Un host que no esté aquí se muestra con
+        // su alias de CheckMK, o con su nombre si no tiene alias.
+        'nombres' => [
+            '24.PLANTAOROVERDE'    => 'Planta Oro Verde',
+            '32.PLANTARAPEL.ADMIN' => 'Planta Rapel',
+            '8.PLANTAELNEVADO_VPN' => 'Planta El Nevado',
+            'VFPE-PARWIL'          => 'Perú · Parwil',
+            'VFPE-CLARO'           => 'Perú · Claro',
+            '200.CHICLAYO'         => 'Perú · Chiclayo',
+        ],
     ],
 
     'areas' => [
@@ -103,12 +109,16 @@ return [
             $tabla('Escritorio Remoto Chile', '/terminalcl_2'),
             $tabla('Escritorio Remoto Peru', '/terminal_pe_2'),
             $tabla('Escritorio Remoto Peru', '/terminal_ufpe'),
+            // La columna izquierda baja hasta el fondo de la pantalla (ver la
+            // grilla en la vista): ESXi cierra la columna.
+            $tabla('ESXi Servers', '/esxi', ['cpu', 'ram_gib', 'uptime']),
         ],
 
         'segmentos' => [
             ['tipo' => 'lista', 'titulo' => 'Segmentos Verfrut', 'carpeta' => '/redes'],
-            // Ocupa el alto que deja libre la lista.
-            ['tipo' => 'servicios', 'titulo' => 'Servicios críticos'],
+            // Pegado al final de la lista, alto fijo y compacto. Donde termina
+            // esta columna empiezan los enlaces.
+            ['tipo' => 'servicios', 'titulo' => 'Servicios críticos', 'alto' => '9.5rem'],
         ],
 
         'centro' => [
@@ -120,8 +130,15 @@ return [
                 ['tipo' => 'hexagono_servicios', 'titulo' => 'SSL Sitios Verfrut',    'carpeta' => '/ssl'],
                 ['tipo' => 'hexagono_hosts',     'titulo' => 'Antenas Punto a Punto', 'carpeta' => '/enlaces_ptp'],
             ]),
-            // Donde iban los gráficos de enlaces. Reemplazar por el próximo panel.
+            // El alto libre de la columna se reparte por mitades: arriba un
+            // espacio reservado y abajo los podios.
             ['tipo' => 'libre', 'titulo' => 'Espacio libre'],
+            // Un podio por país, lado a lado (con un solo país no rota), con un
+            // mínimo de 13rem.
+            $fila([
+                ['tipo' => 'ranking', 'titulo' => 'Ranking técnicos', 'paises' => ['chile']],
+                ['tipo' => 'ranking', 'titulo' => 'Ranking técnicos', 'paises' => ['peru']],
+            ]) + ['crece' => true, 'alto' => '13rem'],
         ],
 
         'derecha' => [
@@ -132,16 +149,7 @@ return [
                 ['tipo' => 'servidor', 'titulo' => 'VFSTBD02', 'host' => 'VFSTBD02'],
             ]),
             // Mesa de ayuda (GLPI de Unifrutti): ocupa lo que liberó compactar las BD.
-            ['tipo' => 'mesa', 'titulo' => 'Mesa de ayuda · GLPI'],
-            // Un podio por país, lado a lado (con un solo país no rota).
-            $fila([
-                ['tipo' => 'ranking', 'titulo' => 'Ranking técnicos', 'paises' => ['chile'], 'alto' => '13rem'],
-                ['tipo' => 'ranking', 'titulo' => 'Ranking técnicos', 'paises' => ['peru'],  'alto' => '13rem'],
-            ]),
-        ],
-
-        'abajo_izq' => [
-            $tabla('ESXi Servers', '/esxi', ['cpu', 'ram_gib', 'uptime']),
+            ['tipo' => 'mesa', 'titulo' => 'Mesa de ayuda · GLPI', 'crece' => true],
         ],
 
         'abajo' => [

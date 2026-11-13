@@ -76,15 +76,19 @@
 
         /* ── Grilla: misma distribución que el dashboard de CheckMK ───────── */
         .muro { height:calc(100% - 3.4rem); padding:.35rem; display:grid; gap:.35rem;
-                grid-template-columns:34fr 10fr 22fr 34fr; grid-template-rows:minmax(0, 1fr) auto;
-                grid-template-areas:"izquierda segmentos centro derecha" "abajo_izq abajo abajo abajo"; }
+                grid-template-columns:34fr 10fr 22fr 34fr; grid-template-rows:auto minmax(0, 1fr);
+                /* La columna izquierda baja hasta el fondo. A su lado, la fila de
+                   arriba mide lo que su contenido necesita (la más alta suele ser
+                   Segmentos + Servicios críticos) y los enlaces toman todo el resto,
+                   así crecen hacia arriba cuando se agregan enlaces. */
+                grid-template-areas:"izquierda segmentos centro derecha" "izquierda abajo abajo abajo"; }
         .area { display:flex; flex-direction:column; gap:.35rem; min-height:0; min-width:0; }
         .fila { display:flex; gap:.35rem; min-width:0; }
         .fila > * { flex:1; min-width:0; }
         .crece { flex:1 1 0; min-height:5rem; }
         .fila.crece > .panel { height:100%; }
         #area-abajo .fila { height:100%; }
-        #area-abajo { min-height:15rem; }
+        #area-abajo { min-height:12rem; }
 
         .panel { background:var(--panel); border:1px solid var(--line); display:flex; flex-direction:column; min-width:0; position:relative; }
         .panel > h2 { font-size:.82rem; font-weight:700; text-align:center; padding:.3rem .4rem; background:var(--panel-2);
@@ -245,7 +249,12 @@
         .enl-cab .cont span { display:flex; align-items:center; gap:.3rem; border:1px solid var(--line); border-radius:999px; padding:0 .5rem; }
         .enl-cab .cont i { width:.5rem; height:.5rem; border-radius:50%; background:var(--c); }
         .enl-cab .cont b { color:var(--txt); font-variant-numeric:tabular-nums; }
-        .enl-lista { flex:1; min-height:0; display:grid; grid-auto-rows:minmax(0, 1fr); position:relative; }
+        /* Filas de alto fijo desde arriba: con pocos enlaces no se estiran, y
+           el espacio de abajo queda para los que se agreguen. */
+        .enl-lista { flex:1; min-height:0; display:grid; grid-auto-rows:2.4rem; align-content:start; position:relative; }
+        /* Con muchos enlaces, dos columnas (el orden por salud va por filas). */
+        .enl-lista.dos { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+        .enl-lista.dos .enl-f:nth-child(odd) { border-right:1px solid var(--line); }
         .enl-f { --c:var(--ok); position:relative; display:grid; grid-template-columns:.8rem minmax(7rem, 1fr) 6.6rem minmax(5rem, 1fr) minmax(10rem, 3fr) 4.6rem minmax(7rem, 1.2fr);
                  gap:.8rem; align-items:center; padding:0 .8rem; border-bottom:1px solid rgba(255,255,255,.04); cursor:pointer; min-height:0; overflow:hidden; }
         .enl-f:hover { background:rgba(255,255,255,.03); }
@@ -290,23 +299,22 @@
         .md-rango { border:1px solid var(--line); background:transparent; color:var(--muted); font:inherit; font-size:.85em; font-weight:700; padding:.25em .8em; border-radius:3px; }
         .md-rango.on { border-color:var(--hud); color:var(--hud); background:rgba(var(--hud-rgb),.12); }
 
-        /* ── Servicios críticos: mosaico que se arma en una columna si el
-           panel es angosto y en dos si es ancho; mismo criterio de tamaño que
-           el podio (absoluto y en unidades del contenedor). ───────────────── */
+        /* ── Servicios críticos: mosaico de dos columnas y alto fijo (lo da
+           'alto' en config/muro.php), para dejar el espacio a los enlaces. ── */
         .svc-caja { flex:1; position:relative; min-height:0; container-type:size; }
-        .svc { position:absolute; inset:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(11rem, 1fr));
-               grid-auto-rows:minmax(0, 1fr); gap:.35rem; padding:.4rem; }
-        .svc-t { --c:#5b6b78; display:flex; flex-direction:column; justify-content:center; min-width:0; min-height:0; overflow:hidden; padding:0 .6rem;
+        .svc { position:absolute; inset:0; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr));
+               grid-auto-rows:minmax(0, 1fr); gap:.3rem; padding:.35rem; }
+        .svc-t { --c:#5b6b78; display:flex; flex-direction:column; justify-content:center; min-width:0; min-height:0; overflow:hidden; padding:0 .4rem;
                  border-left:.3rem solid var(--c); background:color-mix(in srgb, var(--c) 14%, transparent); border-radius:2px; }
         /* Clases con prefijo: «.aviso» ya es el cartel de caídas (fijo arriba)
            y un recuadro en amarillo salía volando del panel. */
         .svc-t.svc-ok { --c:var(--ok); } .svc-t.svc-aviso { --c:var(--warn); } .svc-t.svc-critico { --c:var(--crit); } .svc-t.svc-mant { --c:#64b5f6; }
         .svc-t.svc-critico { animation:latido-svc 1.2s ease-in-out infinite; }
         @keyframes latido-svc { 50% { background:color-mix(in srgb, var(--crit) 38%, transparent); } }
-        .svc-t b { font-size:min(1.1rem, 34cqh); line-height:1.15; display:flex; align-items:center; gap:.35em; min-width:0; }
+        .svc-t b { font-size:min(.88rem, 34cqh); line-height:1.15; display:flex; align-items:center; gap:.35em; min-width:0; }
         .svc-t b i { width:.55em; height:.55em; border-radius:50%; background:var(--c); flex-shrink:0; box-shadow:0 0 .4em var(--c); }
         .svc-t b em { font-style:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .svc-t span { font-size:min(.78rem, 22cqh); line-height:1.2; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .svc-t span { font-size:min(.64rem, 22cqh); line-height:1.2; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
         /* ── Caída nueva: la fila crece, late y queda encima de todo ──────── */
         .alarma { z-index:50 !important; }
@@ -557,7 +565,8 @@
         .mk .delta { position:absolute; right:.5rem; top:.35rem; font-family:var(--f-mono); font-weight:700; font-size:.85rem; color:var(--fx); animation:mk-delta 2.4s ease-out forwards; pointer-events:none; }
         @keyframes mk-delta { 0% { opacity:0; transform:translateY(.6rem) scale(.8); } 15% { opacity:1; transform:none; } 70% { opacity:1; } 100% { opacity:0; transform:translateY(-.8rem); } }
         .mesa-t { display:flex; justify-content:space-between; align-items:center; padding:.3rem .65rem .15rem; font-family:var(--f-display); font-weight:700; font-size:.6rem; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; }
-        .mesa-l { flex:1; min-height:0; overflow:hidden; position:relative; }
+        .mesa-l { flex:none; position:relative; }
+        .mt-vacio { padding:.6rem .65rem; font-size:.74rem; color:var(--ok); }
         .mt { --c:var(--muted); display:grid; grid-template-columns:3.4rem minmax(0, 1fr) 6.2rem 4.4rem; gap:.6rem; align-items:center; padding:.32rem .65rem; border-bottom:1px solid rgba(255,255,255,.035); font-size:.74rem; }
         .mt .id { font-family:var(--f-mono); color:var(--muted); font-size:.7rem; }
         .mt .ti { min-width:0; }
@@ -840,6 +849,8 @@
             const f = el('div', 'fila');
             p.paneles.forEach(x => f.appendChild(crear(x)));
             if (p.crece || p.paneles.some(x => x.tipo === 'grafico')) f.classList.add('crece');
+            // En una fila que crece, 'alto' es el mínimo.
+            if (p.alto) f.style.minHeight = p.alto;
             return f;
         }
         if (p.tipo === 'vacio') return el('div', 'panel vacio');
@@ -856,8 +867,10 @@
         if (!fabrica) return panel;
         const actualizar = fabrica(panel, p);
         if (actualizar) paneles.push({ p, actualizar, panel });
-        if (['grafico', 'servicios', 'enlaces', 'mesa'].includes(p.tipo)) panel.classList.add('crece');
-        if (p.alto) { panel.style.height = p.alto; panel.style.flexShrink = '0'; }
+        if (['grafico', 'servicios', 'enlaces'].includes(p.tipo)) panel.classList.add('crece');
+        // 'crece' en cualquier panel: toma el alto libre, pero nunca menos que su contenido.
+        if (p.crece) { panel.classList.add('crece'); panel.style.minHeight = 'auto'; }
+        if (p.alto) { panel.style.height = p.alto; panel.style.flex = '0 0 auto'; }
         return panel;
     }
 
@@ -1576,7 +1589,10 @@
     function pintarEnlaces() {
         enl.cajas.forEach(caja => {
             const lista = caja.querySelector('.enl-lista');
-            const antes = new Map([...lista.children].map(f => [f.dataset.host, f.getBoundingClientRect().top]));
+            const antes = new Map([...lista.children].map(f => { const r = f.getBoundingClientRect(); return [f.dataset.host, [r.left, r.top]]; }));
+            // Un enlace que salió de la carpeta de CheckMK se quita.
+            const vigentes = new Set(enl.datos.map(e => e.host));
+            [...lista.children].forEach(f => { if (!vigentes.has(f.dataset.host)) f.remove(); });
 
             enl.datos.forEach(e => {
                 let f = lista.querySelector(`[data-host="${CSS.escape(e.host)}"]`);
@@ -1611,10 +1627,18 @@
             const orden = [...enl.datos].sort((a, b) => (ORDEN_ENL[estadoEnlace(a)] - ORDEN_ENL[estadoEnlace(b)])
                 || (b.bloques.slice(-12).reduce((s, v) => s + (v || 0), 0) - a.bloques.slice(-12).reduce((s, v) => s + (v || 0), 0)));
             orden.forEach(e => lista.appendChild(lista.querySelector(`[data-host="${CSS.escape(e.host)}"]`)));
+
+            // El panel crece con la cantidad de enlaces (la grilla le cede alto a
+            // la fila de abajo) y desde 9 enlaces pasa a dos columnas.
+            const total = enl.datos.length, cols = total > 8 ? 2 : 1;
+            lista.classList.toggle('dos', cols === 2);
+            caja.style.minHeight = `calc(1.8rem + ${Math.max(1, Math.ceil(total / cols))} * 2.4rem)`;
+
             if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
                 [...lista.children].forEach(f => {
-                    const d = (antes.get(f.dataset.host) ?? f.getBoundingClientRect().top) - f.getBoundingClientRect().top;
-                    if (Math.abs(d) > 2) f.animate([{ transform: `translateY(${d}px)` }, { transform: 'none' }], { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
+                    const r = f.getBoundingClientRect(), [x0, y0] = antes.get(f.dataset.host) ?? [r.left, r.top];
+                    const dx = x0 - r.left, dy = y0 - r.top;
+                    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) f.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
                 });
             }
 
@@ -1625,6 +1649,8 @@
             caja.querySelector('.cont').innerHTML = Object.keys(ORDEN_ENL).filter(k => n[k])
                 .map(k => `<span style="--c:${COLOR_ENL[k]}"><i></i>${ETQ_ENL[k].charAt(0) + ETQ_ENL[k].slice(1).toLowerCase()} <b>${n[k]}</b></span>`).join('');
         });
+        // Si cambió la cantidad de enlaces, cambió el alto del panel: reencajar.
+        if (enl.datos.length !== enl.cuantos) { enl.cuantos = enl.datos.length; encajar(); }
         pintarPulsos();
     }
 
@@ -1779,7 +1805,7 @@
     function crearMesa(panel) {
         const caja = el('div', 'mesa-c', `<div class="mesa-k">${MESA_KPI.map(([k, t, c]) =>
                 `<div class="mk" data-k="${k}" style="--c:${c}"><small>${t}</small><b>—</b><span>&nbsp;</span></div>`).join('')}</div>
-            <div class="mesa-t"><span>Últimos tickets</span><span class="act"></span></div>
+            <div class="mesa-t"><span class="tit">Tickets nuevos</span><span class="act"></span></div>
             <div class="mesa-l"></div>
             <div class="mesa-ev"><span class="rot">EVENTOS</span><span class="evs">esperando novedades…</span></div>`);
         panel.appendChild(caja);
@@ -1841,11 +1867,12 @@
                 }
             });
 
-            const lista = caja.querySelector('.mesa-l');
-            lista.innerHTML = d.ultimos.map(t => {
+            // Solo los tickets nuevos (sin tomar), los 4 más recientes.
+            const lista = caja.querySelector('.mesa-l'), nuevos = d.nuevos || [];
+            caja.querySelector('.tit').textContent = d.cola.nuevos > nuevos.length ? `Tickets nuevos · ${nuevos.length} de ${d.cola.nuevos}` : 'Tickets nuevos';
+            lista.innerHTML = !nuevos.length ? '<div class="mt-vacio">Sin tickets nuevos en cola</div>' : nuevos.map(t => {
                 const [txt, col] = MESA_EST[t.estado] || ['—', 'var(--muted)'];
-                const previo = a?.tickets.get(t.id);
-                const clase = !a ? '' : previo == null ? 'nuevo' : previo !== t.estado ? 'cambia' : '';
+                const clase = a && !a.nuevos.has(t.id) ? 'nuevo' : '';
                 return `<div class="mt ${clase}" style="--c:${col}"><span class="id">#${t.id}</span>
                     <div class="ti"><b title="${esc(t.titulo)}">${esc(t.titulo)}</b><span>${esc(t.categoria || 'Sin categoría')} · ${t.tecnico ? esc(t.tecnico) : '<span style="color:var(--warn);display:inline">sin asignar</span>'}</span></div>
                     <span class="es">${txt}</span><span class="ha">hace ${hace(t.fecha)}</span></div>`;
@@ -1864,7 +1891,7 @@
                 eventoMesa(`${v.solucionados - a.v.solucionados} ticket${v.solucionados - a.v.solucionados > 1 ? 's' : ''} solucionado${v.solucionados - a.v.solucionados > 1 ? 's' : ''}`);
             }
         }
-        mesa.antes = { v, tickets: new Map(d.ultimos.map(t => [t.id, t.estado])), maxId: Math.max(0, ...d.ultimos.map(t => t.id)) };
+        mesa.antes = { v, nuevos: new Set((d.nuevos || []).map(t => t.id)), tickets: new Map(d.ultimos.map(t => [t.id, t.estado])), maxId: Math.max(0, ...d.ultimos.map(t => t.id)) };
     }
 
     /* ── Servidor ───────────────────────────────────────────────────────────

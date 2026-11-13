@@ -251,11 +251,29 @@ class MuroCheckMk
     private const BLOQUES_ENLACE = 48;   // 4 h en bloques de 5 min
     private const RANGOS_ENLACE  = [4, 24, 168];
 
-    /** Resumen de todos los enlaces de config/muro.php para el panel. */
+    /**
+     * Resumen de los enlaces para el panel: todos los hosts de la carpeta de
+     * CheckMK 'enlaces.carpeta' de config/muro.php (con sus subcarpetas), así
+     * que un host nuevo en esa carpeta aparece solo, en a lo más un minuto.
+     * El nombre en pantalla sale de 'enlaces.nombres'; si el host no está ahí,
+     * del alias de CheckMK, y si no tiene alias, del nombre del host.
+     */
     public function enlaces(): array
     {
         $r = $this->recordar('muro_enlaces', 55, function () {
-            $lista = collect(config('muro.enlaces', []));
+            $carpeta = trim((string) config('muro.enlaces.carpeta', ''), '/');
+            if ($carpeta === '') throw new \RuntimeException('Falta enlaces.carpeta en config/muro.php');
+            $nombres = config('muro.enlaces.nombres', []);
+
+            $hosts = $this->cmk->consultarHosts(
+                ['name', 'alias', 'address', 'last_hard_state_change'],
+                ['op' => '~', 'left' => 'filename', 'right' => '^/wato/' . preg_quote($carpeta) . '/']
+            )->keyBy('name');
+            $lista = $hosts->map(fn($h) => [
+                'host'   => $h['name'],
+                'nombre' => $nombres[$h['name']] ?? (($h['alias'] ?? '') !== '' ? $h['alias'] : $h['name']),
+            ])->sortBy('nombre', SORT_NATURAL | SORT_FLAG_CASE)->values();
+
             $hasta = now()->timestamp;
             $pedidos = [];
             foreach ($lista as $i => $e) {
@@ -264,11 +282,6 @@ class MuroCheckMk
                 }
             }
             $series = $pedidos ? $this->cmk->seriesHistoricas($pedidos) : [];
-
-            $hosts = $lista->isEmpty() ? collect() : $this->cmk->consultarHosts(
-                ['name', 'address', 'last_hard_state_change'],
-                ['op' => 'or', 'expr' => $lista->map(fn($e) => ['op' => '=', 'left' => 'name', 'right' => $e['host']])->values()->all()]
-            )->keyBy('name');
 
             return ['enlaces' => $lista->map(function ($e, $i) use ($series, $hosts) {
                 $pl  = $series["{$i}|pl"]['datos'] ?? [];
@@ -309,7 +322,9 @@ class MuroCheckMk
     /** Serie de un enlace para el modal: pérdida y latencia en 4 h, 24 h o 7 días. */
     public function serieEnlace(string $host, int $horas): ?array
     {
-        if (!collect(config('muro.enlaces', []))->contains('host', $host)) return null;
+        // Solo hosts del panel: el modo TV es público.
+        $todos = $this->enlaces();
+        if (!$todos['ok'] || !collect($todos['enlaces'])->contains('host', $host)) return null;
         if (!in_array($horas, self::RANGOS_ENLACE, true)) $horas = 4;
 
         $r = $this->recordar('muro_enlace_' . md5("{$host}|{$horas}"), $horas === 4 ? 55 : 300, function () use ($host, $horas) {
