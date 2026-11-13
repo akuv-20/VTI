@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Configuracion;
 use App\Services\MuroCheckMk;
 use App\Services\RankingTickets;
+use App\Services\ServiciosCriticos;
+use Illuminate\Http\Request;
 
 /**
  * Muro de monitoreo: réplica del dashboard principal de CheckMK para la TV,
@@ -26,6 +28,13 @@ class MonitoreoMuroController extends Controller
             'urlEstado'   => route('admin.monitoreo.muro.estado'),
             'urlGraficos' => route('admin.monitoreo.muro.graficos'),
             'urlRanking'  => route('admin.monitoreo.muro.ranking'),
+            'urlServicios' => route('admin.monitoreo.muro.servicios'),
+            'urlCarpeta'   => route('admin.monitoreo.muro.carpeta'),
+            'urlEnlaces'   => route('admin.monitoreo.muro.enlaces'),
+            'urlEnlace'    => route('admin.monitoreo.muro.enlace'),
+            // Enlace a CheckMK desde el modal; en modo TV no hay quien lo use.
+            'urlCheckmk'   => ($u = rtrim((string) Configuracion::get('checkmk_url', ''), '/')) && ($s = trim((string) Configuracion::get('checkmk_site', '')))
+                                ? "{$u}/{$s}/check_mk/" : null,
             'urlTv'       => $token !== '' ? route('monitoreo.tv.muro', $token) : null,
             'modoTv'    => false,
         ] + $this->config());
@@ -41,9 +50,36 @@ class MonitoreoMuroController extends Controller
         return response()->json($muro->graficos());
     }
 
+    /** Detalle de la carpeta de un hexágono, para el modal (ver MuroCheckMk::detalleCarpeta). */
+    public function carpeta(Request $request, MuroCheckMk $muro)
+    {
+        $d = $muro->detalleCarpeta((string) $request->query('carpeta'));
+        abort_if($d === null, 404);
+
+        return response()->json($d);
+    }
+
+    public function enlaces(MuroCheckMk $muro)
+    {
+        return response()->json($muro->enlaces());
+    }
+
+    public function enlace(Request $request, MuroCheckMk $muro)
+    {
+        $d = $muro->serieEnlace((string) $request->query('host'), (int) $request->query('horas', 4));
+        abort_if($d === null, 404);
+
+        return response()->json($d);
+    }
+
     public function ranking()
     {
         return response()->json($this->podio());
+    }
+
+    public function servicios(ServiciosCriticos $servicios)
+    {
+        return response()->json($servicios->estado(config('muro.servicios', [])));
     }
 
     /* ── Modo TV (público, autenticado por token) ─────────────────────────── */
@@ -56,6 +92,11 @@ class MonitoreoMuroController extends Controller
             'urlEstado'   => route('monitoreo.tv.muro.estado', $token),
             'urlGraficos' => route('monitoreo.tv.muro.graficos', $token),
             'urlRanking'  => route('monitoreo.tv.muro.ranking', $token),
+            'urlServicios' => route('monitoreo.tv.muro.servicios', $token),
+            'urlCarpeta'   => route('monitoreo.tv.muro.carpeta', $token),
+            'urlEnlaces'   => route('monitoreo.tv.muro.enlaces', $token),
+            'urlEnlace'    => route('monitoreo.tv.muro.enlace', $token),
+            'urlCheckmk'   => null,
             'urlTv'       => null,
             'modoTv'    => true,
         ] + $this->config());
@@ -80,6 +121,34 @@ class MonitoreoMuroController extends Controller
         $this->validarTokenTv($token);
 
         return response()->json($this->podio());
+    }
+
+    public function tvEnlaces(string $token, MuroCheckMk $muro)
+    {
+        $this->validarTokenTv($token);
+
+        return $this->enlaces($muro);
+    }
+
+    public function tvEnlace(string $token, Request $request, MuroCheckMk $muro)
+    {
+        $this->validarTokenTv($token);
+
+        return $this->enlace($request, $muro);
+    }
+
+    public function tvCarpeta(string $token, Request $request, MuroCheckMk $muro)
+    {
+        $this->validarTokenTv($token);
+
+        return $this->carpeta($request, $muro);
+    }
+
+    public function tvServicios(string $token, ServiciosCriticos $servicios)
+    {
+        $this->validarTokenTv($token);
+
+        return response()->json($servicios->estado(config('muro.servicios', [])));
     }
 
     /* ── Apoyo ────────────────────────────────────────────────────────────── */

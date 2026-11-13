@@ -241,6 +241,210 @@ class MuroCheckMk
         return $res;
     }
 
+    /* ── Enlaces (panel «enlaces») ────────────────────────────────────────── */
+    //
+    // Cada enlace es un host de CheckMK con servicio PING. Del servicio se
+    // leen dos métricas: `pl` (pérdida, %) y `rta` (latencia, en segundos).
+    // El estado UP/DOWN del host no se pide aquí: la pantalla ya lo recibe
+    // cada 5 s en estado().
+
+    private const BLOQUES_ENLACE = 48;   // 4 h en bloques de 5 min
+    private const RANGOS_ENLACE  = [4, 24, 168];
+
+    /** Resumen de todos los enlaces de config/muro.php para el panel. */
+    public function enlaces(): array
+    {
+        $r = $this->recordar('muro_enlaces', 55, function () {
+            $lista = collect(config('muro.enlaces', []));
+            $hasta = now()->timestamp;
+            $pedidos = [];
+            foreach ($lista as $i => $e) {
+                foreach (['pl', 'rta'] as $m) {
+                    $pedidos["{$i}|{$m}"] = ['host' => $e['host'], 'servicio' => 'PING', 'metrica' => $m, 'desde' => $hasta - 4 * 3600, 'hasta' => $hasta];
+                }
+            }
+            $series = $pedidos ? $this->cmk->seriesHistoricas($pedidos) : [];
+
+            $hosts = $lista->isEmpty() ? collect() : $this->cmk->consultarHosts(
+                ['name', 'address', 'last_hard_state_change'],
+                ['op' => 'or', 'expr' => $lista->map(fn($e) => ['op' => '=', 'left' => 'name', 'right' => $e['host']])->values()->all()]
+            )->keyBy('name');
+
+            return ['enlaces' => $lista->map(function ($e, $i) use ($series, $hosts) {
+                $pl  = $series["{$i}|pl"]['datos'] ?? [];
+                $rta = array_map(fn($v) => $v === null ? null : round($v * 1000, 1), $series["{$i}|rta"]['datos'] ?? []);
+
+                // Bloques de 5 min con la peor pérdida del bloque: un corte de
+                // un minuto tiene que verse, y el promedio lo diluiría.
+                $porBloque = max(1, intdiv(count($pl), self::BLOQUES_ENLACE) ?: 1);
+                $bloques = [];
+                foreach (array_chunk(array_slice($pl, -$porBloque * self::BLOQUES_ENLACE), $porBloque) as $trozo) {
+                    $v = array_filter($trozo, fn($x) => $x !== null);
+                    $bloques[] = $v ? (int) round(max($v)) : null;
+                }
+                $conDatos = array_filter($pl, fn($x) => $x !== null);
+                $lat = array_slice($rta, -60);   // la última hora, minuto a minuto
+                $latValidas = array_filter($rta, fn($x) => $x !== null);
+                $h = $hosts[$e['host']] ?? [];
+
+                return [
+                    'nombre'    => $e['nombre'],
+                    'host'      => $e['host'],
+                    'proveedor' => $e['proveedor'] ?? null,
+                    'ip'        => $h['address'] ?? null,
+                    'desde'     => (int) ($h['last_hard_state_change'] ?? 0) ?: null,
+                    'bloques'   => array_pad($bloques, -self::BLOQUES_ENLACE, null),
+                    'disponible' => $conDatos ? round(100 - array_sum($conDatos) / count($conDatos), 2) : null,
+                    'latencia'  => $lat,
+                    'lat_ult'   => self::ultimo($rta),
+                    'lat_prom'  => $latValidas ? round(array_sum($latValidas) / count($latValidas), 1) : null,
+                    'sin_datos' => !$conDatos,
+                ];
+            })->values()->all()];
+        });
+
+        return $r['ok'] ? ['ok' => true] + $r['datos'] + ['generado' => $r['generado']] : $r;
+    }
+
+    /** Serie de un enlace para el modal: pérdida y latencia en 4 h, 24 h o 7 días. */
+    public function serieEnlace(string $host, int $horas): ?array
+    {
+        if (!collect(config('muro.enlaces', []))->contains('host', $host)) return null;
+        if (!in_array($horas, self::RANGOS_ENLACE, true)) $horas = 4;
+
+        $r = $this->recordar('muro_enlace_' . md5("{$host}|{$horas}"), $horas === 4 ? 55 : 300, function () use ($host, $horas) {
+            $hasta = now()->timestamp;
+            $s = $this->cmk->seriesHistoricas([
+                'pl'  => ['host' => $host, 'servicio' => 'PING', 'metrica' => 'pl',  'desde' => $hasta - $horas * 3600, 'hasta' => $hasta],
+                'rta' => ['host' => $host, 'servicio' => 'PING', 'metrica' => 'rta', 'desde' => $hasta - $horas * 3600, 'hasta' => $hasta],
+            ]);
+            if (!$s['pl']) throw new \RuntimeException('CheckMK no entregó la serie de pérdida');
+
+            return [
+                'inicio' => $s['pl']['inicio'],
+                'paso'   => $s['pl']['paso'],
+                'pl'     => array_map(fn($v) => $v === null ? null : round($v, 1), $s['pl']['datos']),
+                'rta'    => array_map(fn($v) => $v === null ? null : round($v * 1000, 1), $s['rta']['datos'] ?? []),
+            ];
+        });
+
+        return $r['ok'] ? ['ok' => true, 'horas' => $horas] + $r['datos'] : $r;
+    }
+
+    /** Último valor no vacío (los últimos minutos suelen venir sin consolidar). */
+    private static function ultimo(array $serie): ?float
+    {
+        for ($i = count($serie) - 1; $i >= 0; $i--) if ($serie[$i] !== null) return $serie[$i];
+
+        return null;
+    }
+
+    /* ── Detalle de un hexágono (modal) ───────────────────────────────────── */
+
+    private const CACHE_DETALLE = 10;
+
+    /**
+     * Detalle de la carpeta de un hexágono, para el modal que se abre al
+     * pulsarlo: cada host con su IP, salida del chequeo, latencia y servicios
+     * con problemas (hexágono de hosts), o cada servicio (hexágono de
+     * servicios). Solo se aceptan carpetas que estén en config/muro.php: el
+     * modo TV es público y no debe servir para recorrer todo CheckMK.
+     *
+     * @return array|null  null si la carpeta no es de ningún hexágono
+     */
+    public function detalleCarpeta(string $carpeta): ?array
+    {
+        $tipo = match (true) {
+            $this->carpetasDeTipo('hexagono_hosts')->contains($carpeta)     => 'hosts',
+            $this->carpetasDeTipo('hexagono_servicios')->contains($carpeta) => 'servicios',
+            default => null,
+        };
+        if ($tipo === null) return null;
+
+        $r = $this->recordar('muro_detalle_' . md5($carpeta), self::CACHE_DETALLE,
+            fn() => $tipo === 'hosts' ? $this->detalleHosts($carpeta) : $this->detalleServicios($carpeta));
+
+        return $r['ok'] ? ['ok' => true, 'tipo' => $tipo] + $r['datos'] + ['generado' => $r['generado']] : $r;
+    }
+
+    private static function filtroCarpeta(string $columna, string $carpeta): array
+    {
+        return ['op' => '~', 'left' => $columna, 'right' => '^/wato' . preg_quote($carpeta, '/') . '/'];
+    }
+
+    private const ESTADO_SERVICIO = [0 => 'ok', 1 => 'warn', 2 => 'crit', 3 => 'unknown'];
+
+    private function detalleHosts(string $carpeta): array
+    {
+        $filas = $this->cmk->consultarHosts([
+            'name', 'alias', 'address', 'state', 'has_been_checked', 'plugin_output', 'perf_data',
+            'last_hard_state_change', 'last_check', 'scheduled_downtime_depth',
+            'num_services', 'num_services_ok', 'num_services_warn', 'num_services_crit', 'num_services_unknown',
+        ], self::filtroCarpeta('filename', $carpeta));
+
+        // Solo los servicios con problemas: el detalle es para ver qué falla.
+        $problemas = $this->cmk->consultarServicios(
+            ['host_name', 'description', 'state', 'plugin_output', 'last_state_change'],
+            ['op' => 'and', 'expr' => [self::filtroCarpeta('host_filename', $carpeta), ['op' => '!=', 'left' => 'state', 'right' => '0']]]
+        )->groupBy('host_name');
+
+        $hosts = $filas->map(function ($h) use ($problemas) {
+            $perf = self::perfData($h['perf_data'] ?? '');
+
+            return [
+                'nombre'    => $h['name'],
+                'alias'     => $h['alias'] !== $h['name'] ? $h['alias'] : null,
+                'ip'        => $h['address'] ?? null,
+                'estado'    => self::estadoHost($h),
+                'mant'      => (int) ($h['scheduled_downtime_depth'] ?? 0) > 0,
+                'desde'     => (int) ($h['last_hard_state_change'] ?? 0) ?: null,
+                'ultimo'    => (int) ($h['last_check'] ?? 0) ?: null,
+                'salida'    => $h['plugin_output'] ?? '',
+                'rta_ms'    => self::latenciaMs($h['perf_data'] ?? ''),
+                'perdida'   => $perf['pl']['valor'] ?? null,
+                'servicios' => [
+                    'total' => (int) $h['num_services'], 'ok' => (int) $h['num_services_ok'],
+                    'warn'  => (int) $h['num_services_warn'], 'crit' => (int) $h['num_services_crit'],
+                    'unknown' => (int) $h['num_services_unknown'],
+                ],
+                'problemas' => ($problemas[$h['name']] ?? collect())->map(fn($s) => [
+                    'servicio' => $s['description'],
+                    'estado'   => self::ESTADO_SERVICIO[(int) $s['state']] ?? 'unknown',
+                    'salida'   => $s['plugin_output'] ?? '',
+                    'desde'    => (int) ($s['last_state_change'] ?? 0) ?: null,
+                ])->sortByDesc(fn($s) => ['crit' => 3, 'unknown' => 2, 'warn' => 1][$s['estado']] ?? 0)->values()->all(),
+            ];
+        })->values()->all();
+
+        return ['hosts' => $hosts];
+    }
+
+    private function detalleServicios(string $carpeta): array
+    {
+        $filas = $this->cmk->consultarServicios(
+            ['host_name', 'description', 'state', 'plugin_output', 'last_state_change', 'scheduled_downtime_depth', 'host_state'],
+            self::filtroCarpeta('host_filename', $carpeta)
+        );
+
+        return ['servicios' => $filas->map(fn($s) => [
+            'host'       => $s['host_name'],
+            'servicio'   => $s['description'],
+            'estado'     => self::ESTADO_SERVICIO[(int) $s['state']] ?? 'unknown',
+            'mant'       => (int) ($s['scheduled_downtime_depth'] ?? 0) > 0,
+            'host_caido' => (int) ($s['host_state'] ?? 0) !== 0,
+            'salida'     => $s['plugin_output'] ?? '',
+            'desde'      => (int) ($s['last_state_change'] ?? 0) ?: null,
+        ])->values()->all()];
+    }
+
+    /** Latencia del chequeo del host en ms: el ping la informa en ms o en s según la versión. */
+    private static function latenciaMs(string $perf): ?float
+    {
+        if (!preg_match('/\brta=([\d.]+)(ms|s)?/', $perf, $m)) return null;
+
+        return round((float) $m[1] * (($m[2] ?? 'ms') === 's' ? 1000 : 1), 1);
+    }
+
     /** Carpetas de todos los paneles de un tipo. */
     private function carpetasDeTipo(string $tipo): Collection
     {
@@ -305,7 +509,14 @@ class MuroCheckMk
     private function leerGraficos(): array
     {
         $hasta    = now()->timestamp;
-        $paneles  = $this->panelesDeTipo('grafico')->filter(fn($p) => isset($p['clase'], $p['host']))->values();
+        // Los paneles «servidor» piden las mismas cinco series que antes eran
+        // cinco gráficos sueltos: CPU y RAM de 30 min y 8 h, y ancho de banda.
+        $paneles  = $this->panelesDeTipo('grafico')->filter(fn($p) => isset($p['clase'], $p['host']))
+            ->concat($this->panelesDeTipo('servidor')->flatMap(fn($p) => array_map(
+                fn($g) => ['titulo' => "srv:{$p['host']}:{$g[0]}", 'clase' => $g[1], 'host' => $p['host'], 'minutos' => $g[2]],
+                [['cpu30', 'cpu', 30], ['cpu480', 'cpu', 480], ['ram30', 'ram', 30], ['ram480', 'ram', 480], ['bw60', 'ancho_banda', 60]]
+            )))
+            ->values();
         $pedidos  = [];
 
         foreach ($paneles as $i => $p) {

@@ -28,8 +28,19 @@
 |   ranking             podio del mes de los técnicos (tickets del GLPI de
 |                       Unifrutti), que alterna entre los países de
 |                       'paises' cada 'cada' segundos
-|   fila                agrupa paneles lado a lado
+|   servicios           estado de los servicios externos críticos declarados
+|                       en 'servicios', más abajo (ver ServiciosCriticos)
+|   servidor            tarjeta de un host: CPU y RAM (valor actual, 8 h con
+|                       los últimos 30 min resaltados) y red; detalle al pulsar
+|   enlaces             estado consolidado de los enlaces de 'enlaces', más
+|                       abajo: franja de 4 h, latencia y detalle al pulsar
+|   fila                agrupa paneles lado a lado ('crece' => true para que
+|                       ocupe el alto libre de su columna)
+|
+| Cualquier panel acepta 'ancho' => n para ocupar n partes de su fila.
 |   vacio               hueco, para respetar la distribución original
+|   libre               hueco marcado que ocupa el alto libre de su columna,
+|                       reservado para un panel futuro ('titulo', 'nota')
 |
 | Las carpetas son las de WATO en CheckMK e incluyen sus subcarpetas
 | (/redes trae también /redes/sur, /redes/peru…). Una caída solo avisa si el
@@ -56,6 +67,31 @@ return [
     // resto) antes de volver a su lugar en rojo.
     'resaltado' => 12,
 
+    // Servicios externos del panel «servicios», en el orden en que se muestran.
+    // Fuentes: m365 (Service Health de Graph; necesita ServiceHealth.Read.All),
+    // statuspage (summary.json público) y http (se pide la URL y se mide).
+    'servicios' => [
+        ['nombre' => 'Exchange',   'fuente' => 'm365', 'id' => 'Exchange'],
+        ['nombre' => 'Teams',      'fuente' => 'm365', 'id' => 'microsoftteams'],
+        ['nombre' => 'SII',        'fuente' => 'http', 'url' => 'https://www.sii.cl/'],
+        ['nombre' => 'SII Clave',  'fuente' => 'http', 'url' => 'https://zeus.sii.cl/AUT2000/InicioAutenticacion/IngresoRutClave.html'],
+        ['nombre' => 'Claude',     'fuente' => 'statuspage', 'url' => 'https://status.claude.com/api/v2/summary.json'],
+        ['nombre' => 'ChatGPT',    'fuente' => 'statuspage', 'url' => 'https://status.openai.com/api/v2/summary.json'],
+    ],
+
+    // Enlaces del panel «enlaces»: un host de CheckMK con servicio PING cada
+    // uno. El orden en pantalla lo decide su salud (el que falla sube).
+    'enlaces' => [
+        // Longaví no tiene host de red propio en CheckMK; se mide con el NVR
+        // de portería. Cambiar aquí si el enlace es otro equipo.
+        ['nombre' => 'Planta Longaví',   'host' => 'NVR-Longavi_Porteria'],
+        ['nombre' => 'Planta Oro Verde', 'host' => '24.PLANTAOROVERDE'],
+        ['nombre' => 'Planta Rapel',     'host' => '3.PLANTARAPEL'],
+        ['nombre' => 'Perú · Parwil',    'host' => 'VFPE-PARWIL'],
+        ['nombre' => 'Perú · Claro',     'host' => 'VFPE-CLARO'],
+        ['nombre' => 'Perú · Chiclayo',  'host' => '200.CHICLAYO'],
+    ],
+
     'areas' => [
 
         'izquierda' => [
@@ -67,6 +103,8 @@ return [
 
         'segmentos' => [
             ['tipo' => 'lista', 'titulo' => 'Segmentos Verfrut', 'carpeta' => '/redes'],
+            // Ocupa el alto que deja libre la lista.
+            ['tipo' => 'servicios', 'titulo' => 'Servicios críticos'],
         ],
 
         'centro' => [
@@ -75,38 +113,22 @@ return [
                 ['tipo' => 'hexagono_hosts', 'titulo' => 'RED ORO VERDE',    'carpeta' => '/access_point/oro_verde'],
             ]),
             $fila([
-                ['tipo' => 'hexagono_servicios', 'titulo' => 'SSL Sitios Verfrut', 'carpeta' => '/ssl'],
-                ['tipo' => 'vacio'],
+                ['tipo' => 'hexagono_servicios', 'titulo' => 'SSL Sitios Verfrut',    'carpeta' => '/ssl'],
+                ['tipo' => 'hexagono_hosts',     'titulo' => 'Antenas Punto a Punto', 'carpeta' => '/enlaces_ptp'],
             ]),
-            $fila([
-                ['tipo' => 'lista', 'titulo' => 'Dispositivos',          'carpeta' => '/dispositivos'],
-                ['tipo' => 'lista', 'titulo' => 'Antenas Punto a Punto', 'carpeta' => '/enlaces_ptp'],
-            ]),
-            // Longaví no tiene host de red propio en CheckMK; se mide con el
-            // NVR de portería. Cambiar aquí si el enlace es otro equipo.
-            $grafico('Enlace Planta Longavi 4Hrs',        'perdida', 'NVR-Longavi_Porteria', 240),
-            $grafico('Monitoreo Enlace Planta Oro Verde', 'perdida', '24.PLANTAOROVERDE',    240),
-            $grafico('Monitoreo Enlace Planta Rapel',     'perdida', '3.PLANTARAPEL',        240),
+            // Donde iban los gráficos de enlaces. Reemplazar por el próximo panel.
+            ['tipo' => 'libre', 'titulo' => 'Espacio libre'],
         ],
 
         'derecha' => [
+            // Una tarjeta por servidor reemplaza los 18 paneles que tenían las
+            // BD (medidores, gráficos de 30 min y 8 h, números y red).
             $fila([
-                ['tipo' => 'medidor', 'titulo' => 'CPU BD01',   'host' => 'VFSTBD01', 'metrica' => 'cpu'],
-                ['tipo' => 'medidor', 'titulo' => '% RAM BD01', 'host' => 'VFSTBD01', 'metrica' => 'ram'],
-                ['tipo' => 'medidor', 'titulo' => 'CPU BD02',   'host' => 'VFSTBD02', 'metrica' => 'cpu'],
-                ['tipo' => 'medidor', 'titulo' => '% RAM BD02', 'host' => 'VFSTBD02', 'metrica' => 'ram'],
+                ['tipo' => 'servidor', 'titulo' => 'VFSTBD01', 'host' => 'VFSTBD01'],
+                ['tipo' => 'servidor', 'titulo' => 'VFSTBD02', 'host' => 'VFSTBD02'],
             ]),
-            $fila([$grafico('VFSTBD01 - CPU - 30 Minutos', 'cpu', 'VFSTBD01', 30),  $grafico('VFSTBD02 - CPU - 30 Minutos', 'cpu', 'VFSTBD02', 30)]),
-            $fila([$grafico('VFSTBD01 - CPU - 8 Horas',    'cpu', 'VFSTBD01', 480), $grafico('VFSTBD02 - CPU - 8 Horas',    'cpu', 'VFSTBD02', 480)]),
-            $fila([$grafico('VFSTBD01 - RAM - 30 Minutos', 'ram', 'VFSTBD01', 30),  $grafico('VFSTBD02 - RAM - 30 Minutos', 'ram', 'VFSTBD02', 30)]),
-            $fila([$grafico('VFSTBD01 - RAM - 8 Horas',    'ram', 'VFSTBD01', 480), $grafico('VFSTBD02 - RAM - 8 Horas',    'ram', 'VFSTBD02', 480)]),
-            $fila([
-                ['tipo' => 'numero', 'titulo' => 'Upload BW BD01',   'host' => 'VFSTBD01', 'metrica' => 'out_bps'],
-                ['tipo' => 'numero', 'titulo' => 'Download BW BD01', 'host' => 'VFSTBD01', 'metrica' => 'in_bps'],
-                ['tipo' => 'numero', 'titulo' => 'Upload BW BD02',   'host' => 'VFSTBD02', 'metrica' => 'out_bps'],
-                ['tipo' => 'numero', 'titulo' => 'Download BW BD02', 'host' => 'VFSTBD02', 'metrica' => 'in_bps'],
-            ]),
-            $fila([$grafico('VFSTBD01 - Bandwidth', 'ancho_banda', 'VFSTBD01', 60), $grafico('VFSTBD02 - Bandwidth', 'ancho_banda', 'VFSTBD02', 60)]),
+            // Lo que liberó compactar las BD. Reemplazar por el próximo panel.
+            ['tipo' => 'libre', 'titulo' => 'Espacio liberado', 'nota' => 'Antes: 4 medidores, 8 gráficos, 4 números y 2 gráficos de red'],
         ],
 
         'abajo_izq' => [
@@ -115,9 +137,8 @@ return [
 
         'abajo' => [
             $fila([
-                $grafico('Monitoreo PERU Enlace PARWIL',   'perdida', 'VFPE-PARWIL',  240),
-                $grafico('Monitoreo PERU Enlace CLARO',    'perdida', 'VFPE-CLARO',   240),
-                $grafico('Monitoreo PERU Enlace CHICLAYO', 'perdida', '200.CHICLAYO', 240),
+                // Reemplaza los seis gráficos de pérdida que había (tres aquí y tres en el centro).
+                ['tipo' => 'enlaces', 'titulo' => 'Monitoreo de enlaces', 'ancho' => 3],
                 ['tipo' => 'ranking', 'titulo' => 'Ranking técnicos', 'paises' => ['chile', 'peru'], 'cada' => 20],
             ]),
         ],

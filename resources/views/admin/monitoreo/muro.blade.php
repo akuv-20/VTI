@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $appNombre ?? 'Monitoreo' }} · Muro de monitoreo</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=JetBrains+Mono:wght@400;600&display=swap">
     <style>
         /*
          | Réplica del «Main Dashboard for all» de CheckMK (tema modern-dark):
@@ -14,6 +16,10 @@
          */
         :root {
             --bg:      #11181d;
+            /* Piel 2.0: títulos en Chakra Petch y datos en JetBrains Mono, con respaldo local si la TV no llega a Google Fonts. */
+            --f-display: 'Chakra Petch', 'Segoe UI', Roboto, system-ui, sans-serif;
+            --f-mono:    'JetBrains Mono', Consolas, 'Courier New', monospace;
+            --f-body:    Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif;
             --panel:   #1c2228;
             --panel-2: #232b33;
             --line:    #303946;
@@ -50,7 +56,6 @@
         html { font-size:clamp(9px, .6vw, 28px); }
         html, body { height:100%; background:var(--bg); color:var(--txt); overflow:hidden;
                      font-family:Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing:antialiased; }
-        body.tv { cursor:none; }
         button { font:inherit; color:inherit; cursor:pointer; }
 
         /* ── Cabecera ─────────────────────────────────────────────────────── */
@@ -79,7 +84,7 @@
         .crece { flex:1 1 0; min-height:5rem; }
         .fila.crece > .panel { height:100%; }
         #area-abajo .fila { height:100%; }
-        #area-abajo { min-height:11rem; }
+        #area-abajo { min-height:15rem; }
 
         .panel { background:var(--panel); border:1px solid var(--line); display:flex; flex-direction:column; min-width:0; position:relative; }
         .panel > h2 { font-size:.82rem; font-weight:700; text-align:center; padding:.3rem .4rem; background:var(--panel-2);
@@ -125,6 +130,58 @@
 
         /* ── Hexágonos ────────────────────────────────────────────────────── */
         .hex-cuerpo { display:flex; align-items:center; gap:1rem; padding:.5rem .9rem; flex:1; }
+        /* Los hexágonos se pueden pulsar: abren el detalle de su carpeta. */
+        .panel.abre { cursor:pointer; transition:border-color .2s, box-shadow .2s; }
+        .panel.abre:hover { border-color:var(--hud); box-shadow:0 0 .8rem -.2rem var(--hud); }
+        .panel.abre > h2::after { content:"  ⤢"; color:var(--muted); font-weight:400; }
+
+        /* ── Modal de detalle (prefijo md-: «.aviso», «.up»… ya tienen dueño) ── */
+        .md-fondo { position:fixed; inset:0; z-index:60; background:rgba(4,10,12,.72); backdrop-filter:blur(3px);
+                    display:flex; align-items:center; justify-content:center; padding:3vh 3vw; font-size:max(13px, 1.15rem); }
+        .md-fondo[hidden] { display:none; }
+        .md-caja { width:min(1500px, 100%); max-height:100%; display:flex; flex-direction:column; background:var(--panel);
+                   border:1px solid var(--hud); box-shadow:0 0 2.5rem -.5rem rgba(var(--hud-rgb),.45); border-radius:4px;
+                   animation:md-entra .22s ease-out; }
+        @keyframes md-entra { from { opacity:0; transform:translateY(1.2rem) scale(.98); } }
+        .md-cab { display:flex; align-items:center; gap:1em; flex-wrap:wrap; padding:.8em 1em; border-bottom:1px solid var(--line); background:var(--panel-2); }
+        .md-cab h3 { font-size:1.35em; font-weight:700; margin-right:auto; }
+        .md-cab h3 small { display:block; font-size:.6em; font-weight:400; color:var(--muted); letter-spacing:.04em; }
+        .md-chips { display:flex; gap:.4em; flex-wrap:wrap; }
+        .md-chip { border:1px solid var(--line); background:transparent; border-radius:999px; padding:.2em .75em; font-size:.85em; display:flex; align-items:center; gap:.4em; }
+        .md-chip i { width:.65em; height:.65em; border-radius:50%; background:var(--c, var(--muted)); }
+        .md-chip.on { border-color:var(--c, var(--hud)); background:color-mix(in srgb, var(--c, var(--hud)) 18%, transparent); }
+        .md-chip b { font-variant-numeric:tabular-nums; }
+        .md-buscar { background:#0d1417; border:1px solid var(--line); color:var(--txt); border-radius:3px; padding:.35em .7em; font:inherit; font-size:.9em; width:14em; }
+        .md-buscar:focus { outline:none; border-color:var(--hud); }
+        .md-x { border:1px solid var(--line); background:transparent; border-radius:3px; width:2em; height:2em; font-size:1em; }
+        .md-x:hover { border-color:var(--crit); color:var(--crit); }
+        .md-cuerpo { overflow:auto; flex:1; min-height:0; }
+        .md-tabla { width:100%; border-collapse:collapse; font-size:.92em; }
+        .md-tabla th { position:sticky; top:0; background:var(--panel); z-index:1; text-align:left; font-size:.78em; color:var(--muted);
+                       text-transform:uppercase; letter-spacing:.05em; padding:.6em .7em; border-bottom:1px solid var(--line); white-space:nowrap; }
+        .md-tabla td { padding:.5em .7em; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:middle; }
+        .md-tabla tr.md-fila { cursor:pointer; }
+        .md-tabla tr.md-fila:hover td { background:rgba(255,255,255,.035); }
+        .md-tabla tr.md-abierta td { background:rgba(var(--hud-rgb),.06); }
+        .md-tabla .num { font-variant-numeric:tabular-nums; white-space:nowrap; }
+        .md-tabla .tenue { color:var(--muted); }
+        .md-tabla .salida { color:#c3cbd1; max-width:34em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .md-est { display:inline-block; min-width:5.2em; text-align:center; font-weight:700; font-size:.8em; color:#000; padding:.2em .5em; border-radius:2px; background:var(--c); }
+        .md-up, .md-ok { --c:var(--ok); } .md-down, .md-crit { --c:var(--crit); } .md-unreach, .md-unknown { --c:var(--unknown); }
+        .md-pend { --c:var(--pending); } .md-mant { --c:var(--dt); } .md-warn { --c:var(--warn); }
+        .md-down .md-est, .md-crit .md-est { color:#fff; }
+        .md-svc { display:inline-flex; gap:.3em; }
+        .md-svc span { min-width:1.8em; text-align:center; font-weight:700; font-size:.8em; border-radius:2px; padding:.1em .35em; background:#24313a; color:var(--muted); }
+        .md-svc span.ok { background:color-mix(in srgb, var(--ok) 25%, transparent); color:var(--ok); }
+        .md-svc span.warn { background:var(--warn); color:#000; } .md-svc span.crit { background:var(--crit); color:#fff; }
+        .md-det td { background:#0f181b; padding:.7em 1em 1em 2.6em; }
+        .md-det .md-salida { font-family:Consolas, monospace; font-size:.85em; color:#c3cbd1; white-space:pre-wrap; word-break:break-word; margin-bottom:.6em; }
+        .md-det ul { list-style:none; display:grid; gap:.35em; }
+        .md-det li { display:grid; grid-template-columns:5.6em 14em 1fr; gap:.7em; align-items:start; font-size:.88em; }
+        .md-det li .md-est { min-width:0; }
+        .md-det a { color:var(--hud); text-decoration:none; font-size:.85em; }
+        .md-pie { padding:.5em 1em; border-top:1px solid var(--line); font-size:.78em; color:var(--muted); display:flex; justify-content:space-between; gap:1em; }
+        .md-vacio { padding:3em; text-align:center; color:var(--muted); }
         .hex { width:5.4rem; height:5.4rem; flex-shrink:0; transition:transform .45s cubic-bezier(.2,.8,.2,1.15); }
         .hex-ley { font-size:.76rem; line-height:1.45; }
         .hex-ley div { display:grid; grid-template-columns:2rem .4rem 1fr; gap:.4rem; align-items:center; }
@@ -176,6 +233,80 @@
         .rkm-plaza.p3 .rkm-esc { height:10cqh; background:linear-gradient(180deg,#fdba74,#b45309); }
         .rkm-vacio { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#4b5865; font-size:.78rem; }
         .rkm-vacio[hidden] { display:none; }
+
+        /* ── Enlaces: una fila por enlace con latido (latencia de la última
+           hora), franja de 4 h en bloques de 5 min y métricas. Va en absoluto
+           para no empujar la grilla; las filas se reparten el alto. ───────── */
+        .enl-caja { flex:1; position:relative; min-height:0; }
+        .enl { position:absolute; inset:0; display:flex; flex-direction:column; }
+        .enl-cab { display:flex; align-items:center; gap:1rem; padding:.25rem .8rem; border-bottom:1px solid var(--line); font-size:.72rem; color:var(--muted); }
+        .enl-cab .disp { font-weight:700; color:var(--txt); font-variant-numeric:tabular-nums; }
+        .enl-cab .cont { margin-left:auto; display:flex; gap:.5rem; }
+        .enl-cab .cont span { display:flex; align-items:center; gap:.3rem; border:1px solid var(--line); border-radius:999px; padding:0 .5rem; }
+        .enl-cab .cont i { width:.5rem; height:.5rem; border-radius:50%; background:var(--c); }
+        .enl-cab .cont b { color:var(--txt); font-variant-numeric:tabular-nums; }
+        .enl-lista { flex:1; min-height:0; display:grid; grid-auto-rows:minmax(0, 1fr); position:relative; }
+        .enl-f { --c:var(--ok); position:relative; display:grid; grid-template-columns:.8rem minmax(7rem, 1fr) 6.6rem minmax(5rem, 1fr) minmax(10rem, 3fr) 4.6rem minmax(7rem, 1.2fr);
+                 gap:.8rem; align-items:center; padding:0 .8rem; border-bottom:1px solid rgba(255,255,255,.04); cursor:pointer; min-height:0; overflow:hidden; }
+        .enl-f:hover { background:rgba(255,255,255,.03); }
+        .enl-f[data-e="intermitente"] { --c:var(--warn); background:linear-gradient(90deg, rgba(255,215,3,.10), transparent 55%); }
+        .enl-f[data-e="perdida"] { --c:var(--unknown); }
+        .enl-f[data-e="caido"] { --c:var(--crit); background:linear-gradient(90deg, rgba(200,50,50,.28), transparent 60%); animation:enl-latir 1.1s ease-in-out infinite; }
+        .enl-f[data-e="sin_datos"] { --c:var(--pending); }
+        .enl-f[data-e="intermitente"]::before, .enl-f[data-e="caido"]::before { content:""; position:absolute; left:0; top:0; bottom:0; width:.2rem; background:var(--c); }
+        .enl-f[data-e="intermitente"]::after { content:""; position:absolute; top:0; bottom:0; width:25%; left:-30%; pointer-events:none;
+                                               background:linear-gradient(90deg, transparent, rgba(255,215,3,.12), transparent); animation:enl-barrer 3.4s linear infinite; }
+        .enl-f.recupera { animation:enl-recupera 1.8s ease-out; }
+        @keyframes enl-latir { 50% { background-color:rgba(200,50,50,.16); } }
+        @keyframes enl-barrer { to { left:110%; } }
+        @keyframes enl-recupera { from { background:rgba(19,211,137,.3); } }
+        .enl-orbe { width:.65rem; height:.65rem; border-radius:50%; background:var(--c); box-shadow:0 0 0 .18rem color-mix(in srgb, var(--c) 25%, transparent), 0 0 .7rem var(--c); }
+        .enl-f[data-e="caido"] .enl-orbe { animation:enl-orbe 1.1s ease-in-out infinite; }
+        @keyframes enl-orbe { 50% { box-shadow:0 0 0 .45rem transparent, 0 0 1.1rem var(--c); } }
+        .enl-nom { font-weight:700; font-size:.92rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .enl-etq { justify-self:start; font-weight:700; font-size:.62rem; letter-spacing:.12em; color:var(--c); border:1px solid color-mix(in srgb, var(--c) 50%, transparent);
+                   padding:.05rem .4rem; border-radius:2px; white-space:nowrap; }
+        .enl-f[data-e="estable"] .enl-etq { opacity:.7; }
+        .enl-pulso { width:100%; height:1.7rem; display:block; }
+        .enl-franja { display:grid; grid-template-columns:repeat(48, 1fr); gap:2px; height:1.15rem; }
+        .enl-franja i { border-radius:1px; background:var(--b, #24313a); }
+        .enl-lat { text-align:right; font-weight:700; font-size:1.05rem; font-variant-numeric:tabular-nums; white-space:nowrap; }
+        .enl-lat small { font-size:.62rem; color:var(--muted); font-weight:400; margin-left:.15rem; }
+        .enl-pl { font-size:.72rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .enl-pl.mal { color:var(--c); }
+        .enl-ejes { display:flex; justify-content:space-between; font-size:.58rem; color:var(--muted); padding:0 .8rem .15rem; }
+
+        /* Modal de un enlace (usa el mismo marco que el de los hexágonos). */
+        .enl-kpis { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:1px; background:var(--line); border-bottom:1px solid var(--line); }
+        .enl-kpis div { background:var(--panel); padding:.8em 1.1em; }
+        .enl-kpis small { display:block; color:var(--muted); font-size:.72em; letter-spacing:.08em; text-transform:uppercase; }
+        .enl-kpis b { font-size:1.6em; font-variant-numeric:tabular-nums; }
+        .enl-kpis b small { display:inline; font-size:.5em; letter-spacing:0; text-transform:none; }
+        .enl-graf { position:relative; height:16em; margin:1em 1.1em .4em; }
+        .enl-cortes { padding:.4em 1.1em 1.1em; }
+        .enl-cortes h4 { font-size:.75em; letter-spacing:.12em; color:var(--muted); margin:.6em 0; }
+        .enl-corte { display:grid; grid-template-columns:9em 1fr 7em 6em; gap:1em; align-items:center; font-size:.9em; padding:.45em .8em; border:1px solid var(--line); border-radius:3px; margin-bottom:.35em; font-variant-numeric:tabular-nums; }
+        .enl-corte .tira { height:.4em; border-radius:.2em; background:linear-gradient(90deg, var(--warn), var(--crit)); }
+        .md-rango { border:1px solid var(--line); background:transparent; color:var(--muted); font:inherit; font-size:.85em; font-weight:700; padding:.25em .8em; border-radius:3px; }
+        .md-rango.on { border-color:var(--hud); color:var(--hud); background:rgba(var(--hud-rgb),.12); }
+
+        /* ── Servicios críticos: mosaico que se arma en una columna si el
+           panel es angosto y en dos si es ancho; mismo criterio de tamaño que
+           el podio (absoluto y en unidades del contenedor). ───────────────── */
+        .svc-caja { flex:1; position:relative; min-height:0; container-type:size; }
+        .svc { position:absolute; inset:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(11rem, 1fr));
+               grid-auto-rows:minmax(0, 1fr); gap:.35rem; padding:.4rem; }
+        .svc-t { --c:#5b6b78; display:flex; flex-direction:column; justify-content:center; min-width:0; min-height:0; overflow:hidden; padding:0 .6rem;
+                 border-left:.3rem solid var(--c); background:color-mix(in srgb, var(--c) 14%, transparent); border-radius:2px; }
+        /* Clases con prefijo: «.aviso» ya es el cartel de caídas (fijo arriba)
+           y un recuadro en amarillo salía volando del panel. */
+        .svc-t.svc-ok { --c:var(--ok); } .svc-t.svc-aviso { --c:var(--warn); } .svc-t.svc-critico { --c:var(--crit); } .svc-t.svc-mant { --c:#64b5f6; }
+        .svc-t.svc-critico { animation:latido-svc 1.2s ease-in-out infinite; }
+        @keyframes latido-svc { 50% { background:color-mix(in srgb, var(--crit) 38%, transparent); } }
+        .svc-t b { font-size:min(1.1rem, 34cqh); line-height:1.15; display:flex; align-items:center; gap:.35em; min-width:0; }
+        .svc-t b i { width:.55em; height:.55em; border-radius:50%; background:var(--c); flex-shrink:0; box-shadow:0 0 .4em var(--c); }
+        .svc-t b em { font-style:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .svc-t span { font-size:min(.78rem, 22cqh); line-height:1.2; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
         /* ── Caída nueva: la fila crece, late y queda encima de todo ──────── */
         .alarma { z-index:50 !important; }
@@ -357,6 +488,110 @@
             100% { transform:translate(var(--dx), var(--dy)) scale(.15); opacity:0; }
         }
 
+        /* ══ Piel 2.0 ═══════════════════════════════════════════════════════
+           Un solo lenguaje para todo el muro: tarjetas con el título a la
+           izquierda, orbes de estado en vez de bloques de color, barras
+           finas y tipografía de consola para los datos. Va al final para
+           mandar sobre la réplica de CheckMK y sobre la capa HUD. */
+        /* Sin overflow:hidden: encajar() mide lo que desborda para elegir el
+           tamaño de letra; si se recorta, cree que todo cabe y agranda de más. */
+        .muro .panel:not(.vacio) { border-radius:.35rem; background:linear-gradient(180deg, #0f1c20, #0b1417 3.2rem); border-color:#16282d; }
+        .muro .panel:not(.vacio):not(.crece) { flex-shrink:0; }
+        body.hud .muro .panel:not(.vacio) { background:linear-gradient(180deg, rgba(15,28,32,.94), rgba(11,20,23,.94) 3.2rem); border-color:rgba(var(--hud-rgb),.16); }
+        body .muro .panel > h2 { text-align:left; font-family:var(--f-display); font-weight:700; font-size:.76rem; letter-spacing:.1em; text-transform:uppercase;
+                                 padding:.38rem .7rem; background:linear-gradient(90deg, rgba(var(--hud-rgb),.10), transparent 70%); border-bottom:1px solid rgba(255,255,255,.06);
+                                 color:#e8f1f2; text-shadow:none; }
+        body .muro .panel > h2::before, body .muro .panel > h2::after { content:none; }
+        body .muro .panel.abre > h2::after { content:"⤢"; float:right; margin:0; opacity:1; font-size:.8rem; color:var(--muted); font-family:var(--f-body); }
+
+        /* Tablas: orbe + nombre en vez del bloque de color, W/C como chips y barras finas. */
+        .muro .t-cab { font-family:var(--f-display); letter-spacing:.08em; text-transform:uppercase; font-size:.64rem; height:1.5rem; }
+        .muro .t-fila { height:1.7rem; border-bottom:1px solid rgba(255,255,255,.035); border-radius:0; }
+        .muro .t-fila .c-host { background:transparent; color:#e8f1f2; font-family:var(--f-mono); font-weight:600; font-size:.74rem; padding-left:1.15rem; position:relative; height:auto; }
+        .muro .t-fila .c-host::before { content:""; position:absolute; left:.3rem; top:50%; width:.55rem; height:.55rem; margin-top:-.275rem; border-radius:50%;
+                                        background:var(--hc, var(--pending)); box-shadow:0 0 0 .14rem color-mix(in srgb, var(--hc, var(--pending)) 22%, transparent), 0 0 .5rem var(--hc, var(--pending)); }
+        .t-fila.up, .l-fila.up { --hc:var(--ok); } .t-fila.down, .l-fila.down { --hc:var(--crit); }
+        .t-fila.unreach, .l-fila.unreach { --hc:var(--unknown); } .t-fila.mant, .l-fila.mant { --hc:var(--dt); } .t-fila.pend, .l-fila.pend { --hc:var(--pending); }
+        .muro .t-fila.down:not(.alarma), .muro .l-fila.down:not(.alarma) { background:linear-gradient(90deg, rgba(200,50,50,.28), transparent 65%); }
+        .muro .t-fila.down .c-host { color:#ffb4b4; }
+        .muro .c-n { height:1.1rem; border-radius:2px; font-family:var(--f-mono); font-size:.7rem; color:#4f6168; }
+        .muro .c-n.hay { color:#000; }
+        .muro .perf { height:1.05rem; background:#13252a; color:#e8f1f2; border-radius:2px; font-family:var(--f-mono); font-size:.64rem; }
+        .muro .perf > span { text-shadow:0 0 .2rem #000, 0 0 .2rem #000; font-weight:400; }
+        .muro .perf > b { opacity:.85; border-radius:2px; }
+        .muro .perf.vacia { background:transparent; }
+
+        /* Listas: el bloque «UP» pasa a ser un orbe. */
+        .muro .l-cab, .muro .l-fila { grid-template-columns:.9rem 1fr; }
+        .muro .l-cab span:first-child { visibility:hidden; }
+        .muro .l-cab { font-family:var(--f-display); letter-spacing:.08em; text-transform:uppercase; font-size:.64rem; }
+        .muro .l-fila { height:1.45rem; font-family:var(--f-mono); font-size:.74rem; }
+        .muro .l-estado { width:.55rem; height:.55rem; border-radius:50%; font-size:0; background:var(--hc, var(--pending));
+                          box-shadow:0 0 0 .14rem color-mix(in srgb, var(--hc, var(--pending)) 22%, transparent), 0 0 .5rem var(--hc, var(--pending)); justify-self:center; }
+
+        /* Anillos (antes hexágonos). */
+        .an-svg { width:5.6rem; height:5.6rem; flex-shrink:0; overflow:visible; transition:transform .45s cubic-bezier(.2,.8,.2,1.15); }
+        .an-svg .seg { transition:stroke-dasharray .8s, stroke-dashoffset .8s; }
+        .an-svg text { font-family:var(--f-mono); fill:#e8f1f2; }
+        .panel.alarma-hex .an-svg { animation:latido-hex 1.15s ease-in-out infinite; filter:drop-shadow(0 0 1rem rgba(255,50,50,.8)); }
+        .muro .hex-ley { font-family:var(--f-body); font-size:.7rem; line-height:1.35; min-width:0; }
+        .muro .hex-ley div { grid-template-columns:1.6rem .65rem minmax(0, 1fr); gap:.35rem; }
+        .muro .hex-ley span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .muro .hex-cuerpo { gap:.7rem; padding:.45rem .7rem; }
+        .muro .hex-ley b { font-family:var(--f-mono); }
+        .muro .hex-ley i { border-radius:2px; width:.65rem; height:.65rem; }
+
+        /* Hueco reservado (tipo «libre»). */
+        .libre { border:1px dashed rgba(var(--hud-rgb),.32); border-radius:.35rem; display:grid; place-items:center; text-align:center;
+                 color:rgba(var(--hud-rgb),.7); font-family:var(--f-display); font-weight:600; letter-spacing:.16em; font-size:.72rem; text-transform:uppercase;
+                 background:repeating-linear-gradient(135deg, rgba(var(--hud-rgb),.025) 0 .7rem, transparent .7rem 1.4rem); }
+        .libre small { display:block; font-family:var(--f-body); letter-spacing:0; text-transform:none; color:var(--muted); font-size:.66rem; margin-top:.2rem; font-weight:400; }
+
+        /* Conteo de estados a la derecha del título. */
+        .h2-res { float:right; display:flex; gap:.45rem; font-family:var(--f-mono); font-weight:400; letter-spacing:0; font-size:.66rem; color:var(--muted); margin-left:.5rem; }
+        .h2-res span { display:inline-flex; align-items:center; gap:.25rem; }
+        .h2-res i { width:.42rem; height:.42rem; border-radius:50%; background:var(--c); }
+
+        /* Uptime como texto, igual que la muestra: la barra no aportaba. */
+        .muro .perf.uptime { background:transparent; }
+        .muro .perf.uptime > b { display:none; }
+        .muro .perf.uptime > span { justify-content:flex-end; padding-right:.2rem; color:var(--muted); text-shadow:none; }
+
+        /* Tarjeta de servidor. */
+        .srv { --c:var(--ok); }
+        .srv[data-e="warn"] { --c:var(--warn); } .srv[data-e="crit"], .srv[data-e="caido"] { --c:var(--crit); }
+        .srv > h2 { box-shadow:inset .22rem 0 0 var(--c); }
+        .srv-meta { display:flex; align-items:center; gap:.6rem; padding:.3rem .7rem; font-family:var(--f-mono); font-size:.68rem; color:var(--muted); border-bottom:1px solid rgba(255,255,255,.05); }
+        .srv-meta .wc { margin-left:auto; display:flex; gap:.35rem; }
+        .srv-pill { font-family:var(--f-display); font-weight:700; font-size:.58rem; letter-spacing:.12em; color:var(--c); border:1px solid color-mix(in srgb, var(--c) 50%, transparent); padding:.02rem .4rem; border-radius:2px; }
+        .srv-v { flex:none; height:5.2rem; display:grid; grid-template-columns:4.6rem minmax(0, 1fr); gap:.7rem; align-items:center; padding:.35rem .7rem; border-bottom:1px solid rgba(255,255,255,.04); }
+        .srv-g { position:relative; width:4.6rem; height:4.6rem; }
+        .srv-g svg { width:100%; height:100%; transform:rotate(135deg); overflow:visible; }
+        .srv-g circle { fill:none; stroke-width:6; stroke-linecap:round; }
+        .srv-g .pista { stroke:#16282d; }
+        .srv-g .valor { transition:stroke-dasharray .8s, stroke .4s; filter:drop-shadow(0 0 .25rem currentColor); }
+        .srv-gv { position:absolute; inset:0; display:grid; place-content:center; text-align:center; font-family:var(--f-mono); line-height:1.05; }
+        .srv-gv b { font-size:1.05rem; }
+        .srv-gv small { font-family:var(--f-display); font-size:.52rem; letter-spacing:.14em; color:var(--muted); }
+        .srv-s { min-width:0; height:100%; display:flex; flex-direction:column; }
+        .srv-tt { display:flex; justify-content:space-between; gap:.5rem; font-family:var(--f-mono); font-size:.62rem; color:var(--muted); padding:.1rem 0; white-space:nowrap; overflow:hidden; }
+        .srv-tt b { color:#e8f1f2; font-weight:400; }
+        .srv-cv { flex:1; min-height:1.8rem; position:relative; }
+        .srv-cv canvas { position:absolute; inset:0; display:block; }
+        .srv-red { flex:none; height:3.8rem; display:grid; grid-template-columns:auto auto minmax(0, 1fr); gap:.9rem; align-items:center; padding:.35rem .7rem; }
+        .srv-red .srv-cv { height:100%; }
+        .srv-n { font-family:var(--f-mono); line-height:1.1; white-space:nowrap; }
+        .srv-n small { display:block; font-family:var(--f-display); font-size:.55rem; letter-spacing:.12em; color:var(--muted); }
+        .srv-n b { font-size:1.15rem; font-variant-numeric:tabular-nums; }
+        .srv-n b em { font-style:normal; font-size:.62rem; color:var(--muted); font-weight:400; }
+        .srv-n .sub { color:#3fd6d0; } .srv-n .baj { color:#5a9be6; }
+        .srv-kpis { grid-template-columns:repeat(5, minmax(0, 1fr)); }
+        .srv-graficos { display:grid; grid-template-columns:1fr 1fr; gap:1em; padding:1em 1.1em; }
+        .srv-graficos figure { margin:0; border:1px solid var(--line); border-radius:4px; padding:.6em .8em; }
+        .srv-graficos figcaption { font-size:.75em; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:.4em; }
+        .srv-graficos .ancho { grid-column:1 / -1; }
+        .srv-mg { position:relative; height:11em; }
+
         @media (prefers-reduced-motion: reduce) {
             .noel, .chispa, #nieve, .duende, .grunon { display:none !important; }
             .t-fila.alarma, .l-fila.alarma, .panel.alarma-hex .hex, .aviso .ico, .alarma::after { animation:none; }
@@ -497,6 +732,19 @@
     @endforeach
 </main>
 
+<div class="md-fondo" id="md" hidden>
+    <div class="md-caja" role="dialog" aria-modal="true" aria-labelledby="md-t">
+        <div class="md-cab">
+            <h3 id="md-t"></h3>
+            <div class="md-chips" id="md-chips"></div>
+            <input type="search" class="md-buscar" id="md-buscar" placeholder="Buscar host, IP o servicio…" autocomplete="off">
+            <button type="button" class="md-x" id="md-x" title="Cerrar (Esc)">✕</button>
+        </div>
+        <div class="md-cuerpo" id="md-cuerpo"></div>
+        <div class="md-pie"><span id="md-pie-i"></span><span id="md-pie-d"></span></div>
+    </div>
+</div>
+
 <div class="aviso" id="aviso" role="alert" aria-live="assertive">
     <div class="ico">▼</div>
     <div><b id="aviso-t"></b><span id="aviso-s"></span></div>
@@ -508,6 +756,11 @@
     const URL_ESTADO = @json($urlEstado);
     const URL_GRAFICOS = @json($urlGraficos);
     const URL_RANKING  = @json($urlRanking);
+    const URL_SERVICIOS = @json($urlServicios);
+    const URL_CARPETA  = @json($urlCarpeta);
+    const URL_CHECKMK  = @json($urlCheckmk);
+    const URL_ENLACES  = @json($urlEnlaces);
+    const URL_ENLACE   = @json($urlEnlace);
     const INTERVALO  = @json($intervalo) * 1000;
     const RESALTADO  = @json($resaltado) * 1000;
     // Una caída que ya estaba al abrir la pantalla no suena, salvo que sea así de reciente:
@@ -552,20 +805,23 @@
         if (p.tipo === 'fila') {
             const f = el('div', 'fila');
             p.paneles.forEach(x => f.appendChild(crear(x)));
-            if (p.paneles.some(x => x.tipo === 'grafico')) f.classList.add('crece');
+            if (p.crece || p.paneles.some(x => x.tipo === 'grafico')) f.classList.add('crece');
             return f;
         }
         if (p.tipo === 'vacio') return el('div', 'panel vacio');
+        // Hueco reservado para paneles futuros: ocupa el alto libre de su columna.
+        if (p.tipo === 'libre') return el('div', 'libre crece', `<div>${esc(p.titulo || 'Espacio libre')}<small>${esc(p.nota || 'Para el próximo panel')}</small></div>`);
 
         const panel = el('section', 'panel');
+        if (p.ancho) panel.style.flex = p.ancho;
         panel.appendChild(el('h2', '', esc(p.titulo)));
         const fabrica = { tabla: crearTabla, lista: crearLista, hexagono_hosts: crearHexHosts,
                           hexagono_servicios: crearHexServicios, medidor: crearMedidor, numero: crearNumero, grafico: crearGrafico,
-                          ranking: crearRanking }[p.tipo];
+                          ranking: crearRanking, servicios: crearServicios, enlaces: crearEnlaces, servidor: crearServidor }[p.tipo];
         if (!fabrica) return panel;
         const actualizar = fabrica(panel, p);
         if (actualizar) paneles.push({ p, actualizar, panel });
-        if (p.tipo === 'grafico') panel.classList.add('crece');
+        if (['grafico', 'servicios', 'enlaces'].includes(p.tipo)) panel.classList.add('crece');
         return panel;
     }
 
@@ -589,6 +845,7 @@
 
         return d => {
             const hosts = Object.entries(d.hosts).filter(([, h]) => enCarpeta(h, p.carpeta)).sort(([a], [b]) => a.localeCompare(b));
+            resumenTitulo(panel, hosts.map(([, h]) => h));
             const vivos = new Set(hosts.map(([n]) => n));
             filas.forEach((f, n) => { if (!vivos.has(n)) { f.remove(); filas.delete(n); } });
 
@@ -613,6 +870,22 @@
                 f.querySelectorAll('.perf').forEach(c => pintarPerf(c, c.dataset.c, m));
             });
         };
+    }
+
+    /* Conteo de estados en el título: verde sin novedad, amarillo con
+       avisos, rojo caídos o críticos. Solo se muestran los que hay. */
+    function resumenTitulo(panel, hosts) {
+        const h2 = panel.querySelector('h2');
+        let r = h2.querySelector('.h2-res');
+        if (!r) { r = el('span', 'h2-res'); h2.prepend(r); }
+        const c = { ok: 0, warn: 0, crit: 0 };
+        hosts.forEach(h => {
+            if (h.estado === 'down' || h.estado === 'unreach' || h.cr > 0) c.crit++;
+            else if (h.wa > 0) c.warn++;
+            else c.ok++;
+        });
+        r.innerHTML = [['ok', 'var(--ok)'], ['warn', 'var(--warn)'], ['crit', 'var(--crit)']]
+            .filter(([k]) => c[k] || k === 'ok').map(([k, col]) => `<span style="--c:${col}"><i></i>${c[k]}</span>`).join('');
     }
 
     function pintarPerf(celda, c, m) {
@@ -650,6 +923,8 @@
 
         return d => {
             const hosts = Object.entries(d.hosts).filter(([, h]) => enCarpeta(h, p.carpeta)).sort(([a], [b]) => a.localeCompare(b, 'es', { numeric: true }));
+            // En las listas solo cuenta si el host responde: sus servicios no se muestran.
+            resumenTitulo(panel, hosts.map(([, h]) => ({ estado: h.estado, wa: 0, cr: 0 })));
             const vivos = new Set(hosts.map(([n]) => n));
             filas.forEach((f, n) => { if (!vivos.has(n)) { f.remove(); filas.delete(n); } });
             hosts.forEach(([nombre, h], i) => {
@@ -673,11 +948,28 @@
         const a = Math.PI / 180 * (60 * i - 30);
         return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`;
     }).join(' ');
+    /* Piel 2.0: el hexágono pasa a ser un anillo partido por estado, con el
+       total al centro. Se conserva el aro punteado que gira con el HUD. */
+    const R_AN = 38, L_AN = 2 * Math.PI * R_AN;
     function hexSvg() {
-        return `<svg class="hex" viewBox="-4 -4 108 108" overflow="visible">
-            <polygon class="hex-anillo" points="${HEX(52)}" fill="none" stroke="var(--hud)" stroke-width="1" stroke-dasharray="4 7" opacity=".7"/>
-            <polygon points="${HEX(46)}" fill="#1a2a26" stroke="#1f6e52" stroke-width="2"/>
-            <polygon class="hex-in" points="${HEX(20)}" fill="var(--ok)"/></svg>`;
+        return `<svg class="an-svg" viewBox="0 0 100 100">
+            <circle class="hex-anillo" cx="50" cy="50" r="48" fill="none" stroke="var(--hud)" stroke-width=".8" stroke-dasharray="3 6" opacity=".6"/>
+            <circle cx="50" cy="50" r="${R_AN}" fill="none" stroke="#16282d" stroke-width="10"/>
+            <g class="segs" transform="rotate(-90 50 50)"></g>
+            <text class="an-n" x="50" y="53" text-anchor="middle" font-size="20" font-weight="600">—</text>
+            <text class="an-t" x="50" y="68" text-anchor="middle" font-size="7.5" fill="#8a96a1" style="fill:#8a96a1; letter-spacing:.1em">TOTAL</text></svg>`;
+    }
+    // segs: [[cantidad, color], …] en el orden en que se dibujan.
+    function pintarAnillo(cuerpo, segs, total, centro) {
+        let off = 0;
+        cuerpo.querySelector('.segs').innerHTML = segs.filter(([n]) => n > 0).map(([n, col]) => {
+            const largo = total ? L_AN * n / total : 0;
+            const s = `<circle class="seg" cx="50" cy="50" r="${R_AN}" fill="none" stroke="${col}" stroke-width="10"
+                stroke-dasharray="${Math.max(0, largo - 1.2)} ${L_AN}" stroke-dashoffset="${-off}" style="filter:drop-shadow(0 0 2px ${col})"/>`;
+            off += largo;
+            return s;
+        }).join('');
+        cuerpo.querySelector('.an-n').textContent = centro;
     }
     function leyenda(filas) {
         return filas.map(([n, color, txt]) => `<div><b>${n}</b><i style="background:${color}"></i><span>${txt}</span></div>`).join('');
@@ -686,30 +978,214 @@
         const cuerpo = el('div', 'hex-cuerpo', hexSvg() + '<div class="hex-ley"></div>');
         panel.appendChild(cuerpo);
         hexagonos.push({ p, panel });
+        hacerAbrible(panel, p);
         return d => {
             const hs = Object.values(d.hosts).filter(h => enCarpeta(h, p.carpeta));
             const c = { up: 0, mant: 0, unreach: 0, down: 0 };
             hs.forEach(h => { if (h.mant) c.mant++; else if (c[h.estado] !== undefined) c[h.estado]++; });
-            cuerpo.querySelector('.hex-in').setAttribute('fill', c.down ? 'var(--crit)' : c.unreach ? 'var(--unknown)' : 'var(--ok)');
+            pintarAnillo(cuerpo, [[c.up, 'var(--ok)'], [c.mant, 'var(--dt)'], [c.unreach, 'var(--unknown)'], [c.down, 'var(--crit)']], hs.length, hs.length);
             cuerpo.querySelector('.hex-ley').innerHTML = leyenda([
-                [c.up, 'var(--ok)', 'Up'], [c.mant, 'var(--dt)', 'In downtime'], [c.unreach, 'var(--unknown)', 'Unreachable'],
-                [c.down, 'var(--crit)', 'Down'], [hs.length, 'transparent', 'Total'],
+                [c.up, 'var(--ok)', 'Up'], [c.mant, 'var(--dt)', 'Mant.'], [c.unreach, 'var(--unknown)', 'Inalc.'],
+                [c.down, 'var(--crit)', 'Down'],
             ]);
         };
     }
     function crearHexServicios(panel, p) {
         const cuerpo = el('div', 'hex-cuerpo', hexSvg() + '<div class="hex-ley"></div>');
         panel.appendChild(cuerpo);
+        hacerAbrible(panel, p);
         return d => {
             const c = d.servicios[p.carpeta] || { ok: 0, mant: 0, host_caido: 0, warn: 0, unknown: 0, crit: 0, total: 0 };
-            cuerpo.querySelector('.hex-in').setAttribute('fill', c.crit ? 'var(--crit)' : c.warn ? 'var(--warn)' : c.unknown ? 'var(--unknown)' : 'var(--ok)');
+            pintarAnillo(cuerpo, [[c.ok, 'var(--ok)'], [c.mant, 'var(--dt)'], [c.host_caido, 'var(--pending)'], [c.warn, 'var(--warn)'], [c.unknown, 'var(--unknown)'], [c.crit, 'var(--crit)']], c.total, c.total);
             cuerpo.querySelector('.hex-ley').innerHTML = leyenda([
-                [c.ok, 'var(--ok)', 'OK'], [c.mant, 'var(--dt)', 'In downtime'], [c.host_caido, 'var(--pending)', 'On down host'],
-                [c.warn, 'var(--warn)', 'Warning'], [c.unknown, 'var(--unknown)', 'Unknown'], [c.crit, 'var(--crit)', 'Critical'],
-                [c.total, 'transparent', 'Total'],
+                [c.ok, 'var(--ok)', 'OK'], [c.mant, 'var(--dt)', 'Mant.'], [c.host_caido, 'var(--pending)', 'H. caído'],
+                [c.warn, 'var(--warn)', 'Warn'], [c.unknown, 'var(--unknown)', 'Unkn.'], [c.crit, 'var(--crit)', 'Crit'],
             ]);
         };
     }
+
+    /* ── Modal de detalle de un hexágono ──────────────────────────────────
+       Al pulsar un hexágono se abre la lista de sus hosts (o servicios, en
+       el de SSL) con IP, desde cuándo están en su estado, servicios con
+       problemas y la salida del chequeo. Se refresca cada 15 s mientras está
+       abierto y se cierra solo a los 2 min sin tocarlo, para que la TV no
+       quede tapada si alguien lo deja abierto. */
+    const md = {
+        fondo: $('md'), titulo: $('md-t'), chips: $('md-chips'), buscar: $('md-buscar'),
+        cuerpo: $('md-cuerpo'), pieI: $('md-pie-i'), pieD: $('md-pie-d'),
+        p: null, datos: null, filtro: null, abiertos: new Set(), tRefresco: null, tCierre: null,
+    };
+    const ORDEN_HOST = { down: 0, unreach: 1, pend: 2, mant: 3, up: 4 };
+    const ORDEN_SVC  = { crit: 0, unknown: 1, warn: 2, mant: 3, ok: 4 };
+    const ETQ = { up: 'UP', down: 'DOWN', unreach: 'UNREACH', pend: 'PEND', mant: 'MANT',
+                  ok: 'OK', warn: 'WARN', crit: 'CRIT', unknown: 'UNKN' };
+    const NOMBRE_EST = { up: 'Up', down: 'Down', unreach: 'Unreachable', pend: 'Pendiente', mant: 'En mantención',
+                         ok: 'OK', warn: 'Warning', crit: 'Critical', unknown: 'Unknown' };
+
+    function hace(ts) {
+        if (!ts) return '—';
+        const s = Math.max(0, Date.now() / 1000 - ts);
+        const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+        if (d >= 1) return `${d} d${h ? ` ${h} h` : ''}`;
+        if (h >= 1) return `${h} h${m ? ` ${m} min` : ''}`;
+        return m >= 1 ? `${m} min` : `${Math.floor(s)} s`;
+    }
+    const fecha = ts => ts ? new Date(ts * 1000).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    const enlaceCmk = host => URL_CHECKMK
+        ? `<a href="${esc(URL_CHECKMK + 'index.py?start_url=' + encodeURIComponent('view.py?view_name=host&host=' + host))}" target="_blank" rel="noopener">Abrir en CheckMK ↗</a>` : '';
+
+    function hacerAbrible(panel, p) {
+        if (!URL_CARPETA) return;
+        panel.classList.add('abre');
+        panel.title = 'Ver el detalle';
+        panel.addEventListener('click', () => abrirDetalle(p));
+    }
+
+    function abrirDetalle(p) {
+        Object.assign(md, { p, datos: null, filtro: null, enlace: null, servidor: null });
+        if (md.chart) { md.chart.destroy(); md.chart = null; }
+        (md.chartsSrv || []).forEach(c => c.destroy()); md.chartsSrv = [];
+        md.abiertos.clear();
+        md.buscar.value = '';
+        md.buscar.hidden = false;
+        md.titulo.innerHTML = `${esc(p.titulo)}<small>CARPETA ${esc(p.carpeta)} · CHECKMK</small>`;
+        md.chips.innerHTML = '';
+        md.cuerpo.innerHTML = '<div class="md-vacio">cargando…</div>';
+        md.pieI.textContent = md.pieD.textContent = '';
+        md.fondo.hidden = false;
+        cargarDetalle();
+        clearInterval(md.tRefresco);
+        md.tRefresco = setInterval(cargarDetalle, 15000);
+        tocarDetalle();
+    }
+    function cerrarDetalle() {
+        md.fondo.hidden = true;
+        md.p = null;
+        md.enlace = null;
+        md.servidor = null;
+        if (md.chart) { md.chart.destroy(); md.chart = null; }
+        (md.chartsSrv || []).forEach(c => c.destroy()); md.chartsSrv = [];
+        clearInterval(md.tRefresco);
+        clearTimeout(md.tCierre);
+    }
+    function tocarDetalle() {
+        clearTimeout(md.tCierre);
+        md.tCierre = setTimeout(cerrarDetalle, 120000);
+    }
+
+    async function cargarDetalle() {
+        const p = md.p;
+        if (!p) return;
+        try {
+            const sep = URL_CARPETA.includes('?') ? '&' : '?';
+            const r = await fetch(`${URL_CARPETA}${sep}carpeta=${encodeURIComponent(p.carpeta)}`, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+            const d = await r.json();
+            if (md.p !== p) return;   // se cerró o se abrió otro mientras llegaba
+            if (!d.ok) throw new Error(d.error || 'CheckMK no responde');
+            md.datos = d;
+            pintarDetalle();
+        } catch (e) {
+            if (md.p !== p) return;
+            if (!md.datos) md.cuerpo.innerHTML = `<div class="md-vacio">No se pudo leer CheckMK: ${esc(e.message)}</div>`;
+            md.pieD.textContent = 'sin conexión con CheckMK · reintentando';
+        }
+    }
+
+    // Estado efectivo para ordenar y filtrar: la mantención manda sobre el estado.
+    const estHost = h => h.mant && h.estado !== 'down' ? 'mant' : h.estado;
+    const estSvc  = s => s.mant ? 'mant' : s.estado;
+
+    function pintarDetalle() {
+        const d = md.datos, esHosts = d.tipo === 'hosts';
+        const lista = esHosts ? d.hosts : d.servicios;
+        const est = esHosts ? estHost : estSvc;
+        const orden = esHosts ? ORDEN_HOST : ORDEN_SVC;
+
+        // Chips con el conteo por estado; pulsar uno filtra (y otra vez lo quita).
+        const conteo = {};
+        lista.forEach(x => { conteo[est(x)] = (conteo[est(x)] || 0) + 1; });
+        md.chips.innerHTML = Object.keys(orden).filter(k => conteo[k]).map(k =>
+            `<button type="button" class="md-chip md-${k} ${md.filtro === k ? 'on' : ''}" data-f="${k}"><i></i>${NOMBRE_EST[k]} <b>${conteo[k]}</b></button>`
+        ).join('') + `<span class="md-chip" style="border:none">Total <b>${lista.length}</b></span>`;
+
+        const q = md.buscar.value.trim().toLowerCase();
+        const visibles = lista
+            .filter(x => !md.filtro || est(x) === md.filtro)
+            .filter(x => !q || (esHosts
+                ? [x.nombre, x.alias, x.ip, x.salida, ...x.problemas.map(s => s.servicio)]
+                : [x.host, x.servicio, x.salida]).some(v => v && String(v).toLowerCase().includes(q)))
+            .sort((a, b) => (orden[est(a)] - orden[est(b)]) || String(esHosts ? a.nombre : a.servicio).localeCompare(esHosts ? b.nombre : b.servicio, 'es'));
+
+        if (!visibles.length) {
+            md.cuerpo.innerHTML = '<div class="md-vacio">Nada coincide con el filtro.</div>';
+        } else if (esHosts) {
+            md.cuerpo.innerHTML = `<table class="md-tabla"><thead><tr>
+                <th>Estado</th><th>Host</th><th>IP</th><th title="Desde el último cambio de estado firme">En este estado</th>
+                <th>Latencia</th><th>Servicios</th><th>Salida del chequeo</th></tr></thead><tbody>${visibles.map(filaHost).join('')}</tbody></table>`;
+        } else {
+            md.cuerpo.innerHTML = `<table class="md-tabla"><thead><tr>
+                <th>Estado</th><th>Servicio</th><th>Host</th><th>En este estado</th><th>Salida</th></tr></thead><tbody>${visibles.map(filaSvc).join('')}</tbody></table>`;
+        }
+
+        md.pieI.textContent = esHosts ? 'Pulsa un host para ver sus servicios con problemas' : 'Pulsa un servicio para ver la salida completa';
+        md.pieD.textContent = 'actualizado ' + new Date(d.generado * 1000).toLocaleTimeString('es-CL');
+    }
+
+    function filaHost(h) {
+        const e = estHost(h), s = h.servicios, abierta = md.abiertos.has(h.nombre);
+        const svc = `<span class="${s.crit ? 'crit' : ''}" title="Critical">${s.crit}</span><span class="${s.warn ? 'warn' : ''}" title="Warning">${s.warn}</span><span class="ok" title="OK">${s.ok}</span>`;
+        const fila = `<tr class="md-fila md-${e} ${abierta ? 'md-abierta' : ''}" data-k="${esc(h.nombre)}">
+            <td><span class="md-est">${ETQ[e]}</span></td>
+            <td><b>${esc(h.nombre)}</b>${h.alias ? `<div class="tenue">${esc(h.alias)}</div>` : ''}</td>
+            <td class="num">${esc(h.ip || '—')}</td>
+            <td class="num" title="${esc(fecha(h.desde))}">${hace(h.desde)}</td>
+            <td class="num">${h.rta_ms != null ? `${h.rta_ms} ms` : '<span class="tenue">—</span>'}${h.perdida ? ` <span class="tenue">· ${h.perdida}% pérdida</span>` : ''}</td>
+            <td><span class="md-svc">${svc}</span></td>
+            <td class="salida" title="${esc(h.salida)}">${esc(h.salida)}</td></tr>`;
+        if (!abierta) return fila;
+        const probs = h.problemas.length
+            ? `<ul>${h.problemas.map(p => `<li class="md-${p.estado}"><span class="md-est">${ETQ[p.estado]}</span><b>${esc(p.servicio)}</b>
+                   <span>${esc(p.salida)} <span class="tenue">· hace ${hace(p.desde)}</span></span></li>`).join('')}</ul>`
+            : '<div class="tenue">Todos sus servicios están OK.</div>';
+        return fila + `<tr class="md-det"><td colspan="7">
+            <div class="md-salida">${esc(h.salida)}  ·  último chequeo hace ${hace(h.ultimo)}</div>
+            ${probs}
+            <div style="margin-top:.6em">${enlaceCmk(h.nombre)}</div></td></tr>`;
+    }
+
+    function filaSvc(s) {
+        const e = estSvc(s), k = s.host + '|' + s.servicio, abierta = md.abiertos.has(k);
+        const fila = `<tr class="md-fila md-${e} ${abierta ? 'md-abierta' : ''}" data-k="${esc(k)}">
+            <td><span class="md-est">${ETQ[e]}</span></td>
+            <td><b>${esc(s.servicio)}</b>${s.host_caido ? ' <span class="tenue">· host caído</span>' : ''}</td>
+            <td>${esc(s.host)}</td>
+            <td class="num" title="${esc(fecha(s.desde))}">${hace(s.desde)}</td>
+            <td class="salida" title="${esc(s.salida)}">${esc(s.salida)}</td></tr>`;
+        return abierta ? fila + `<tr class="md-det"><td colspan="5"><div class="md-salida">${esc(s.salida)}</div>${enlaceCmk(s.host)}</td></tr>` : fila;
+    }
+
+    md.chips.addEventListener('click', e => {
+        const r = e.target.closest('[data-r]');   // rango del modal de un enlace
+        if (r && md.enlace) { md.rango = +r.dataset.r; pintarCabEnlace(); cargarSerieEnlace(); return; }
+        const b = e.target.closest('[data-f]');
+        if (!b) return;
+        md.filtro = md.filtro === b.dataset.f ? null : b.dataset.f;
+        pintarDetalle();
+    });
+    md.cuerpo.addEventListener('click', e => {
+        if (e.target.closest('a')) return;
+        const f = e.target.closest('tr.md-fila');
+        if (!f) return;
+        const k = f.dataset.k;
+        md.abiertos.has(k) ? md.abiertos.delete(k) : md.abiertos.add(k);
+        pintarDetalle();
+    });
+    md.buscar.addEventListener('input', () => md.datos && pintarDetalle());
+    $('md-x').addEventListener('click', cerrarDetalle);
+    md.fondo.addEventListener('click', e => { if (e.target === md.fondo) cerrarDetalle(); });
+    md.fondo.addEventListener('pointermove', tocarDetalle);
+    md.fondo.addEventListener('keydown', tocarDetalle);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !md.fondo.hidden) cerrarDetalle(); });
 
     /* Medidor: arco de 270°, con el valor al centro. */
     function arco(r, desde, hasta) {
@@ -992,6 +1468,432 @@
         }
     }
 
+    /* Servicios críticos externos (Microsoft 365, SII, Claude, ChatGPT): el
+       servidor los consulta con caché de 2 min; la pantalla pide cada minuto. */
+    const cajasServicios = [];
+    function crearServicios(panel) {
+        const caja = el('div', 'svc-caja', '<div class="svc"></div>');
+        panel.appendChild(caja);
+        cajasServicios.push(caja.firstChild);
+        return null;
+    }
+    async function cargarServicios() {
+        if (!cajasServicios.length || !URL_SERVICIOS) return;
+        try {
+            const r = await fetch(URL_SERVICIOS, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+            if (!r.ok) throw new Error(r.status);
+            const lista = await r.json();
+            const html = lista.map(s => `<div class="svc-t svc-${esc(s.estado)}" title="${esc(s.nombre)}: ${esc(s.detalle)}">
+                <b><i></i><em>${esc(s.nombre)}</em></b><span>${esc(s.detalle)}</span></div>`).join('');
+            cajasServicios.forEach(c => { c.innerHTML = html; });
+        } catch (e) {
+            // Se deja el último estado visto.
+        }
+    }
+
+    /* ── Enlaces ───────────────────────────────────────────────────────────
+       Las series (pérdida y latencia de PING) llegan cada minuto desde
+       cargarEnlaces(); si el host está caído lo dice el sondeo de estado
+       cada 5 s, así que una caída sube la fila al tiro sin esperar al minuto.
+       El orden lo decide la salud: caído, intermitente, con pérdida, estable. */
+    const enl = { cajas: [], filas: new Map(), datos: [], hosts: {} };
+    const ORDEN_ENL = { caido: 0, intermitente: 1, perdida: 2, sin_datos: 3, estable: 4 };
+    const ETQ_ENL = { caido: 'CAÍDO', intermitente: 'INTERMITENTE', perdida: 'PÉRDIDA', sin_datos: 'SIN DATOS', estable: 'ESTABLE' };
+    const COLOR_ENL = { caido: 'var(--crit)', intermitente: 'var(--warn)', perdida: 'var(--unknown)', sin_datos: 'var(--pending)', estable: 'var(--ok)' };
+
+    function crearEnlaces(panel) {
+        const caja = el('div', 'enl-caja', `<div class="enl">
+            <div class="enl-cab"><span>Disponibilidad 4 h <span class="disp">—</span></span><span>Franja: últimas 4 h en bloques de 5 min · latido: latencia de la última hora</span><span class="cont"></span></div>
+            <div class="enl-lista"></div></div>`);
+        panel.appendChild(caja);
+        enl.cajas.push(caja);
+        // El estado UP/DOWN viene en cada sondeo (5 s).
+        return d => {
+            const antes = enl.datos.map(estadoEnlace).join();
+            enl.hosts = d.hosts || {};
+            if (enl.datos.map(estadoEnlace).join() !== antes) pintarEnlaces();
+        };
+    }
+
+    function estadoEnlace(e) {
+        const h = enl.hosts[e.host];
+        if (h && (h.estado === 'down' || h.estado === 'unreach')) return 'caido';
+        if (e.sin_datos) return 'sin_datos';
+        const malos = e.bloques.slice(-12).filter(v => v > 0).length;
+        return malos >= 3 ? 'intermitente' : malos >= 1 ? 'perdida' : 'estable';
+    }
+    const colorBloque = v => v == null ? '#24313a' : v === 0 ? '#0f5c43' : v < 20 ? 'var(--warn)' : v < 100 ? 'var(--unknown)' : 'var(--crit)';
+
+    async function cargarEnlaces() {
+        if (!enl.cajas.length || !URL_ENLACES) return;
+        try {
+            const r = await fetch(URL_ENLACES, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+            const d = await r.json();
+            if (!d.ok) throw new Error(d.error);
+            enl.datos = d.enlaces;
+            pintarEnlaces();
+        } catch (e) {
+            // Se deja lo último dibujado; la conexión con CheckMK la avisa el sondeo.
+        }
+    }
+
+    function pintarEnlaces() {
+        enl.cajas.forEach(caja => {
+            const lista = caja.querySelector('.enl-lista');
+            const antes = new Map([...lista.children].map(f => [f.dataset.host, f.getBoundingClientRect().top]));
+
+            enl.datos.forEach(e => {
+                let f = lista.querySelector(`[data-host="${CSS.escape(e.host)}"]`);
+                if (!f) {
+                    f = el('div', 'enl-f', `<span class="enl-orbe"></span><span class="enl-nom"></span><span class="enl-etq"></span>
+                        <canvas class="enl-pulso"></canvas><div class="enl-franja">${'<i></i>'.repeat(48)}</div>
+                        <span class="enl-lat"></span><span class="enl-pl"></span>`);
+                    f.dataset.host = e.host;
+                    f.addEventListener('click', () => abrirEnlace(f.dataset.host));
+                    lista.appendChild(f);
+                }
+                const est = estadoEnlace(e);
+                if (f.dataset.e === 'caido' && est !== 'caido') { f.classList.remove('recupera'); void f.offsetWidth; f.classList.add('recupera'); }
+                f.dataset.e = est;
+                f.title = `${e.nombre} · ${e.host}${e.ip ? ' · ' + e.ip : ''} — ver detalle`;
+                f.querySelector('.enl-nom').textContent = e.nombre;
+                f.querySelector('.enl-etq').textContent = ETQ_ENL[est];
+                f.querySelectorAll('.enl-franja i').forEach((c, i) => {
+                    const v = e.bloques[i];
+                    c.style.setProperty('--b', colorBloque(v));
+                    c.title = v == null ? 'sin datos' : `${v}% de pérdida`;
+                });
+                f.querySelector('.enl-lat').innerHTML = est === 'caido' || e.lat_ult == null ? '<span style="color:var(--crit)">—</span>' : `${Math.round(e.lat_ult)}<small>ms</small>`;
+                const malos = e.bloques.slice(-12).filter(v => v > 0), pl = f.querySelector('.enl-pl');
+                pl.classList.toggle('mal', est === 'caido' || malos.length > 0);
+                pl.textContent = est === 'caido' ? `sin respuesta · ${hace(enl.hosts[e.host]?.cambio)}`
+                    : malos.length ? `${malos.length} con pérdida en 1 h · máx ${Math.max(...malos)}%`
+                    : e.sin_datos ? 'CheckMK sin datos de PING' : '0% de pérdida en 1 h';
+            });
+
+            // Reordenar por salud, con animación: el que falla sube.
+            const orden = [...enl.datos].sort((a, b) => (ORDEN_ENL[estadoEnlace(a)] - ORDEN_ENL[estadoEnlace(b)])
+                || (b.bloques.slice(-12).reduce((s, v) => s + (v || 0), 0) - a.bloques.slice(-12).reduce((s, v) => s + (v || 0), 0)));
+            orden.forEach(e => lista.appendChild(lista.querySelector(`[data-host="${CSS.escape(e.host)}"]`)));
+            if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                [...lista.children].forEach(f => {
+                    const d = (antes.get(f.dataset.host) ?? f.getBoundingClientRect().top) - f.getBoundingClientRect().top;
+                    if (Math.abs(d) > 2) f.animate([{ transform: `translateY(${d}px)` }, { transform: 'none' }], { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)' });
+                });
+            }
+
+            // Cabecera: disponibilidad media y conteo por estado.
+            const disp = enl.datos.map(e => e.disponible).filter(v => v != null);
+            caja.querySelector('.disp').textContent = disp.length ? `${(disp.reduce((a, b) => a + b, 0) / disp.length).toFixed(2).replace('.', ',')}%` : '—';
+            const n = {}; enl.datos.forEach(e => { const s = estadoEnlace(e); n[s] = (n[s] || 0) + 1; });
+            caja.querySelector('.cont').innerHTML = Object.keys(ORDEN_ENL).filter(k => n[k])
+                .map(k => `<span style="--c:${COLOR_ENL[k]}"><i></i>${ETQ_ENL[k].charAt(0) + ETQ_ENL[k].slice(1).toLowerCase()} <b>${n[k]}</b></span>`).join('');
+        });
+        pintarPulsos();
+    }
+
+    /* Latido: la latencia de la última hora como línea de monitor, con el
+       último punto marcado. Los minutos sin respuesta quedan como cortes rojos. */
+    function pintarPulsos() {
+        const colores = { caido: '#ff3232', intermitente: '#ffd703', perdida: '#ff8400', sin_datos: '#838383', estable: '#13d389' };
+        enl.cajas.forEach(caja => caja.querySelectorAll('.enl-f').forEach(f => {
+            const e = enl.datos.find(x => x.host === f.dataset.host), cv = f.querySelector('canvas');
+            if (!e || !cv.offsetWidth) return;
+            const dpr = devicePixelRatio || 1, W = cv.offsetWidth, H = cv.offsetHeight;
+            cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+            const x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+            const col = colores[estadoEnlace(e)], vals = e.latencia || [];
+            if (vals.length < 2) return;
+            const val = vals.filter(v => v != null), max = Math.max(1, ...val) * 1.3, min = Math.min(...val, max) * .8, paso = W / (vals.length - 1);
+            const py = v => H - 3 - (v - min) / (max - min || 1) * (H - 6);
+            x.lineWidth = 1.4; x.strokeStyle = col; x.shadowColor = col; x.shadowBlur = conHud() ? 6 : 0;
+            x.beginPath(); let abierto = false;
+            vals.forEach((v, i) => {
+                if (v == null) {
+                    if (abierto) x.stroke(); abierto = false;
+                    // Un minuto sin dato al final suele ser el que CheckMK aún no consolida: no se marca.
+                    if (i < vals.length - 2) { x.save(); x.shadowBlur = 0; x.fillStyle = '#ff3232'; x.fillRect(i * paso - 1, H - 6, 2, 5); x.restore(); }
+                    x.beginPath(); return;
+                }
+                abierto ? x.lineTo(i * paso, py(v)) : x.moveTo(i * paso, py(v)); abierto = true;
+            });
+            if (abierto) x.stroke();
+            x.shadowBlur = 0;
+            const k = vals.map(v => v != null).lastIndexOf(true);
+            if (k >= 0) { x.fillStyle = col; x.beginPath(); x.arc(Math.min(W - 3, k * paso), py(vals[k]), 2.4, 0, 7); x.fill(); }
+        }));
+    }
+    let tPulsos;
+    window.addEventListener('resize', () => { clearTimeout(tPulsos); tPulsos = setTimeout(pintarPulsos, 300); });
+
+    /* Modal de un enlace: KPIs, gráfico de latencia y pérdida, y cortes. */
+    async function abrirEnlace(host) {
+        const e = enl.datos.find(x => x.host === host);
+        if (!e || !URL_ENLACE) return;
+        clearInterval(md.tRefresco);
+        Object.assign(md, { p: null, datos: null, filtro: null, servidor: null, enlace: host, rango: md.enlace === host ? md.rango : 4 });
+        (md.chartsSrv || []).forEach(c => c.destroy()); md.chartsSrv = [];
+        md.buscar.hidden = true;
+        md.cuerpo.innerHTML = `<div class="enl-kpis"></div><div class="enl-graf"><canvas></canvas></div><div class="enl-cortes"></div>`;
+        md.fondo.hidden = false;
+        pintarCabEnlace();
+        await cargarSerieEnlace();
+        md.tRefresco = setInterval(cargarSerieEnlace, 60000);
+        tocarDetalle();
+    }
+    function pintarCabEnlace() {
+        const e = enl.datos.find(x => x.host === md.enlace); if (!e) return;
+        const est = estadoEnlace(e);
+        md.titulo.innerHTML = `<span style="color:${COLOR_ENL[est]}">●</span> ${esc(e.nombre)} <span class="enl-etq" style="--c:${COLOR_ENL[est]}; font-size:.5em; vertical-align:middle">${ETQ_ENL[est]}</span>
+            <small>${esc(e.host)}${e.ip ? ' · ' + esc(e.ip) : ''}${e.proveedor ? ' · ' + esc(e.proveedor) : ''}${e.desde ? ' · en este estado hace ' + hace(e.desde) : ''}</small>`;
+        md.chips.innerHTML = [[4, '4 H'], [24, '24 H'], [168, '7 D']]
+            .map(([h, t]) => `<button type="button" class="md-rango ${md.rango === h ? 'on' : ''}" data-r="${h}">${t}</button>`).join('');
+    }
+    async function cargarSerieEnlace() {
+        const host = md.enlace, rango = md.rango;
+        if (!host) return;
+        try {
+            const r = await fetch(`${URL_ENLACE}${URL_ENLACE.includes('?') ? '&' : '?'}host=${encodeURIComponent(host)}&horas=${rango}`, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+            const d = await r.json();
+            if (md.enlace !== host || md.rango !== rango) return;
+            if (!d.ok) throw new Error(d.error || 'CheckMK no responde');
+            pintarSerieEnlace(d);
+            md.pieI.textContent = 'Barras: pérdida de paquetes · línea: latencia';
+            md.pieD.textContent = `paso de ${Math.round(d.paso / 60)} min · actualizado ${new Date().toLocaleTimeString('es-CL')}`;
+        } catch (err) {
+            if (md.enlace !== host) return;
+            md.pieD.textContent = 'sin conexión con CheckMK · reintentando';
+        }
+    }
+    function pintarSerieEnlace(d) {
+        const e = enl.datos.find(x => x.host === md.enlace);
+        // Los últimos puntos suelen venir vacíos (sin consolidar): se recortan.
+        let n = d.pl.length; while (n > 0 && d.pl[n - 1] == null && (d.rta[n - 1] ?? null) == null) n--;
+        const pl = d.pl.slice(0, n), rta = d.rta.slice(0, n);
+        const plv = pl.filter(v => v != null), rtv = rta.filter(v => v != null);
+        const largo = d.horas > 24;
+        const etiquetas = pl.map((_, i) => {
+            const t = new Date((d.inicio + i * d.paso) * 1000);
+            return largo ? t.toLocaleString('es-CL', { weekday: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : t.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+        });
+        md.cuerpo.querySelector('.enl-kpis').innerHTML = [
+            ['Disponibilidad', plv.length ? `${(100 - plv.reduce((a, b) => a + b, 0) / plv.length).toFixed(2).replace('.', ',')}<small>%</small>` : '—'],
+            ['Latencia ahora', e?.lat_ult != null && estadoEnlace(e) !== 'caido' ? `${Math.round(e.lat_ult)}<small> ms</small>` : '—'],
+            ['Latencia media', rtv.length ? `${Math.round(rtv.reduce((a, b) => a + b, 0) / rtv.length)}<small> ms</small>` : '—'],
+            ['Puntos con pérdida', `${plv.filter(v => v > 0).length}<small> de ${plv.length}</small>`],
+        ].map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('');
+
+        const cv = md.cuerpo.querySelector('.enl-graf canvas');
+        if (md.chart) md.chart.destroy();
+        md.chart = window.Chart ? new Chart(cv, {
+            data: { labels: etiquetas, datasets: [
+                { type: 'line', label: 'Latencia (ms)', data: rta, yAxisID: 'ms', borderColor: '#3fd6d0', backgroundColor: 'rgba(63,214,208,.15)', fill: 'origin',
+                  borderWidth: 1.6, pointRadius: 0, tension: .25, spanGaps: false, order: 1 },
+                { type: 'bar', label: 'Pérdida (%)', data: pl, yAxisID: 'pl', order: 2, barPercentage: 1, categoryPercentage: .9,
+                  backgroundColor: pl.map(v => v >= 100 ? 'rgba(255,50,50,.85)' : v >= 20 ? 'rgba(255,132,0,.8)' : 'rgba(255,215,3,.75)') },
+            ] },
+            options: {
+                animation: { duration: 500 }, responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { labels: { color: '#c3cbd1', boxWidth: 12 } } },
+                scales: {
+                    x: { ticks: { color: '#8a96a1', maxTicksLimit: 8, maxRotation: 0 }, grid: { color: 'rgba(255,255,255,.05)' } },
+                    ms: { position: 'left', beginAtZero: true, ticks: { color: '#3fd6d0', callback: v => `${v} ms` }, grid: { color: 'rgba(255,255,255,.06)' } },
+                    pl: { position: 'right', min: 0, max: 100, ticks: { color: '#ffd703', callback: v => `${v}%` }, grid: { display: false } },
+                },
+            },
+        }) : null;
+
+        // Cortes: tramos seguidos con pérdida, del más reciente al más antiguo.
+        const cortes = []; let cur = null;
+        pl.forEach((v, i) => {
+            if (v > 0) { if (!cur) cur = { ini: d.inicio + i * d.paso, n: 0, max: 0 }; cur.n++; cur.max = Math.max(cur.max, v); }
+            else if (v === 0 && cur) { cortes.push(cur); cur = null; }
+        });
+        if (cur) { cur.vigente = true; cortes.push(cur); }
+        md.cuerpo.querySelector('.enl-cortes').innerHTML = '<h4>CORTES Y PÉRDIDAS DEL PERIODO</h4>' + (cortes.length
+            ? cortes.reverse().slice(0, 10).map(c => {
+                const t = new Date(c.ini * 1000);
+                return `<div class="enl-corte"><span>${t.toLocaleString('es-CL', largo ? { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit' })}</span>
+                    <div class="tira" style="width:${Math.max(4, Math.round(c.max))}%"></div>
+                    <span>${c.vigente ? '<b style="color:var(--crit)">en curso</b>' : Math.round(c.n * d.paso / 60) + ' min'}</span><span>${Math.round(c.max)}% máx</span></div>`;
+            }).join('') + (cortes.length > 10 ? `<div class="tenue" style="color:var(--muted)">y ${cortes.length - 10} más</div>` : '')
+            : '<div style="color:var(--muted)">Sin pérdida en el periodo.</div>');
+    }
+
+    /* ── Servidor ───────────────────────────────────────────────────────────
+       Una tarjeta por host con lo que antes eran 9 paneles: CPU y RAM (anillo
+       con el valor actual y gráfico de 8 h con los últimos 30 min
+       resaltados) y red (subida y bajada, con la última hora en espejo).
+       Los valores actuales llegan con el sondeo (5 s); las series, con
+       cargarGraficos() cada minuto. Al pulsar se abren los gráficos grandes. */
+    const srv = { tarjetas: [], series: {}, metricas: {}, hosts: {} };
+    const umbralColor = v => v == null ? 'var(--pending)' : v >= 90 ? 'var(--crit)' : v >= 80 ? 'var(--warn)' : 'var(--ok)';
+    const COLOR_CANVAS = { cpu: '#9ad85a', ram: '#5a9be6', sub: '#3fd6d0', baj: '#5a9be6', warn: '#ffd703', crit: '#ff3232' };
+
+    function crearServidor(panel, p) {
+        panel.classList.add('abre', 'srv');
+        panel.title = 'Ver los gráficos de detalle';
+        panel.addEventListener('click', () => abrirServidor(p));
+        const vital = m => `<div class="srv-v" data-m="${m}">
+            <div class="srv-g"><svg viewBox="0 0 68 68"><circle class="pista" cx="34" cy="34" r="28"/><circle class="valor" cx="34" cy="34" r="28"/></svg>
+                <div class="srv-gv"><b>—</b><small>${m.toUpperCase()}</small></div></div>
+            <div class="srv-s"><div class="srv-tt"><span>${m.toUpperCase()} · 8 h</span><span class="st"></span></div><div class="srv-cv"><canvas></canvas></div></div></div>`;
+        panel.insertAdjacentHTML('beforeend', `<div class="srv-meta"><span class="up">uptime —</span><span class="wc"></span></div>
+            ${vital('cpu')}${vital('ram')}
+            <div class="srv-red"><div class="srv-n"><small>↑ SUBIDA</small><b class="sub">—</b></div><div class="srv-n"><small>↓ BAJADA</small><b class="baj">—</b></div><div class="srv-cv"><canvas></canvas></div></div>`);
+        const t = { p, panel };
+        srv.tarjetas.push(t);   // la caída del host ya la avisa su fila en la tabla de servidores
+        return d => {
+            srv.metricas = d.metricas || {}; srv.hosts = d.hosts || {};
+            pintarValoresServidor(t);
+        };
+    }
+
+    function pintarValoresServidor(t) {
+        const m = srv.metricas[t.p.host] || {}, h = srv.hosts[t.p.host] || {};
+        t.panel.dataset.e = h.estado === 'down' || h.estado === 'unreach' ? 'caido' : (h.cr ? 'crit' : h.wa ? 'warn' : 'ok');
+        t.panel.querySelector('.up').textContent = m.uptime ? `uptime ${uptime(m.uptime)}` : 'uptime —';
+        t.panel.querySelector('.wc').innerHTML = h.estado === 'down' ? '<span class="srv-pill" style="--c:var(--crit)">CAÍDO</span>'
+            : (h.cr ? `<span class="srv-pill" style="--c:var(--crit)">${h.cr} CRÍTICO${h.cr > 1 ? 'S' : ''}</span>` : '')
+            + (h.wa ? `<span class="srv-pill" style="--c:var(--warn)">${h.wa} AVISO${h.wa > 1 ? 'S' : ''}</span>` : '')
+            + (!h.cr && !h.wa && h.estado ? '<span class="srv-pill" style="--c:var(--ok)">OK</span>' : '');
+        [['cpu', m.cpu], ['ram', m.ram]].forEach(([k, v]) => {
+            const box = t.panel.querySelector(`[data-m="${k}"]`), r = 28, L = 2 * Math.PI * r, arco = L * .75;
+            const val = box.querySelector('.valor');
+            val.style.strokeDasharray = `${arco * Math.max(0, Math.min(100, v ?? 0)) / 100} ${L}`;
+            val.style.stroke = val.style.color = umbralColor(v);
+            box.querySelector('.pista').style.strokeDasharray = `${arco} ${L}`;
+            box.querySelector('.srv-gv b').textContent = v == null ? '—' : `${Math.round(v)}%`;
+        });
+        t.panel.querySelector('.sub').innerHTML = m.out_bps == null ? '—' : bits(m.out_bps).replace(/ (\S+)$/, '<em> $1</em>');
+        t.panel.querySelector('.baj').innerHTML = m.in_bps == null ? '—' : bits(m.in_bps).replace(/ (\S+)$/, '<em> $1</em>');
+    }
+
+    // Serie de un servidor ya en las unidades de la pantalla (RAM en % si se conoce el total).
+    function serieServidor(host, clave) {
+        const g = srv.series[`srv:${host}:${clave}`];
+        if (!g || !g.series.length) return null;
+        let datos = g.series[0].datos.slice();
+        while (datos.length && datos[datos.length - 1] == null) datos.pop();
+        if (clave.startsWith('ram')) {
+            const m = srv.metricas[host] || {};
+            const total = m.ram_total || (m.ram_bytes && m.ram ? m.ram_bytes / (m.ram / 100) : null);
+            datos = datos.map(v => v == null ? null : total ? v / total * 100 : v / 1073741824);
+            return { datos, pct: !!total, inicio: g.inicio, paso: g.paso };
+        }
+        return { datos, pct: true, inicio: g.inicio, paso: g.paso };
+    }
+
+    function lienzoSrv(cv) {
+        const caja = cv.parentNode, dpr = devicePixelRatio || 1, W = caja.clientWidth, H = caja.clientHeight;
+        if (!W || !H) return null;
+        cv.style.width = W + 'px'; cv.style.height = H + 'px';
+        cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+        const x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H);
+        return { x, W, H };
+    }
+
+    // 8 h en tenue y los últimos 30 min resaltados, en el mismo gráfico.
+    function dibujarDosEscalas(cv, s, color) {
+        const L = lienzoSrv(cv); if (!L || !s || s.datos.length < 2) return; const { x, W, H } = L;
+        const val = s.datos.filter(v => v != null);
+        const max = s.pct ? 100 : Math.max(1, ...val) * 1.15, py = v => H - 2 - v / max * (H - 6), px = i => i / (s.datos.length - 1) * W;
+        const corte = Math.max(0, s.datos.length - Math.round(1800 / (s.paso || 60)));
+        x.fillStyle = 'rgba(255,255,255,.045)'; x.fillRect(px(corte), 0, W - px(corte), H);
+        x.strokeStyle = 'rgba(255,255,255,.06)'; x.lineWidth = 1;
+        [.25, .5, .75].forEach(k => { x.beginPath(); x.moveTo(0, py(max * k)); x.lineTo(W, py(max * k)); x.stroke(); });
+        const camino = (desde) => { x.beginPath(); let a = false; s.datos.forEach((v, i) => { if (i < desde) return; if (v == null) { a = false; return; } a ? x.lineTo(px(i), py(v)) : x.moveTo(px(i), py(v)); a = true; }); };
+        const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, color + '55'); g.addColorStop(1, color + '05');
+        x.beginPath(); x.moveTo(0, H);
+        s.datos.forEach((v, i) => x.lineTo(px(i), py(v ?? 0)));
+        x.lineTo(W, H); x.closePath(); x.fillStyle = g; x.fill();
+        camino(0); x.strokeStyle = color + '70'; x.lineWidth = 1; x.stroke();
+        camino(corte); x.strokeStyle = color; x.lineWidth = 2; x.shadowColor = color; x.shadowBlur = conHud() ? 8 : 0; x.stroke(); x.shadowBlur = 0;
+        const k = s.datos.length - 1; if (s.datos[k] != null) { x.fillStyle = color; x.beginPath(); x.arc(W - 2.5, py(s.datos[k]), 2.8, 0, 7); x.fill(); }
+        x.fillStyle = '#8a96a1'; x.font = `${Math.min(11, Math.max(9, H * .16))}px ${getComputedStyle(document.body).fontFamily}`; x.textAlign = 'right'; x.fillText('30 min', W - 6, 12);
+    }
+
+    // Red en espejo: salida arriba, entrada abajo, en escala logarítmica.
+    function dibujarEspejo(cv, sub, baj) {
+        const L = lienzoSrv(cv); if (!L || !sub || !baj) return; const { x, W, H } = L, m = H / 2;
+        const lg = v => Math.log10(1 + (v || 0)), max = Math.max(1, ...sub.map(lg), ...baj.map(lg)), n = Math.max(sub.length, baj.length), px = i => i / Math.max(1, n - 1) * W;
+        x.strokeStyle = 'rgba(255,255,255,.14)'; x.beginPath(); x.moveTo(0, m); x.lineTo(W, m); x.stroke();
+        [[sub, COLOR_CANVAS.sub, -1], [baj, COLOR_CANVAS.baj, 1]].forEach(([s, col, dir]) => {
+            const y = v => m + dir * lg(v) / max * (m - 2);
+            x.beginPath(); x.moveTo(0, m); s.forEach((v, i) => x.lineTo(px(i), y(v))); x.lineTo(px(s.length - 1), m); x.closePath(); x.fillStyle = col + '40'; x.fill();
+            x.beginPath(); s.forEach((v, i) => i ? x.lineTo(px(i), y(v)) : x.moveTo(px(i), y(v))); x.strokeStyle = col; x.lineWidth = 1.4; x.stroke();
+        });
+    }
+
+    function pintarServidores() {
+        srv.tarjetas.forEach(t => {
+            const host = t.p.host;
+            [['cpu', COLOR_CANVAS.cpu], ['ram', COLOR_CANVAS.ram]].forEach(([k, col]) => {
+                const box = t.panel.querySelector(`[data-m="${k}"]`), s = serieServidor(host, `${k}480`), s30 = serieServidor(host, `${k}30`);
+                const v30 = s30 ? s30.datos.filter(v => v != null) : [], v8 = s ? s.datos.filter(v => v != null) : [];
+                const u = s && s.pct ? '%' : ' GiB', f = v => s && s.pct ? Math.round(v) : v.toFixed(1);
+                box.querySelector('.st').innerHTML = v8.length ? `pico <b>${f(Math.max(...v8))}${u}</b> · prom 30 min <b>${v30.length ? f(v30.reduce((a, b) => a + b, 0) / v30.length) : '—'}${u}</b>` : 'sin datos';
+                dibujarDosEscalas(box.querySelector('canvas'), s, col);
+            });
+            const bw = srv.series[`srv:${host}:bw60`];
+            const serie = nombre => bw?.series.find(x => x.nombre === nombre)?.datos.map(v => (v || 0) * 8) || null;
+            dibujarEspejo(t.panel.querySelector('.srv-red canvas'), serie('Salida'), serie('Entrada'));
+        });
+    }
+    let tSrv;
+    window.addEventListener('resize', () => { clearTimeout(tSrv); tSrv = setTimeout(pintarServidores, 300); });
+
+    /* Modal del servidor: los gráficos grandes de antes, en un solo lugar. */
+    function abrirServidor(p) {
+        clearInterval(md.tRefresco);
+        Object.assign(md, { p: null, enlace: null, servidor: p.host });
+        if (md.chart) { md.chart.destroy(); md.chart = null; }
+        md.buscar.hidden = true; md.chips.innerHTML = '';
+        md.titulo.innerHTML = `${esc(p.titulo)}<small>SERVIDOR · CHECKMK</small>`;
+        md.cuerpo.innerHTML = `<div class="enl-kpis srv-kpis"></div><div class="srv-graficos">
+            ${[['cpu30', 'CPU · 30 minutos'], ['cpu480', 'CPU · 8 horas'], ['ram30', 'RAM · 30 minutos'], ['ram480', 'RAM · 8 horas']]
+                .map(([k, t]) => `<figure><figcaption>${t}</figcaption><div class="srv-mg"><canvas data-k="${k}"></canvas></div></figure>`).join('')}
+            <figure class="ancho"><figcaption>Ancho de banda · 60 minutos · Interface 1</figcaption><div class="srv-mg"><canvas data-k="bw60"></canvas></div></figure></div>`;
+        md.fondo.hidden = false;
+        pintarModalServidor();
+        md.pieI.textContent = 'Los gráficos se actualizan cada minuto';
+        tocarDetalle();
+    }
+    function pintarModalServidor() {
+        const host = md.servidor, m = srv.metricas[host] || {}, h = srv.hosts[host] || {};
+        const c8 = serieServidor(host, 'cpu480'), v8 = c8 ? c8.datos.filter(v => v != null) : [];
+        md.cuerpo.querySelector('.srv-kpis').innerHTML = [
+            ['CPU ahora', m.cpu == null ? '—' : `${Math.round(m.cpu)}<small>%</small>`],
+            ['RAM ahora', m.ram == null ? '—' : `${Math.round(m.ram)}<small>%</small>`],
+            ['Pico CPU 8 h', v8.length ? `${Math.round(Math.max(...v8))}<small>%</small>` : '—'],
+            ['↑ Subida', m.out_bps == null ? '—' : esc(bits(m.out_bps))],
+            ['↓ Bajada', m.in_bps == null ? '—' : esc(bits(m.in_bps))],
+        ].map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('');
+        md.pieD.textContent = `${h.wa || 0} servicios en aviso · ${h.cr || 0} críticos · uptime ${m.uptime ? uptime(m.uptime) : '—'}`;
+        (md.chartsSrv || []).forEach(c => c.destroy());
+        md.chartsSrv = [];
+        if (!window.Chart) return;
+        md.cuerpo.querySelectorAll('canvas[data-k]').forEach(cv => {
+            const k = cv.dataset.k, g = srv.series[`srv:${host}:${k}`];
+            if (!g || !g.series.length) return;
+            const etq = g.series[0].datos.map((_, i) => hhmm(g.inicio + i * g.paso));
+            let datasets;
+            if (k === 'bw60') {
+                datasets = g.series.map(s => ({ label: s.nombre === 'Salida' ? '↑ Salida' : '↓ Entrada', data: s.datos.map(v => v == null ? null : v * 8 / 1e6 * (s.nombre === 'Entrada' ? -1 : 1)),
+                    borderColor: s.nombre === 'Salida' ? COLOR_CANVAS.sub : COLOR_CANVAS.baj, backgroundColor: (s.nombre === 'Salida' ? COLOR_CANVAS.sub : COLOR_CANVAS.baj) + '33', fill: 'origin', borderWidth: 1.4, pointRadius: 0 }));
+            } else {
+                const s = serieServidor(host, k), col = k.startsWith('cpu') ? COLOR_CANVAS.cpu : COLOR_CANVAS.ram;
+                datasets = [{ label: k.startsWith('cpu') ? 'CPU' : 'RAM', data: s.datos, borderColor: col, backgroundColor: col + '33', fill: 'origin', borderWidth: 1.6, pointRadius: 0, tension: .2 }];
+            }
+            const pct = !k.startsWith('bw') && (serieServidor(host, k)?.pct ?? true);
+            md.chartsSrv.push(new Chart(cv, { type: 'line', data: { labels: etq, datasets }, options: {
+                animation: false, responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { display: k === 'bw60', labels: { color: '#c3cbd1', boxWidth: 12 } } },
+                scales: { x: { ticks: { color: '#8a96a1', maxTicksLimit: 6, maxRotation: 0 }, grid: { color: 'rgba(255,255,255,.05)' } },
+                          y: { beginAtZero: true, max: pct ? 100 : undefined, ticks: { color: '#8a96a1', callback: v => k === 'bw60' ? `${Math.abs(v)} Mb` : pct ? `${v}%` : `${(+v).toFixed(1)} GiB` }, grid: { color: 'rgba(255,255,255,.06)' } } } } }));
+        });
+    }
+
     async function cargarGraficos() {
         if (!window.Chart) return;
         try {
@@ -1000,6 +1902,9 @@
             if (!d.ok) throw new Error(d.error);
             graficos.forEach((g, titulo) => pintarGrafico(g, d.graficos[titulo]));
             ajustarGraficos();
+            srv.series = d.graficos;
+            pintarServidores();
+            if (md.servidor) pintarModalServidor();
         } catch (e) {
             // Se dejan los últimos gráficos dibujados; el estado de conexión lo muestra el sondeo.
         }
@@ -1362,6 +2267,8 @@
     // Los gráficos avanzan de a un punto por minuto en CheckMK: basta con refrescarlos cada minuto.
     cargarGraficos(); setInterval(cargarGraficos, 60000);
     cargarRanking(); setInterval(cargarRanking, 300000);
+    cargarServicios(); setInterval(cargarServicios, 60000);
+    cargarEnlaces(); setInterval(cargarEnlaces, 60000);
 })();
 </script>
 </body>
