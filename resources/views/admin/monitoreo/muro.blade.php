@@ -76,7 +76,7 @@
 
         /* ── Grilla: misma distribución que el dashboard de CheckMK ───────── */
         .muro { height:calc(100% - 3.4rem); padding:.35rem; display:grid; gap:.35rem;
-                grid-template-columns:34fr 10fr 22fr 34fr; grid-template-rows:auto minmax(0, 1fr);
+                grid-template-columns:34fr 10fr 22fr 34fr; grid-template-rows:auto 1fr;
                 /* La columna izquierda baja hasta el fondo. A su lado, la fila de
                    arriba mide lo que su contenido necesita (la más alta suele ser
                    Segmentos + Servicios críticos) y los enlaces toman todo el resto,
@@ -88,7 +88,9 @@
         .crece { flex:1 1 0; min-height:5rem; }
         .fila.crece > .panel { height:100%; }
         #area-abajo .fila { height:100%; }
-        #area-abajo { min-height:12rem; }
+        /* Mínimo por contenido: si los enlaces no caben, la fila crece, la
+           grilla se pasa del fondo y encajar() achica la letra. */
+        #area-abajo { min-height:auto; }
 
         .panel { background:var(--panel); border:1px solid var(--line); display:flex; flex-direction:column; min-width:0; position:relative; }
         .panel > h2 { font-size:.82rem; font-weight:700; text-align:center; padding:.3rem .4rem; background:var(--panel-2);
@@ -255,7 +257,11 @@
         /* Con muchos enlaces, dos columnas (el orden por salud va por filas). */
         .enl-lista.dos { grid-template-columns:repeat(2, minmax(0, 1fr)); }
         .enl-lista.dos .enl-f:nth-child(odd) { border-right:1px solid var(--line); }
-        .enl-f { --c:var(--ok); position:relative; display:grid; grid-template-columns:.8rem minmax(7rem, 1fr) 6.6rem minmax(5rem, 1fr) minmax(10rem, 3fr) 4.6rem minmax(7rem, 1.2fr);
+        /* En dos columnas falta ancho: la etiqueta se omite (el punto y el fondo
+           de la fila ya dicen el estado) y ese espacio pasa al texto de pérdida. */
+        .enl-lista.dos .enl-f { grid-template-columns:.8rem var(--nom, minmax(7rem, 1fr)) minmax(4rem, 1fr) minmax(8rem, 2fr) 3.6rem minmax(9rem, 1.6fr); gap:.6rem; }
+        .enl-lista.dos .enl-etq { display:none; }
+        .enl-f { --c:var(--ok); position:relative; display:grid; grid-template-columns:.8rem var(--nom, minmax(7rem, 1fr)) 6.6rem minmax(5rem, 1fr) minmax(10rem, 3fr) 4.6rem minmax(7rem, 1.2fr);
                  gap:.8rem; align-items:center; padding:0 .8rem; border-bottom:1px solid rgba(255,255,255,.04); cursor:pointer; min-height:0; overflow:hidden; }
         .enl-f:hover { background:rgba(255,255,255,.03); }
         .enl-f[data-e="intermitente"] { --c:var(--warn); background:linear-gradient(90deg, rgba(255,215,3,.10), transparent 55%); }
@@ -1545,7 +1551,7 @@
        cargarEnlaces(); si el host está caído lo dice el sondeo de estado
        cada 5 s, así que una caída sube la fila al tiro sin esperar al minuto.
        El orden lo decide la salud: caído, intermitente, con pérdida, estable. */
-    const enl = { cajas: [], filas: new Map(), datos: [], hosts: {} };
+    const enl = { cajas: [], filas: new Map(), datos: [], hosts: {}, cols: 1 };
     const ORDEN_ENL = { caido: 0, intermitente: 1, perdida: 2, sin_datos: 3, estable: 4 };
     const ETQ_ENL = { caido: 'CAÍDO', intermitente: 'INTERMITENTE', perdida: 'PÉRDIDA', sin_datos: 'SIN DATOS', estable: 'ESTABLE' };
     const COLOR_ENL = { caido: 'var(--crit)', intermitente: 'var(--warn)', perdida: 'var(--unknown)', sin_datos: 'var(--pending)', estable: 'var(--ok)' };
@@ -1619,8 +1625,9 @@
                 const malos = e.bloques.slice(-12).filter(v => v > 0), pl = f.querySelector('.enl-pl');
                 pl.classList.toggle('mal', est === 'caido' || malos.length > 0);
                 pl.textContent = est === 'caido' ? `sin respuesta · ${hace(enl.hosts[e.host]?.cambio)}`
-                    : malos.length ? `${malos.length} con pérdida en 1 h · máx ${Math.max(...malos)}%`
+                    : malos.length ? `pérdida máx ${Math.max(...malos)}% · ${malos.length}× en 1 h`
                     : e.sin_datos ? 'CheckMK sin datos de PING' : '0% de pérdida en 1 h';
+                pl.title = pl.textContent;
             });
 
             // Reordenar por salud, con animación: el que falla sube.
@@ -1628,11 +1635,16 @@
                 || (b.bloques.slice(-12).reduce((s, v) => s + (v || 0), 0) - a.bloques.slice(-12).reduce((s, v) => s + (v || 0), 0)));
             orden.forEach(e => lista.appendChild(lista.querySelector(`[data-host="${CSS.escape(e.host)}"]`)));
 
-            // El panel crece con la cantidad de enlaces (la grilla le cede alto a
-            // la fila de abajo) y desde 9 enlaces pasa a dos columnas.
-            const total = enl.datos.length, cols = total > 8 ? 2 : 1;
-            lista.classList.toggle('dos', cols === 2);
-            caja.style.minHeight = `calc(1.8rem + ${Math.max(1, Math.ceil(total / cols))} * 2.4rem)`;
+            const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize);
+
+            // La columna del nombre mide lo que el nombre más largo, para que se
+            // lean completos. Se guarda en rem para que siga a encajar().
+            const nombres = [...lista.querySelectorAll('.enl-nom')];
+            if (nombres.length) {
+                // max-content mide el texto y no la columna (que puede ser más ancha).
+                const ancho = Math.max(...nombres.map(n => { n.style.width = 'max-content'; const w = n.offsetWidth; n.style.width = ''; return w; })) / remPx;
+                lista.style.setProperty('--nom', `${Math.max(7, Math.ceil(ancho * 10) / 10 + .2)}rem`);
+            }
 
             if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
                 [...lista.children].forEach(f => {
@@ -1649,9 +1661,21 @@
             caja.querySelector('.cont').innerHTML = Object.keys(ORDEN_ENL).filter(k => n[k])
                 .map(k => `<span style="--c:${COLOR_ENL[k]}"><i></i>${ETQ_ENL[k].charAt(0) + ETQ_ENL[k].slice(1).toLowerCase()} <b>${n[k]}</b></span>`).join('');
         });
-        // Si cambió la cantidad de enlaces, cambió el alto del panel: reencajar.
+        // Si cambió la cantidad de enlaces, cambió el alto del panel: reencajar
+        // (encajar decide también si van en una o dos columnas).
         if (enl.datos.length !== enl.cuantos) { enl.cuantos = enl.datos.length; encajar(); }
+        else columnasEnlaces(enl.cols);
         pintarPulsos();
+    }
+
+    /* Una o dos columnas de enlaces: el panel pide el alto de sus filas, y la
+       grilla se lo cede a la fila de abajo. */
+    function columnasEnlaces(cols) {
+        enl.cols = cols;
+        enl.cajas.forEach(caja => {
+            caja.querySelector('.enl-lista').classList.toggle('dos', cols === 2);
+            caja.style.minHeight = `calc(1.8rem + ${Math.max(1, Math.ceil(enl.datos.length / cols))} * 2.4rem)`;
+        });
     }
 
     /* Latido: la latencia de la última hora como línea de monitor, con el
@@ -2200,7 +2224,7 @@
         if (fondoDe(muro) > muro.getBoundingClientRect().bottom + 1) return false;
         return [...document.querySelectorAll('.area')].every(a => fondoDe(a) <= a.getBoundingClientRect().bottom + 1);
     }
-    function encajar() {
+    function buscarFuente() {
         // El techo depende del ancho, para que las columnas no se queden angostas para el texto.
         let min = 6, max = Math.max(8, window.innerWidth * 0.0078);
         for (let i = 0; i < 12; i++) {
@@ -2208,7 +2232,22 @@
             raiz.style.fontSize = `${medio}px`;
             if (cabe()) min = medio; else max = medio;
         }
-        raiz.style.fontSize = `${Math.floor(min * 10) / 10}px`;
+        return Math.floor(min * 10) / 10;
+    }
+    function encajar() {
+        let fuente;
+        // Enlaces: una columna (cada fila con todo el ancho, nombres completos)
+        // salvo que dos columnas dejen la letra más grande.
+        if (!enl.cajas.length || !enl.datos.length) fuente = buscarFuente();
+        else {
+            columnasEnlaces(1);
+            const una = buscarFuente();
+            columnasEnlaces(2);
+            const dos = buscarFuente();
+            columnasEnlaces(una >= dos ? 1 : 2);
+            fuente = Math.max(una, dos);
+        }
+        raiz.style.fontSize = `${fuente}px`;
         fuenteGraficos();
     }
     let tEncaje;
