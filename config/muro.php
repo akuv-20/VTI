@@ -107,7 +107,7 @@ return [
         ],
 
         'segmentos' => [
-            ['tipo' => 'lista', 'titulo' => 'Segmentos Verfrut', 'carpeta' => '/redes'],
+            ['tipo' => 'lista', 'titulo' => 'Segmentos Verfrut', 'carpeta' => '/redes/campos_y_mas'],
             // Pegado al final de la lista, alto fijo y compacto. Donde termina
             // esta columna empiezan los enlaces.
             ['tipo' => 'servicios', 'titulo' => 'Servicios críticos', 'alto' => '9.5rem'],
@@ -147,7 +147,7 @@ return [
         'abajo' => [
             $fila([
                 // Reemplaza los seis gráficos de pérdida que había (tres aquí y tres en el centro).
-                ['tipo' => 'enlaces', 'titulo' => 'Monitoreo de enlaces'],
+                ['tipo' => 'enlaces', 'titulo' => 'Monitoreo de enlaces principales'],
             ]),
         ],
     ],

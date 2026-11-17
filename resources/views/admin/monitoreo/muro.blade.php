@@ -2120,12 +2120,14 @@
         try { localStorage.setItem('muro-anunciados', JSON.stringify([...anunciados].slice(-500))); } catch (e) {}
     }
 
+    const esEnlace = nombre => enl.datos.some(e => e.host === nombre);
     let anterior = null;     // estados del sondeo anterior, por host
     function detectar(d) {
         const ahora = Math.floor(Date.now() / 1000);
         const caidas = [];
         Object.entries(d.hosts).forEach(([nombre, h]) => {
-            const visible = elementosHost.has(nombre) || hexagonos.some(x => enCarpeta(h, x.p.carpeta));
+            // Los enlaces también avisan: sus hosts no están en ninguna tabla ni lista.
+            const visible = elementosHost.has(nombre) || hexagonos.some(x => enCarpeta(h, x.p.carpeta)) || esEnlace(nombre);
             if (!visible) return;
 
             const antes = anterior ? anterior[nombre] : null;
@@ -2163,7 +2165,9 @@
         const donde = ([nombre, h]) => {
             const p = paneles.find(x => ['tabla', 'lista'].includes(x.p.tipo) && enCarpeta(h, x.p.carpeta))
                    || hexagonos.find(x => enCarpeta(h, x.p.carpeta));
-            return p ? p.p.titulo : h.carpeta;
+            if (p) return p.p.titulo;
+            const e = esEnlace(nombre) && paneles.find(x => x.p.tipo === 'enlaces');
+            return e ? e.p.titulo : h.carpeta;
         };
         const hora = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
         if (caidas.length === 1) {
